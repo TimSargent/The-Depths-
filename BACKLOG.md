@@ -1,6 +1,6 @@
 # The Depths — Prioritized Development Backlog
 
-**Current playable build:** Prototype 016, `index.html`. Keep the same published URL / entry point for every playtest. This list contains *planned* work, not completed features.
+**Current playable build:** Prototype 017, `index.html`. Keep the same published URL / entry point for every playtest. This list contains *planned* work, not completed features.
 
 ## NOW — Prototype 014: nine-state anti-aliased video animation library
 
@@ -86,6 +86,13 @@ The animation state now explicitly reports IDLE/MOVING/TRANSITION/AUTO TRAVEL/DU
 - [ ] Visually confirm on iPhone that prone crawling and transitions no longer pulse in size.
 - [ ] Check residual source-video frame inconsistencies (which cannot be eliminated by renderer scaling alone).
 - [ ] Verify movement locks, bag return/dump, pickaxe and headlamp placement after the geometry change.
+
+## Prototype 017 keying bug and verification
+
+- [x] Diagnosed source assets: the 8-frame crouch-walk sequence contains **three nearly empty frames** (frame indices 1, 5, 7), with only 13, 15, and 69 strong pixels against typical intact frames of 1,400–1,550 pixels.
+- [x] Motion decoder now detects near-empty frames and substitutes the nearest intact frame from the same animation. This avoids sudden tiny/vanishing sprites without changing gameplay timing.
+- [x] Verified the replacement indices in source-data analysis: crouch-walk now renders [0,0,2,3,4,4,6,0]; prone crawl and both major posture transitions remain untouched.
+- [ ] Test the fix on an actual iPhone recording. Duplicate frames may be visually choppy; later we can regenerate or reconstruct *only* the damaged images, without new video credits.
 
 ## Decision log
 
