@@ -1,3 +1,15 @@
+## Prototype 037P — Brace → Pull → Settle animation polish (current playable)
+
+- [x] Keep the approved source skeleton and the 037S functional scoot: use original mining PNG frame 0 for a stationary brace, short portions of approved `walk`, `crouchWalk` and `proneCrawl` during travel, and original mining frame 0 for a stationary settle
+- [x] Three phases synchronized to the same 037S duration: brace 18%, pull 64%, settle 18%; ground position changes **only** during pull via eased translation
+- [x] No new video generations, no replacement anatomy, no scale changes, no overlays of multiple body poses
+- [x] Resume the two-second heavy mining cycle only after settle completes; maintain four-second rock sections, directional holds, and zero scoot for stationary overhead mining
+- [x] Fixed a first-pass timing issue that ended the scoot at the start of settle instead of after it
+- [x] Simulated full default prone loop: observed brace/pull/settle, seven scoots, eight excavations, one spoil-dumping trip, zero position-lock violations
+- [x] Existing `Mining scoot ON/OFF` comparison remains available
+- [ ] iPhone visual review: compare 037P to 037S; **the transition from locomotion frame 6 to mining frame 0 can still pop** because the two source drawings are not a naturally matched transition. Only make extra artwork if this remains objectionable
+- [ ] After source-animation polish and posture transitions are approved, proceed to 038 excavation freedom, then 036 targeting precision
+
 ## Prototype 037S — Mining → Scoot → Mining (playable)
 
 - [x] Reuse the **approved original animation library**, no newly generated character or separate scoot video: standing uses `walk`, crouched uses `crouchWalk`, prone uses `proneCrawl`
