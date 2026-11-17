@@ -1,6 +1,6 @@
 # The Depths — Prioritized Development Backlog
 
-**Current playable build:** Prototype 030, `index.html`. Keep the same published URL / entry point for every playtest. This list contains *planned* work, not completed features.
+**Current playable build:** Prototype 031, `index.html`. Keep the same published URL / entry point for every playtest. This list contains *planned* work, not completed features.
 
 ## NOW — Prototype 021: grounded walking and seamless travel
 
@@ -222,6 +222,18 @@ Audited all nine decoded video-derived animations using the actual silhouette bo
 - [x] Regression: simulated 3,600 frames (~60 seconds) through 8 mined strips, full bag/dump/return, no pre-prone strikes, zero movement-lock violations; max visual step 0.08334 cells/frame.
 - [ ] On-device QA: compare walking and source-character fidelity to Prototype 021/025. Original sequential mining may still look stepped at low frame count.
 - [ ] Do not replace approved character with procedural reconstruction again. For production rig, obtain accurate original source layers with true bone weights / landmark tracking. This restoration is a corrective rollback, not a claim of final skeletal skinning.
+
+## Prototype 031 — locomotion independent of automated mode
+
+- [x] **Movement is always allowed through an already-open tile**, regardless of selected tunnel height or Explore/Excavate mode.
+- [x] In Excavate mode, an actual unbroken rock face starts excavation; the current active face can continue widening from 1 to 2 or 3 tiles without abandoning the cut mid-progress.
+- [x] Turning around clears the active-face override, allowing immediate retreat through narrow passages without switching to Explore.
+- [x] Explore mode still stops at solid rock without mining; existing posture/movement locks remain active.
+- [x] Simulated retreat in two-tile Excavate mode through six one-tile cells: moved from x=15 to shaft edge x=2, **zero extra excavation**, no violations.
+- [x] Simulated forward passage in the same mode: traversed existing one-tile cells, then began mining only at the solid face.
+- [x] Simulated new two-tile-height excavation from solid rock: completed **two strips in the same cell**, then advanced.
+- [x] Full eight-strip bag/dump/return regression passed, zero position-lock violations; visual travel max 0.08334 cells per 60Hz frame.
+- [ ] Consider separate explicit widening interaction for previously excavated cells, rather than restricting free movement in order to auto-widen existing openings.
 
 ## Decision log
 
