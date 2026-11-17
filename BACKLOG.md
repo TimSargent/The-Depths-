@@ -45,11 +45,11 @@
 ## Prototype 013 — Video animation integration
 
 - [x] **Extract and normalize 8 selected green-screen animations** (12 transparent frames each): upright walk, standing → crouch, crouch walk, crouch → prone, low crawl, and standing/crouch/prone pickaxe strikes.
-- [x] Add `assets/motion-engine.js` to decompress and draw small monochrome sprite frames from `assets/motion-*.txt` on compatible browsers. Keep the previous joint rig as fallback.
+- [x] Add `assets/motion-engine.js` to decompress and draw small monochrome sprite frames from the verified `assets/motion-data-a.js` and `assets/motion-data-b.js` compressed bundles on compatible browsers. Keep the previous joint rig as fallback.
 - [x] Connect sprites to existing pose, movement, and mining logic. Reverse the two transitions for rising, and lower into the selected mining posture before starting the 4-second cut.
 - [x] Add **Animation Studio** below the game with clip selection, pause, reverse, and speed controls. Preview does not affect gameplay.
-- [x] Run simulated movement tests: 108 fixed-position frames on lowering and rising, 0 lock violations; 8 sections excavated, auto bag return/dump/resume; standing, crouch, and prone pickaxe selectors tested.
-- [ ] **Real iPhone Safari playtest:** verify all 8 assets report loaded, textures are visible, audio/visual impacts align, and posture changes do not clip the roof.
+- [x] Run simulated movement tests: 108 fixed-position frames on lowering and rising, 0 lock violations; a subsequent post-integration simulated traversal confirmed 108 movement-locked frames in each direction and all four traversal/transition animation states; full excavation/return and three mining selectors still need a live post-integration test.
+- [ ] **Real iPhone Safari playtest:** verify all 8 compressed bundles decode and report loaded, textures are visible, audio/visual impacts align, and posture changes do not clip the roof.
 - [ ] Review loop seams, baseline alignment, scale, hand/foot sliding, pencil-line detail, headlamp attachment, pickaxe contact, and bag prop overlap.
 - [ ] Replace temporary monochrome silhouettes with higher-quality textured frames after playtesting, without re-generating video if possible. Original selected videos remain the source references.
 - [ ] Test legacy rig fallback if network asset loading fails or the browser lacks `DecompressionStream`.
