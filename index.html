@@ -514,7 +514,7 @@ g.moveTo(hip[0]-d*3,hip[1]-4);g.lineTo(hip[0]-d*13+bagSway,hip[1]-8);g.stroke();
 const useOriginalRig=rigOpacity>.001&&!!window.OriginalSkeletonRig;
 if(useOriginalRig){
  g.save();g.translate(px,BASE);g.scale(d,1);
- window.OriginalSkeletonRig.draw(g,{...pose,_poseValue:poseValue},rigOpacity);
+ window.OriginalSkeletonRig.draw(g,{...pose,_poseValue:poseValue},1);
  g.restore();
 }else if(!spriteWalking||rigOpacity>0.001){
 g.save();g.globalAlpha=motionImage?rigOpacity:1;
