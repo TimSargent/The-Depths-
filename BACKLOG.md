@@ -1,6 +1,6 @@
 # The Depths — Prioritized Development Backlog
 
-**Current playable build:** Prototype 029, `index.html`. Keep the same published URL / entry point for every playtest. This list contains *planned* work, not completed features.
+**Current playable build:** Prototype 030, `index.html`. Keep the same published URL / entry point for every playtest. This list contains *planned* work, not completed features.
 
 ## NOW — Prototype 021: grounded walking and seamless travel
 
@@ -212,6 +212,16 @@ Audited all nine decoded video-derived animations using the actual silhouette bo
 - [x] Simulation regression: 8 rock strips, bag dump and resume, zero movement-lock violations, smooth travel.
 - [ ] iPhone visual QA critical: source artwork fragments are cropped from one original pose and may overlap/separate at extreme crouch/prone angles; adjust joint masks and anchors from screenshots before claiming production-ready skinning.
 - [ ] Replace source-frame raster segments with meticulously isolated PNG layers / rig assets if quality demands it. Never redesign the character without user approval.
+
+## Prototype 030 — restore approved animation artwork
+
+- [x] Set **original complete video-derived sprites as the default** for all poses and actions. Experimental sliced rig explicitly opt-in only.
+- [x] Preserve Prototype 021's smooth grid movement, distance-driven 7-frame walking loop and seam blending; force the experimental rig opacity to zero during walking.
+- [x] Restore mining sprites in their **original recorded frame order**, instead of scrambling poses or crossfading ghosted arms/pickaxe. Retain the two-second swing cadence and four-second rock break.
+- [x] Keep the original standing/crouch/prone animation transitions and mining posture gating.
+- [x] Regression: simulated 3,600 frames (~60 seconds) through 8 mined strips, full bag/dump/return, no pre-prone strikes, zero movement-lock violations; max visual step 0.08334 cells/frame.
+- [ ] On-device QA: compare walking and source-character fidelity to Prototype 021/025. Original sequential mining may still look stepped at low frame count.
+- [ ] Do not replace approved character with procedural reconstruction again. For production rig, obtain accurate original source layers with true bone weights / landmark tracking. This restoration is a corrective rollback, not a claim of final skeletal skinning.
 
 ## Decision log
 
