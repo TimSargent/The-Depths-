@@ -1,3 +1,15 @@
+## Prototype 037C — continuous held excavation (current playable)
+
+- [x] Fixed the one-and-done targeted excavation bug: finishing a raycast rock tile now automatically selects the next first solid rock tile while the same drag is held.
+- [x] Shallow forward-aim mining follows the chosen 1/2/3-tile tunnel clearance, removing the lowest unfinished strip at each solid face rather than stalling on high rock.
+- [x] When the next forward face is farther away and the connecting passages have adequate clearance, the miner automatically walks closer using the existing smooth movement and posture system before cutting.
+- [x] Upward/diagonal pocket work remains stationary: do not force the miner into a lower-height passage or down into prone to reach an overhead roof tile.
+- [x] Continuous mining still obeys supported standing-height sections, 4-second strip timing and eight-strip bag return/dump behavior.
+- [x] Simulated long forward hold: approached x13 from x10, excavated x13 from 0→2, advanced to x13, excavated x14 from 0→2, advanced again; no movement-lock violations.
+- [x] Simulated stationary up-left hold: raised two separate roof sections from x12 without movement; original button eight-strip bag/dump/resume cycle passed.
+- [ ] iPhone check 037C: hold a forward diagonal through successive rock faces and ensure hands stay on-screen as the miner approaches; release should stop continuous mining.
+- [ ] Walking review from 13:31 playtest: Seam Blend visibly OFF during later portion, original artwork loaded; still evaluating source-pose cadence independently of this excavation fix.
+
 ## Prototype 037W — Original walk animation calibration (current playable update)
 
 - [x] Inspected the original transparent upright-walking PNGs in Animation Library 014. Frame bottoms vary by about 10 original-source pixels (visible jitter when anchored independently).
