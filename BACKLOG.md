@@ -1,8 +1,8 @@
 # The Depths — Prioritized Development Backlog
 
-**Current playable build:** Prototype 010, `index.html`. Keep the same published URL / entry point for every playtest. This list contains *planned* work, not completed features.
+**Current playable build:** Prototype 011, `index.html`. Keep the same published URL / entry point for every playtest. This list contains *planned* work, not completed features.
 
-## NOW — Prototype 010: hard-locked movement/camera during transitions
+## NOW — Prototype 011: natural weight transfer and ground contacts
 
 - [ ] **Define and integrate an articulated stick-figure rig.** Head, torso, shoulders, elbows, hands, pelvis, knees, ankles, pickaxe and bag. Rig is separate from gameplay state. Test at close actual-game camera zoom.
 - [ ] **Fix low-crawl anatomy**: knees human, shins angle back behind knees, feet trail; no animal-like forward-bent lower legs.
@@ -41,6 +41,10 @@
 - [ ] Automatic return/dump/resume completes when crossing clearance boundaries.
 - [ ] Verify wide and close-up camera toggle on iPhone Safari.
 - [ ] Reset, mining speed, supports, left/right button releases remain functional.
+
+## Prototype 011 technical notes
+
+Seven rig keyframes were refined to model a human lowering into prone: feet planted during initial lean/bend, knees supporting kneel, palms touching floor in reach/all-fours, then chest/hips lowered with shins trailing behind. Subtle debug ground-contact markers appear during transitions. The previous movement and camera locks were preserved. Simulated lower and rise passed 108 locked frames each at constant X and camera. Visual playtesting and final anatomical polishing remain outstanding.
 
 ## Prototype 010 technical notes
 
