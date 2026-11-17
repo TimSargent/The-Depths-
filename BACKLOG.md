@@ -1,3 +1,20 @@
+## Animation backlog and prone targeting bug — November 17, 2026
+
+**Approved principle:** Retain the original graphite skeleton and all existing source animations. Keep the functional mining scoot; its ON/OFF visual differences were subtle in the 037P iPhone recording, so defer dedicated animation work until later.
+
+### Priority: fix prone tool/target alignment (bug)
+- [ ] In prone mining, the visible skeleton / tool can extend **past the highlighted rock target / raycast impact point**. The character appears beyond the position he's meant to mine.
+- [ ] Inspect sprite draw origin, prone full-detail scale and world anchor, forward-facing orientation, pickaxe reach, current player cell vs. target column, and aim-beam start/end. Ensure the tool strikes the **near face** of the selected section, never the far side of the highlighted tile.
+- [ ] Keep targeting and movement independent; do not move the miner merely to hide the visual bug. Test aiming left/right and overhead, especially prone at 1-tile clearance; preserve proper collision and posture behavior.
+
+### Required animation work (not yet implemented)
+- [ ] **Dumping waste at shaft:** Dedicated bag-emptying animation with the miner lifting / tipping the duffel over the ledge and visibly pouring spoil down the shaft; synchronize bag contents dropping from 8/8 to 0/8 with the pour.
+- [ ] **Prone return hauling:** Crawl with a **full or partially full waste-material bag trailing/dragging behind**, attached consistently to the skeleton and responding to movement, particularly during automatic return to the shaft.
+- [ ] **Target-aware pickaxe / hammer swing:** Change swing orientation and contact point based on the **specific selected rock tile/layer** (forward, low, diagonal, overhead, left/right), with the weapon head contacting the rock exactly when impact particles and excavation progress trigger. Preserve the deliberate two-second heavy rhythm.
+- [ ] **Mining reposition scoot — visual polish:** Keep existing mechanically improved scoot, but consider a purpose-built brace → pull → settle source animation only if worthwhile; 037P ON/OFF comparison looked nearly the same to the player. Avoid recreating the skeleton or adding unnecessary generated clips.
+
+**Sequence:** Fix the prone aiming/alignment bug before claiming the character animations are locked. Preserve previously agreed subsequent work order **038 excavation freedom → 036 precision targeting** after 037's core animation issues are addressed.
+
 ## Prototype 037P — Brace → Pull → Settle animation polish (current playable)
 
 - [x] Keep the approved source skeleton and the 037S functional scoot: use original mining PNG frame 0 for a stationary brace, short portions of approved `walk`, `crouchWalk` and `proneCrawl` during travel, and original mining frame 0 for a stationary settle
