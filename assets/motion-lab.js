@@ -24,10 +24,18 @@ function loop(t){
  ctx.fillStyle='#0c1012';ctx.fillRect(0,0,canvas.width,canvas.height);
  ctx.fillStyle='#313331';ctx.fillRect(0,247,canvas.width,33);
  ctx.strokeStyle='#b9a17e';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,247);ctx.lineTo(canvas.width,247);ctx.stroke();
- const image=window.DepthMotions?.get(selected,frame);
+ const image=window.DepthsFullArt?.get(selected,frame)||window.DepthMotions?.get(selected,frame);
  if(image){
-   ctx.imageSmoothingEnabled=true;ctx.drawImage(image,canvas.width/2-160,247-222,320,240);
-   $('labStatus').textContent=labels[names.indexOf(selected)]+' • frame '+(frame+1)+'/'+count+(isTransition?' • transition (reversible)':' • loop');
+   ctx.imageSmoothingEnabled=true;
+   if(image.isOriginalArtwork){
+     const {sx,sy}=image.fullDetailScale;
+     const ref=image.motionReference;
+     ctx.drawImage(image,canvas.width/2-ref.centerX*sx,247-image.height*sy,
+        image.width*sx,image.height*sy);
+   }else ctx.drawImage(image,canvas.width/2-160,247-222,320,240);
+   $('labStatus').textContent=labels[names.indexOf(selected)]+' • frame '+(frame+1)+'/'+count+
+    (image.isOriginalArtwork?' • ORIGINAL full-detail PNG':' • compressed preview')+
+    (isTransition?' • transition (reversible)':' • loop');
  }else{
    const stats=window.DepthMotions?.stats();
    $('labStatus').textContent='Loading '+selected+'... '+(stats?.ready||0)+'/'+(stats?.total||9)+' assets ('+(stats?.errors?.length||0)+' errors)';
