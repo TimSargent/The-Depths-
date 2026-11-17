@@ -87,7 +87,7 @@ function draw(ctx,pose,alpha=1){
    key==='upperLeg'?'hip':'knee');
   const refB=p(key==='upperArm'?'elbow':key==='lowerArm'?'hand':
    key==='upperLeg'?'knee':'ankle');
-  const A=pose[a],B=pose[b];
+  const A=anatomy[a],B=anatomy[b];
   const sr=Math.hypot(refB.x-refA.x,refB.y-refA.y)||1;
   const dr=Math.hypot(B[0]-A[0],B[1]-A[1])||1;
   const scale=dr/sr;
@@ -98,7 +98,7 @@ function draw(ctx,pose,alpha=1){
   ctx.restore();
  };
  const torso=(a,b)=>{
-  const piece=pieces.torso,refA=p('shoulder'),refB=p('hip'),A=pose[a],B=pose[b];
+  const piece=pieces.torso,refA=p('shoulder'),refB=p('hip'),A=anatomy[a],B=anatomy[b];
   if(!piece)return;
   const rr=Math.atan2(refB.y-refA.y,refB.x-refA.x);
   const tr=Math.atan2(B[1]-A[1],B[0]-A[0]);
