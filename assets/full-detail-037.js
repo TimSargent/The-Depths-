@@ -107,7 +107,12 @@ function normalize(key,images){
   im.motionReference={height:refH,centerX:centerX-im.sourceX};
   // Keep boot contact aligned to one ground plane while preserving genuine
   // frame-to-frame body motion from the original artwork.
-  if(key==='walk') im.motionReference.footY=sharedWalkFloor-im.sourceY;
+  if(key==='walk'){
+   im.motionReference.footY=sharedWalkFloor-im.sourceY; // W2 shared datum
+   // Original source frame's own lowest visible boot: W3 stance-floor lock.
+   // Draw-time toggle chooses this without modifying source artwork.
+   im.motionReference.plantedFootY=im.height;
+  }
   im.fullDetailScale={sx,sy};
   im.isOriginalArtwork=true;
  }
