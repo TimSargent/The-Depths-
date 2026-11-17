@@ -39,9 +39,12 @@ async function load(name){
     if(!a)continue;
     const p=i*4;im.data[p]=228;im.data[p+1]=211;im.data[p+2]=184;im.data[p+3]=a*85;
     const x=i%W,y=(i/W)|0;
-    if(x<minX)minX=x;if(x>maxX)maxX=x;if(y<minY)minY=y;if(y>maxY)maxY=y;
+    if(a>1){if(x<minX)minX=x;if(x>maxX)maxX=x;if(y<minY)minY=y;if(y>maxY)maxY=y;}
    }
    c.putImageData(im,0,0);
+   // Trim each frame to meaningful body pixels. Rendering uses this box
+   // to ground feet and preserve a consistent physical character scale.
+   canvas.bodyBox=minX<=maxX&&minY<=maxY?{x:minX,y:minY,w:maxX-minX+1,h:maxY-minY+1}:{x:0,y:0,w:W,h:H};
    // Headlight follows the visible sprite's upper body, not an unrelated rig pose.
    if(minY<maxY){
     const boxH=maxY-minY+1,headBandMax=minY+Math.max(8,Math.min(24,Math.round(boxH*.19)));
