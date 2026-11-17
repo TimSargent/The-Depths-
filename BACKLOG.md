@@ -1,6 +1,6 @@
 # The Depths — Prioritized Development Backlog
 
-**Current playable build:** Prototype 028, `index.html`. Keep the same published URL / entry point for every playtest. This list contains *planned* work, not completed features.
+**Current playable build:** Prototype 029, `index.html`. Keep the same published URL / entry point for every playtest. This list contains *planned* work, not completed features.
 
 ## NOW — Prototype 021: grounded walking and seamless travel
 
@@ -201,6 +201,17 @@ Audited all nine decoded video-derived animations using the actual silhouette bo
 - [x] Regression: existing crawl route, 8-strip bag fill, return, dump and resume completed with zero transition-lock violations.
 - [ ] iPhone visual QA: verify graphite texture, anatomy, hand-to-tool attachment, smooth skin blend and readability against dark rock.
 - [ ] After approval, extend same illustrated rig to crouched/prone mining and posture transitions; avoid changing the working walking motion until needed.
+
+## Prototype 029 — original graphite character restored on rig
+
+- [x] Lock original source video-derived character design as visual source of truth; no newly invented skull, ribcage, pelvis, or boots.
+- [x] New `assets/original-skeleton-rig.js` isolates head, torso/ribcage, pelvis, upper/lower arms, upper/lower legs and foot details from the **original stand-to-crouch frame 0 already decoded by DepthMotions**.
+- [x] Attach source-art pieces to the existing game joints with continuous translation and rotation at the render FPS. The standing source art is reused across mining/pose changes; walking sprite remains untouched.
+- [x] Keep the original 2-second heavy pickaxe cycle, four-second excavation, and automatic bag return/dump.
+- [x] Preserve a comparison switch: Original rig ON vs Original video frames, with the original skeletal frames available.
+- [x] Simulation regression: 8 rock strips, bag dump and resume, zero movement-lock violations, smooth travel.
+- [ ] iPhone visual QA critical: source artwork fragments are cropped from one original pose and may overlap/separate at extreme crouch/prone angles; adjust joint masks and anchors from screenshots before claiming production-ready skinning.
+- [ ] Replace source-frame raster segments with meticulously isolated PNG layers / rig assets if quality demands it. Never redesign the character without user approval.
 
 ## Decision log
 
