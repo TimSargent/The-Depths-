@@ -1,42 +1,48 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"><meta name="theme-color" content="#080a0c"><title>The Depths — Prototype 008</title>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"><meta name="theme-color" content="#080a0c"><title>The Depths — Prototype 009</title>
 <style>
 *{box-sizing:border-box}html,body{margin:0;background:#080a0c;color:#e9e0d3;font-family:system-ui,-apple-system,Arial,sans-serif;overflow-x:hidden}body{min-height:100dvh;overscroll-behavior:none}main{max-width:920px;margin:auto;padding:12px 12px max(18px,env(safe-area-inset-bottom))}.top{display:flex;align-items:center;justify-content:space-between;gap:8px}h1{margin:3px 0 0;font-size:21px}.eyebrow{font-size:10px;letter-spacing:2px;color:#bda889}.sub{font-size:12px;color:#b3a99a}.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:12px 0}.stat{background:#181b1d;border:1px solid #343537;border-radius:9px;padding:8px 7px}.stat span{font-size:10px;color:#aaa097;display:block}.stat b{font-size:14px;display:block;margin-top:2px}.view{position:relative;border:1px solid #4a443d;border-radius:12px;overflow:hidden;background:#070809;touch-action:none}canvas{width:100%;display:block;aspect-ratio:960/450;touch-action:none}.progress{position:absolute;bottom:0;left:0;height:4px;width:0;background:#e0ae67;transition:width .08s}.modes,.heights,.controls{display:flex;gap:8px;margin-top:10px}.modes button,.heights button{flex:1}.controls button{flex:1;min-height:65px;font-size:19px}button{background:#25282b;color:#f2e7d8;border:1px solid #555048;padding:12px 8px;border-radius:10px;font-size:13px;font-weight:700;touch-action:none;-webkit-user-select:none;user-select:none;cursor:pointer}button.selected{background:#725032;border-color:#d9ac72}button:disabled{opacity:.4}.actions{display:flex;gap:8px;margin-top:10px}.actions button{flex:1}.message{font-size:13px;line-height:1.45;color:#e7d4ba;border:1px solid #49443e;background:#181b1d;border-radius:10px;padding:11px;margin-top:10px;min-height:57px}.help{font-size:12px;line-height:1.55;color:#aaa097;margin:10px 2px}.meter{height:5px;border-radius:9px;background:#353739;overflow:hidden;margin-top:5px}.meter div{height:100%;background:#dfb47d;width:0;transition:width .15s}#phase{font-size:11px;color:#d7b27c;margin:8px 0 0}@media (max-width:500px){main{padding:8px 8px max(10px,env(safe-area-inset-bottom))}.stat{padding:7px 5px}.stat b{font-size:12px}.controls button{min-height:70px;font-size:18px}.modes button,.heights button{padding:11px 3px;font-size:12px}.actions button{font-size:12px}.eyebrow{font-size:9px}h1{font-size:18px}}
 </style></head><body><main>
-<div class="top"><div><div class="eyebrow">THE DEPTHS / PLAYTEST 008</div><h1>Dig. Haul. Repeat.</h1></div><button id="reset">↻ Restart</button></div>
+<div class="top"><div><div class="eyebrow">THE DEPTHS / PLAYTEST 009</div><h1>Dig. Haul. Repeat.</h1></div><button id="reset">↻ Restart</button></div>
 <div class="stats"><div class="stat"><span>Posture</span><b id="pose">Standing</b></div><div class="stat"><span>Bag</span><b id="bag">0 / 8</b><div class="meter"><div id="bagbar"></div></div></div><div class="stat"><span>Strips mined</span><b id="mined">0</b></div><div class="stat"><span>Dump trips</span><b id="trips">0</b></div></div>
 <div class="view"><canvas id="world" width="960" height="450" aria-label="Playable mining tunnel with automatic spoil bag and horizontal excavation"></canvas><div class="progress" id="progress"></div></div>
-<div id="phase">Rigged miner test • 4 seconds per strip</div>
+<div id="phase">Animation lock test • 4 seconds per strip</div>
+<div class="actions"><button id="zoom" class="selected">🔍 Close-up camera ON</button></div>
 <div class="modes"><button id="explore">↗ Explore</button><button id="excavate" class="selected">⛏ Excavate</button></div>
 <div class="heights"><button id="crawl" class="selected">1 tile · Crawl</button><button id="crouch">2 tiles · Crouch</button><button id="stand">3 tiles · Stand</button></div>
 <div class="controls"><button id="left">◀ HOLD LEFT</button><button id="right">HOLD RIGHT ▶</button></div>
 <div class="actions"><button id="brace">▥ Install support</button><button id="dump">◩ Dump at ledge</button></div>
 <div class="message" id="message">Hold RIGHT in Excavate mode. The miner will chip forward through the wall, collect rubble in his duffle bag, and automatically return to the shaft ledge when the bag is full.</div>
-<div class="help">Each thin horizontal section takes <b>4 seconds</b> to mine. Four sections make one full tunnel-length tile. New crawl tunnels need the least excavation; crouch tunnels need twice as much. Standing tunnels require supports. The miner cannot dig downward. Controls: hold left or right (keyboard A/D or arrow keys on a computer). When the bag fills, he automatically returns to the ledge, empties it, and resumes.</div>
+<div class="help">Each thin horizontal section takes <b>4 seconds</b> to mine. Four sections make one full tunnel-length tile. New crawl tunnels need the least excavation; crouch tunnels need twice as much. Standing tunnels require supports. The miner cannot dig downward. Character transitions pause forward motion until the new pose completes. Use Close-up camera to inspect the joints. Controls: hold left or right (keyboard A/D or arrow keys on a computer). When the bag fills, he automatically returns to the ledge, empties it, and resumes.</div>
 </main>
 <script>
 (()=>{
 const $=id=>document.getElementById(id),canvas=$('world'),g=canvas.getContext('2d');
 const CW=28,TH=72,N=130,BASE=365,START=6,EDGE=2;
-let heights,braces,p,mode,target,bag,mined,trips,phase,returnX,moveDir=0,holding=false,last=0,digElapsed=0,fx=[],cam=0,showTime=0,notice='',elapsed=0,roofTarget=-1,shake=0,rigPose=0,rigStride=0,rigSwing=0;
+let heights,braces,p,mode,target,bag,mined,trips,phase,returnX,moveDir=0,holding=false,last=0,digElapsed=0,fx=[],cam=0,showTime=0,notice='',elapsed=0,roofTarget=-1,shake=0,rigPose=0,rigStride=0,rigSwing=0,zoomed=true,transitionGoal=null,transitionHold=false;
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 function say(s){notice=s;$('message').textContent=s}
 function hAt(x){return x<0||x>=N?0:heights[x]}
 function supported(x){return [...braces].some(i=>Math.abs(x-i)<=4)}
 function status(){return p.x<=EDGE+1?'At shaft ledge':phase==='return'?'Returning with full bag':phase==='dump'?'Dumping spoil':phase==='resume'?'Returning to excavation':'Excavating'};
 function posture(){let h=hAt(p.x);return h>=3?'Standing':h>=2?'Crouching':'Crawling'}
+const poseFor=x=>hAt(x)>=3?0:hAt(x)===2?3:6;
+function poseReady(goal){return Math.abs(rigPose-goal)<0.0001}
+function holdForPose(goal){transitionGoal=goal;transitionHold=!poseReady(goal);return transitionHold}
+function visibleTransition(){return transitionHold||!poseReady(poseFor(p.x))}
+function transitionName(){return rigPose>transitionGoal?'Getting up':'Lowering down'}
 function reset(){
 heights=Array(N).fill(0);for(let x=EDGE;x<=9;x++)heights[x]=3;
-braces=new Set([4,8]);p={x:START,dir:1};mode='excavate';target=1;bag=0;mined=0;trips=0;phase='manual';returnX=START;moveDir=0;holding=false;last=0;digElapsed=0;fx=[];cam=0;showTime=0;roofTarget=-1;shake=0;rigPose=0;rigStride=0;rigSwing=0;
+braces=new Set([4,8]);p={x:START,dir:1};mode='excavate';target=1;bag=0;mined=0;trips=0;phase='manual';returnX=START;moveDir=0;holding=false;last=0;digElapsed=0;fx=[];cam=0;showTime=0;roofTarget=-1;shake=0;rigPose=0;rigStride=0;rigSwing=0;transitionGoal=null;transitionHold=false;
 $('progress').style.width='0%';say('Hold RIGHT in Excavate mode to cut a narrow prospecting tunnel. The bag holds 8 strips before the miner must dump at the ledge.');update();
 }
 function update(){
-$('pose').textContent=posture();$('bag').textContent=bag+' / 8';$('mined').textContent=mined;$('trips').textContent=trips;$('bagbar').style.width=(bag/8*100)+'%';
+$('pose').textContent=visibleTransition()?(transitionGoal!==null&&rigPose>transitionGoal?'Standing up…':'Lowering down…'):posture();$('bag').textContent=bag+' / 8';$('mined').textContent=mined;$('trips').textContent=trips;$('bagbar').style.width=(bag/8*100)+'%';
 for(const k of ['explore','excavate'])$(k).classList.toggle('selected',mode===k);
 for(const [k,n] of [['crawl',1],['crouch',2],['stand',3]])$(k).classList.toggle('selected',target===n);
 $('brace').disabled=hAt(p.x)<2||supported(p.x)||phase!=='manual';
 $('dump').disabled=phase!=='manual'||bag===0;
-$('phase').textContent=status()+' · '+(phase==='manual'&&moveDir&&mode==='excavate'?'Mining '+Math.floor(digElapsed/40*100)+'%':'4 sec per strip');
+$('phase').textContent=transitionHold?(transitionName()+' · movement paused'):(status()+' · '+(phase==='manual'&&moveDir&&mode==='excavate'?'Mining '+Math.floor(digElapsed/4*100)+'%':'4 sec per strip'));
 }
 function mineAt(x){
 if(x<EDGE||x>=N||hAt(x)>=target)return false;
@@ -52,11 +58,16 @@ return true;
 function setMode(v){if(phase!=='manual')return;mode=v;digElapsed=0;moveDir=0;say(v==='explore'?'Pickaxe stowed. Hold LEFT or RIGHT to travel through the tunnel.':'Pickaxe ready. Hold a direction and the miner excavates the selected tunnel height.');update()}
 function setTarget(v){target=v;digElapsed=0;say(v===1?'Prospecting: one tile tall, four narrow sections per full tunnel-length tile.':v===2?'Working passage: two tiles of height. More excavation, easier travel.':'Standing tunnel: three tiles of height, supports required before widening above two.');update()}
 function step(d){
-p.dir=d;let x=p.x+d;if(x<EDGE||x>=N)return false;
-if(hAt(x)===0)return false;
-p.x=x;return true;
+p.dir=d;const x=p.x+d;if(x<EDGE||x>=N||hAt(x)===0)return false;
+// Lower BEFORE entering a low ceiling. Rise only after entering high space.
+const nextPose=poseFor(x),currentPose=poseFor(p.x);
+if(nextPose>currentPose&&holdForPose(nextPose))return false;
+p.x=x;
+if(nextPose<currentPose)holdForPose(nextPose);
+return true;
 }
 function action(dt){
+if(transitionHold)return;
 if(phase==='return'||phase==='resume'){
 elapsed+=dt;
 if(elapsed<0.095)return;elapsed=0;
@@ -84,10 +95,11 @@ digElapsed+=dt;
 if(digElapsed>=4){mineAt(x);if(phase==='manual'&&hAt(x)>=target)step(moveDir)}
 }
 function draw(t){
-const w=960,h=450;const targetCam=clamp((p.x+.5)*CW-315,0,N*CW-w);cam+=(targetCam-cam)*.12;
+const w=960,h=450,zoom=zoomed?1.75:1;const targetCam=(p.x+.5)*CW;cam+=(targetCam-cam)*.13;
 g.clearRect(0,0,w,h);g.fillStyle='#050607';g.fillRect(0,0,w,h);
-g.save();g.translate(-Math.round(cam)+(shake?(Math.random()-.5)*shake:0),0);shake*=.82;if(shake<.2)shake=0;
-const first=Math.max(0,Math.floor(cam/CW)-1),end=Math.min(N-1,Math.ceil((cam+w)/CW)+1);
+g.save();g.translate(w*.41,h*.79);g.scale(zoom,zoom);g.translate(-Math.round(cam)+(shake?(Math.random()-.5)*shake:0),-BASE);shake*=.82;if(shake<.2)shake=0;
+const viewLeft=cam-w*.41/zoom,viewRight=cam+w*.59/zoom;
+const first=Math.max(0,Math.floor(viewLeft/CW)-2),end=Math.min(N-1,Math.ceil(viewRight/CW)+2);
 for(let x=first;x<=end;x++){
 let xx=x*CW,open=hAt(x),lit=clamp(1-Math.abs(p.x-x)/26,.26,1),v=47+40*lit+(Math.sin(x*13.6)*6|0);
 g.fillStyle='rgb('+Math.round(v+5)+','+Math.round(v+2)+','+Math.round(v)+')';g.fillRect(xx,0,CW,h);
@@ -104,8 +116,8 @@ g.lineWidth=3;g.beginPath();g.moveTo(xx+2,BASE-8);g.lineTo(xx+CW-2,top+10);g.str
 }
 
 const px=(p.x+.5)*CW,foot=BASE,d=p.dir;
-const moving=phase==='return'||phase==='resume'||(phase==='manual'&&moveDir!==0);
-const digging=phase==='manual'&&mode==='excavate'&&moveDir!==0&&hAt(p.x+moveDir)<target;
+const moving=!transitionHold&&(phase==='return'||phase==='resume'||(phase==='manual'&&moveDir!==0));
+const digging=!transitionHold&&phase==='manual'&&mode==='excavate'&&moveDir!==0&&hAt(p.x+moveDir)<target;
 const nearFace=(p.x+moveDir>=EDGE&&p.x+moveDir<N);
 // Seven keyframes blend between upright and prone; intermediate states are visible during transitions.
 // Coordinates in screen pixels, anchored at the miner's floor contact.
@@ -178,7 +190,16 @@ if(phase==='manual'&&mode==='excavate'&&moveDir&&hAt(p.x+moveDir)<target){
 g.fillStyle='rgba(220,178,103,.10)';g.fillRect(w-165,12,145,22);g.fillStyle='#dec08d';g.font='14px system-ui';g.fillText('Rock '+Math.floor(digElapsed/4*100)+'%',w-152,28)
 }
 }
-function loop(t){const dt=last?Math.min(.06,(t-last)/1000):0;last=t;action(dt);const desired=hAt(p.x)>=3?0:hAt(p.x)===2?3:hAt(p.x)===1?6:0;const delta=desired-rigPose;rigPose+=Math.sign(delta)*Math.min(Math.abs(delta),dt*6/1.8);const movingRig=phase==='return'||phase==='resume'||(phase==='manual'&&moveDir!==0);if(movingRig)rigStride+=dt*(rigPose>=5?7:rigPose>=3?8:10);if(phase==='manual'&&mode==='excavate'&&moveDir&&hAt(p.x+moveDir)<target)rigSwing+=dt*1.15;else rigSwing=0;draw(t);update();$('progress').style.width=(phase==='manual'&&mode==='excavate'&&moveDir?clamp(digElapsed/4,0,1)*100:0)+'%';requestAnimationFrame(loop)}
+function loop(t){const dt=last?Math.min(.06,(t-last)/1000):0;last=t;
+const desired=transitionHold?transitionGoal:poseFor(p.x);
+const delta=desired-rigPose;
+rigPose+=Math.sign(delta)*Math.min(Math.abs(delta),dt*6/1.8);
+if(transitionHold&&poseReady(transitionGoal)){transitionHold=false;transitionGoal=null;elapsed=0;}
+action(dt);
+const movingRig=!transitionHold&&(phase==='return'||phase==='resume'||(phase==='manual'&&moveDir!==0));
+if(movingRig)rigStride+=dt*(rigPose>=5?7:rigPose>=3?8:10);
+if(!transitionHold&&phase==='manual'&&mode==='excavate'&&moveDir&&hAt(p.x+moveDir)<target)rigSwing+=dt*1.15;else rigSwing=0;
+draw(t);update();$('progress').style.width=(phase==='manual'&&mode==='excavate'&&moveDir?clamp(digElapsed/4,0,1)*100:0)+'%';requestAnimationFrame(loop)}
 function bindHold(id,d){
 const b=$(id);
 const end=()=>{holding=false;moveDir=0;digElapsed=0};
@@ -191,6 +212,7 @@ $('crawl').onclick=()=>setTarget(1);$('crouch').onclick=()=>setTarget(2);$('stan
 $('brace').onclick=()=>{if(phase!=='manual')return;if(hAt(p.x)<2){say('Raise the passage to crouching height before installing a support.');return}braces.add(p.x);say('Support placed. It reinforces nearby tunnel sections so you can enlarge them to standing height.');update()};
 $('dump').onclick=()=>{if(phase!=='manual'||bag===0)return;returnX=p.x;phase='return';moveDir=0;say('Carrying the partly filled duffle bag to the ledge for dumping.')};
 $('reset').onclick=reset;
+$('zoom').onclick=()=>{zoomed=!zoomed;$('zoom').textContent=zoomed?'🔍 Close-up camera ON':'🔭 Wide camera ON';$('zoom').classList.toggle('selected',zoomed)};
 const pressed=new Set();document.addEventListener('keydown',e=>{if(e.target.tagName==='BUTTON'||e.target.tagName==='INPUT')return;let dir=e.key==='ArrowLeft'||e.key==='a'?-1:e.key==='ArrowRight'||e.key==='d'?1:0;if(dir){e.preventDefault();pressed.add(e.key);if(phase==='manual'){moveDir=dir;p.dir=dir}}});document.addEventListener('keyup',e=>{pressed.delete(e.key);if(!pressed.size){moveDir=0;digElapsed=0}});window.addEventListener('blur',()=>{pressed.clear();moveDir=0;digElapsed=0});
 reset();requestAnimationFrame(loop);
 })();
