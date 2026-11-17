@@ -80,11 +80,22 @@ function traceAim(dx,dy){
  }
  return {x:null,layer:null,hitX:end.x,hitY:end.y,rayX:origin.x,rayY:origin.y,dir:vx>=0?1:-1};
 }
+function normalizeForwardAim(hit,dx,dy){
+ // Shallow forward beams follow the chosen tunnel clearance so the miner
+ // cuts the next LOWER strip rather than stalling on rock high above his route.
+ // Steeper diagonal/upward beams keep precise raycast ceiling selection.
+ if(hit.x!==null&&Math.abs(dx)>Math.abs(dy)*2.5&&
+    hit.layer>=target&&hAt(hit.x)<target){
+   return {...hit,layer:hAt(hit.x),
+     hitY:BASE-(hAt(hit.x)+.5)*TH};
+ }
+ return hit;
+}
 function heldAimHit(){
  if(!canvasDrag||canvasDrag.action!=='aim'||mode!=='excavate'||phase!=='manual')return null;
  const {dx,dy}=canvasDrag;
  if(Math.hypot(dx,dy)<19)return null;
- const hit=traceAim(dx,dy);
+ const hit=normalizeForwardAim(traceAim(dx,dy),dx,dy);
  return {...hit,pose:poseFor(p.x),done:false};
 }
 function retargetHeldAim(){
@@ -99,7 +110,7 @@ function shouldApproachAimedFace(){
  const {dx,dy}=canvasDrag;
  // Only a predominantly FORWARD aiming gesture advances the miner.
  // Upward pocket aiming stays planted and never forces a prone crawl.
- if(Math.abs(dx)<Math.abs(dy)*1.35)return false;
+ if(Math.abs(dx)<Math.abs(dy)*2.5||aimTarget.layer!==0)return false;
  const dir=Math.sign(dx);
  if(!dir||aimTarget.x*dir<=(p.x+dir)*dir)return false;
  const next=p.x+dir;
@@ -859,7 +870,7 @@ function setGesture(e){
  if(upward||drag.action==='aim'){
   // Once aim has begun, it is latched until finger release. No movement.
   moveDir=0;elapsed=0;
-  const hit=traceAim(dx,dy);
+  const hit=normalizeForwardAim(traceAim(dx,dy),dx,dy);
   // Keep a continuous held mining path, not a one-and-done tile lock.
   const changed=!aimTarget||aimTarget.x!==hit.x||
     aimTarget.layer!==hit.layer||drag.action!=='aim';
