@@ -144,7 +144,7 @@ async function install(blob,persist=true){
    const key=names[match[1]],index=Number(match[2]);
    (groups[key]??=[])[index]=item;
   }
-  if(Object.keys(groups).length!==9||Object.values(groups).some(g=>g.length!==8||g.some(x=>!x)))
+  if(Object.keys(groups).length!==9||Object.values(groups).some(g=>g.length!==8||Array.from({length:8},(_,i)=>!g[i]).some(Boolean)))
    throw Error('Choose The_Depths_Animation_Library_014.zip (72 PNG frames required)');
   const installed={};
   for(const [key,group] of Object.entries(groups)){
