@@ -1,6 +1,6 @@
 # The Depths — Prioritized Development Backlog
 
-**Current playable build:** Prototype 018, `index.html`. Keep the same published URL / entry point for every playtest. This list contains *planned* work, not completed features.
+**Current playable build:** Prototype 019, `index.html`. Keep the same published URL / entry point for every playtest. This list contains *planned* work, not completed features.
 
 ## NOW — Prototype 014: nine-state anti-aliased video animation library
 
@@ -99,6 +99,12 @@ The animation state now explicitly reports IDLE/MOVING/TRANSITION/AUTO TRAVEL/DU
 - [x] Compare the upright and prone source-frame dimensions; prone mining was generated at a smaller apparent physical scale.
 - [x] Increase prone crawl and prone-mining display scale slightly (50 and 53 calibrated world pixels, respectively) without reintroducing per-frame scaling.
 - [ ] Confirm the miner's prone length now matches standing proportions on iPhone, and that no tool swing clips the one-tile roof.
+
+## Prototype 019 proportion handoff
+
+- [x] Compared video-derived geometry: last crouch-to-prone pose spans ~191 world units; prior prone mining ~178 and prone crawl ~175.
+- [x] Calibrated sequence-wide prone mining to 57 and crawl to 55 reference height units, bringing their horizontal length close to the transition end pose without per-frame scaling.
+- [ ] Verify visually on iPhone that prone entry no longer looks smaller, with no excess clipping or headlamp displacement.
 
 ## Decision log
 
