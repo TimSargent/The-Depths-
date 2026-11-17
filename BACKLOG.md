@@ -1,3 +1,5 @@
+**Core animation acceptance checklist:** [ANIMATION_LOCK.md](ANIMATION_LOCK.md) — six sections, all still subject to visual approval before 038.
+
 ## Animation backlog and prone targeting bug — November 17, 2026
 
 **Approved principle:** Retain the original graphite skeleton and all existing source animations. Keep the functional mining scoot; its ON/OFF visual differences were subtle in the 037P iPhone recording, so defer dedicated animation work until later.
