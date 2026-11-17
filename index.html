@@ -19,7 +19,7 @@
 <div class="actions"><button id="zoom" class="selected">🔍 Close-up camera ON</button><button id="sprite" class="selected">🎞 Video animations ON</button><button id="walkDirection">🚶 Walk cycle: reversed</button><button id="walkGround" class="selected">🥾 Ground lock ON</button><button id="walkSeam" class="selected">🔗 Seam blend ON</button><button id="swingBlend">🧪 Experimental rig OFF</button></div>
 <div class="modes"><button id="explore">↗ Explore</button><button id="excavate" class="selected">⛏ Excavate</button></div>
 <div class="heights"><button id="crawl" class="selected">1 tile · Crawl</button><button id="crouch">2 tiles · Crouch</button><button id="stand">3 tiles · Stand</button></div>
-<div class="actions"><button id="widen">⛏ Widen pocket: OFF</button></div>
+<div class="actions"><button id="widen">⛏ Widen pocket: OFF</button><button id="mineScoot" class="selected">🐾 Mining scoot ON</button></div>
 <div class="controls"><button id="left">◀ HOLD LEFT</button><button id="right">HOLD RIGHT ▶</button></div>
 <div class="actions"><button id="brace">▥ Install support</button><button id="dump">◩ Dump at ledge</button></div>
 <div class="message" id="message">Hold RIGHT in Excavate mode. The miner will chip forward through the wall, collect rubble in his duffle bag, and automatically return to the shaft ledge when the bag is full.</div>
@@ -54,7 +54,7 @@ let activeExcavationCell=null,activeExcavationDir=0,widenArmed=false;
 // Reposition using the APPROVED locomotion sprites rather than switching
 // directly from one mining pose to another. Only mining-to-mining steps scoot.
 const SCOOT_SECONDS={stand:.44,crouch:.54,prone:.64};
-let scoot=null,pendingScoot=false,scootsCompleted=0;
+let scoot=null,pendingScoot=false,scootsCompleted=0,scootEnabled=true;
 function beginMiningScoot(from,to,pose,dir){
  const kind=pose>=5?'prone':pose>=2?'crouch':'stand';
  scoot={from,to,pose,dir,kind,elapsed:0,duration:SCOOT_SECONDS[kind]};
@@ -345,7 +345,7 @@ if(nextPose>currentPose&&!poseReady(nextPose)){
  holdForPose(nextPose);return false;
 }
 p.x=x;
-if(miningScoot)beginMiningScoot(visualX,x,nextPose,d);
+if(miningScoot&&scootEnabled)beginMiningScoot(visualX,x,nextPose,d);
 if(nextPose<currentPose)pendingRise=nextPose;
 return true;
 }
@@ -833,7 +833,7 @@ if(transitionHold&&poseReady(transitionGoal)){
  if(pendingStepTo!==null){
   const from=visualX,to=pendingStepTo;
   p.x=to;pendingStepTo=null;
-  if(pendingScoot)beginMiningScoot(from,to,rigPose,p.dir);
+  if(pendingScoot&&scootEnabled)beginMiningScoot(from,to,rigPose,p.dir);
   pendingScoot=false;
  }
 }
@@ -993,6 +993,7 @@ $('sprite').onclick=()=>{spriteEnabled=!spriteEnabled;$('sprite').textContent=sp
 $('walkDirection').onclick=()=>{walkReverse=!walkReverse;walkFrameTime=0;$('walkDirection').textContent=walkReverse?'🚶 Walk cycle: reversed':'🚶 Walk cycle: original'};
 $('walkGround').onclick=()=>{walkGrounded=!walkGrounded;$('walkGround').textContent=walkGrounded?'🥾 Ground lock ON':'🥾 Ground lock OFF';$('walkGround').classList.toggle('selected',walkGrounded)};
 $('walkSeam').onclick=()=>{walkSeamBlend=!walkSeamBlend;$('walkSeam').textContent=walkSeamBlend?'🔗 Seam blend ON':'🔗 Seam blend OFF';$('walkSeam').classList.toggle('selected',walkSeamBlend)};
+$('mineScoot').onclick=()=>{scootEnabled=!scootEnabled;$('mineScoot').textContent=scootEnabled?'🐾 Mining scoot ON':'🐾 Mining scoot OFF';$('mineScoot').classList.toggle('selected',scootEnabled);if(!scootEnabled)scoot=null};
 $('swingBlend').onclick=()=>{smoothSwing=!smoothSwing;$('swingBlend').textContent=smoothSwing?'🧪 Experimental rig ON':'🧪 Experimental rig OFF';$('swingBlend').classList.toggle('selected',smoothSwing)};
 const pressed=new Set();document.addEventListener('keydown',e=>{if(e.target.tagName==='BUTTON'||e.target.tagName==='INPUT')return;let dir=e.key==='ArrowLeft'||e.key==='a'?-1:e.key==='ArrowRight'||e.key==='d'?1:0;if(dir){e.preventDefault();pressed.add(e.key);if(phase==='manual'){moveDir=dir;p.dir=dir}}});document.addEventListener('keyup',e=>{pressed.delete(e.key);if(!pressed.size){moveDir=0;digElapsed=0}});window.addEventListener('blur',()=>{pressed.clear();moveDir=0;digElapsed=0});
 reset();requestAnimationFrame(loop);
