@@ -1,3 +1,16 @@
+## Prototype 037S — Mining → Scoot → Mining (playable)
+
+- [x] Reuse the **approved original animation library**, no newly generated character or separate scoot video: standing uses `walk`, crouched uses `crouchWalk`, prone uses `proneCrawl`
+- [x] Trigger a short scoot only after a mining face is completed and the miner is moving into the next open section, or during the final forward approach to an aimed face; overhead pocket excavation remains stationary
+- [x] Use a single animation clock to ease the miner's visible world position and play the original locomotion frames together: stand 0.44 s, crouch 0.54 s, prone 0.64 s
+- [x] Prevent mining during the scoot; the miner resumes the existing 2-second heavy pickaxe swing after settling in the new position
+- [x] Preserve posture-change locks (including deferred steps), fixed 4-second rock cuts, eight-strip spoil capacity and automatic return/dump
+- [x] Add **Mining scoot ON/OFF** for direct iPhone A/B comparison
+- [x] Simulated default crawl (7 scoots before full bag), crouched passages, standing passages, directional approach, stationary overhead pocket work; zero position-lock violations
+- [x] A/B regression with original art loaded: ON = 7 prone reposition animations, OFF = old smooth movement; both 8 strips, return, dump and resume
+- [ ] Visual QA on iPhone: do original frames sell the short weight-shift, or does the first/last frame pop when switching to pickaxe? If not convincing, consider recording just one dedicated scoot per posture, retaining exact skeleton
+- [ ] 037 remains active until animation consistency is approved; then **038 → 036** as previously agreed
+
 ## Prototype 037C — continuous held excavation (current playable)
 
 - [x] Fixed the one-and-done targeted excavation bug: finishing a raycast rock tile now automatically selects the next first solid rock tile while the same drag is held.
