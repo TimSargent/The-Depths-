@@ -869,7 +869,7 @@ if(scoot){
  const eased=t*t*(3-2*t);
  visualX=scoot.from+(scoot.to-scoot.from)*eased;
  moved=visualX-from;
- if(t>=1){visualX=scoot.to;scoot=null;scootsCompleted++;}
+ if(scoot.elapsed>=scoot.duration){visualX=scoot.to;scoot=null;scootsCompleted++;}
 }else if(!transitionHold){
  const diff=p.x-visualX;
  moved=Math.sign(diff)*Math.min(Math.abs(diff),WALK_CELLS_PER_SECOND*dt);
