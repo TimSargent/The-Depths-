@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"><meta name="theme-color" content="#080a0c"><title>The Depths — Prototype 034</title>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"><meta name="theme-color" content="#080a0c"><title>The Depths — Prototype 035</title>
 <style>
 *{box-sizing:border-box}html,body{margin:0;background:#080a0c;color:#e9e0d3;font-family:system-ui,-apple-system,Arial,sans-serif;overflow-x:hidden}body{min-height:100dvh;overscroll-behavior:none}main{max-width:920px;margin:auto;padding:12px 12px max(18px,env(safe-area-inset-bottom))}.top{display:flex;align-items:center;justify-content:space-between;gap:8px}h1{margin:3px 0 0;font-size:21px}.eyebrow{font-size:10px;letter-spacing:2px;color:#bda889}.sub{font-size:12px;color:#b3a99a}.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:12px 0}.stat{background:#181b1d;border:1px solid #343537;border-radius:9px;padding:8px 7px}.stat span{font-size:10px;color:#aaa097;display:block}.stat b{font-size:14px;display:block;margin-top:2px}.view{position:relative;border:1px solid #4a443d;border-radius:12px;overflow:hidden;background:#070809;touch-action:none}canvas{width:100%;display:block;aspect-ratio:960/450;touch-action:none}.progress{position:absolute;bottom:0;left:0;height:4px;width:0;background:#e0ae67;transition:width .08s}.modes,.heights,.controls{display:flex;gap:8px;margin-top:10px}.modes button,.heights button{flex:1}.controls button{flex:1;min-height:65px;font-size:19px}button{background:#25282b;color:#f2e7d8;border:1px solid #555048;padding:12px 8px;border-radius:10px;font-size:13px;font-weight:700;touch-action:none;-webkit-user-select:none;user-select:none;cursor:pointer}button.selected{background:#725032;border-color:#d9ac72}button:disabled{opacity:.4}.actions{display:flex;gap:8px;margin-top:10px}.actions button{flex:1}.message{font-size:13px;line-height:1.45;color:#e7d4ba;border:1px solid #49443e;background:#181b1d;border-radius:10px;padding:11px;margin-top:10px;min-height:57px}.help{font-size:12px;line-height:1.55;color:#aaa097;margin:10px 2px}.meter{height:5px;border-radius:9px;background:#353739;overflow:hidden;margin-top:5px}.meter div{height:100%;background:#dfb47d;width:0;transition:width .15s}#phase{font-size:11px;color:#d7b27c;margin:8px 0 0}@media (max-width:500px){main{padding:8px 8px max(10px,env(safe-area-inset-bottom))}.stat{padding:7px 5px}.stat b{font-size:12px}.controls button{min-height:70px;font-size:18px}.modes button,.heights button{padding:11px 3px;font-size:12px}.actions button{font-size:12px}.eyebrow{font-size:9px}h1{font-size:18px}}
 .lab{margin-top:14px;border:1px solid #49443e;background:#171a1c;border-radius:10px;padding:10px}
@@ -9,7 +9,7 @@
 #labCanvas{display:block;width:100%;height:auto;aspect-ratio:600/280;border-radius:9px;background:#0c1012;margin-top:9px}
 #labStatus{font-size:12px;color:#cbb28b;padding-top:7px}
 </style></head><body><main>
-<div class="top"><div><div class="eyebrow">THE DEPTHS / PLAYTEST 034</div><h1>Dig. Haul. Repeat.</h1></div><button id="reset">↻ Restart</button></div>
+<div class="top"><div><div class="eyebrow">THE DEPTHS / PLAYTEST 035</div><h1>Dig. Haul. Repeat.</h1></div><button id="reset">↻ Restart</button></div>
 <div class="stats"><div class="stat"><span>Posture</span><b id="pose">Standing</b></div><div class="stat"><span>Bag</span><b id="bag">0 / 8</b><div class="meter"><div id="bagbar"></div></div></div><div class="stat"><span>Strips mined</span><b id="mined">0</b></div><div class="stat"><span>Dump trips</span><b id="trips">0</b></div></div>
 <div class="view"><canvas id="world" width="960" height="450" aria-label="Playable mining tunnel with automatic spoil bag and horizontal excavation"></canvas><div class="progress" id="progress"></div></div>
 <div id="phase">Prototype 013 • video-derived animation playtest</div>
@@ -21,7 +21,7 @@
 <div class="controls"><button id="left">◀ HOLD LEFT</button><button id="right">HOLD RIGHT ▶</button></div>
 <div class="actions"><button id="brace">▥ Install support</button><button id="dump">◩ Dump at ledge</button></div>
 <div class="message" id="message">Hold RIGHT in Excavate mode. The miner will chip forward through the wall, collect rubble in his duffle bag, and automatically return to the shaft ledge when the bag is full.</div>
-<div class="help"><b>NEW:</b> Drag anywhere on the game screen. Drag left/right to move; drag up or diagonally up to aim at a ceiling section and hold to mine it. A faint beam marks the target. The LEFT/RIGHT buttons still work. Each thin horizontal section takes <b>4 seconds</b> to mine. Four sections make one full tunnel-length tile. New crawl tunnels need the least excavation; crouch tunnels need twice as much. Standing tunnels require supports. The miner cannot dig downward. Eight aligned video-derived animation clips cover walking, crouch walking, prone crawling, posture transitions, and all three mining stances. The toggle switches between video-derived animation and the original articulated rig. Seven anatomical poses still shift weight from feet to knees to hands before lowering fully prone. World X and camera remain locked throughout standing/crawling transitions; watch the State/X debug readout. Use Close-up camera to inspect the joints. Controls: hold left or right (keyboard A/D or arrow keys on a computer). When the bag fills, he automatically returns to the ledge, empties it, and resumes.</div>
+<div class="help"><b>NEW:</b> Drag anywhere on the game screen. Drag left/right to move; drag up or diagonally up to cast an aiming beam. The miner targets the first rock tile intersected by that beam. Hold to mine it. A faint beam marks the target. The LEFT/RIGHT buttons still work. Each thin horizontal section takes <b>4 seconds</b> to mine. Four sections make one full tunnel-length tile. New crawl tunnels need the least excavation; crouch tunnels need twice as much. Standing tunnels require supports. The miner cannot dig downward. Eight aligned video-derived animation clips cover walking, crouch walking, prone crawling, posture transitions, and all three mining stances. The toggle switches between video-derived animation and the original articulated rig. Seven anatomical poses still shift weight from feet to knees to hands before lowering fully prone. World X and camera remain locked throughout standing/crawling transitions; watch the State/X debug readout. Use Close-up camera to inspect the joints. Controls: hold left or right (keyboard A/D or arrow keys on a computer). When the bag fills, he automatically returns to the ledge, empties it, and resumes.</div>
 <details class="lab"><summary>🎬 Animation Studio — preview all 8 motions</summary>
 <div class="lab-controls"><select id="labSelect" aria-label="Choose miner animation"></select>
 <button id="labPause">⏸ Pause</button><button id="labReverse">↩ Reverse OFF</button>
@@ -51,13 +51,41 @@ let activeExcavationCell=null,activeExcavationDir=0,widenArmed=false;
 // One pointer works anywhere on the canvas; gestures are relative to the
 // initial touch so the thumb never needs to reach an on-screen joystick.
 let canvasDrag=null,aimTarget=null;
+// Raycast through the tunnel geometry from the miner toward the dragged direction.
+// The first rock tile intersecting the ray is the target; thumb location does
+// not need to line up with the tile. Existing open cells do not block the ray.
+function aimOrigin(){
+ return {x:(visualX+.5)*CW,
+         y:BASE-(rigPose<1?115:rigPose<4?91:30)};
+}
+function traceAim(dx,dy){
+ const origin=aimOrigin(),length=Math.hypot(dx,dy)||1;
+ const vx=dx/length,vy=dy/length;
+ const reach=7*CW; // ray can traverse multiple open cells
+ const end={x:origin.x+vx*reach,y:origin.y+vy*reach};
+ const startLayer=Math.floor((BASE-origin.y)/TH);
+ let lastColumn=-1,lastLayer=-1;
+ for(let dist=2;dist<=reach;dist+=2){
+  const x=origin.x+vx*dist,y=origin.y+vy*dist;
+  const col=Math.floor(x/CW),layer=Math.floor((BASE-y)/TH);
+  if(col<EDGE||col>=N||y<BASE-3*TH||y>=BASE)break;
+  if(col===lastColumn&&layer===lastLayer)continue;
+  lastColumn=col;lastLayer=layer;
+  if(layer>=0&&layer<3&&layer>=hAt(col)){
+   return {x:col,layer,hitX:x,hitY:y,rayX:origin.x,rayY:origin.y,dir:vx>=0?1:-1};
+  }
+ }
+ return {x:null,layer:null,hitX:end.x,hitY:end.y,rayX:origin.x,rayY:origin.y,dir:vx>=0?1:-1};
+}
+function validAimTile(t){
+ return !!t&&t.x!==null&&t.layer!==null&&
+ t.x>=EDGE&&t.x<N&&t.layer===hAt(t.x)&&
+ t.layer<target&&t.layer<3&&(t.layer!==2||supported(t.x));
+}
 function aimReady(){
  return phase==='manual'&&mode==='excavate'&&aimTarget&&!aimTarget.done&&
  !transitionHold&&pendingStepTo===null&&pendingRise===null&&pendingLower===null&&
- Math.abs(visualX-p.x)<.0001&&poseReady(poseFor(p.x))&&
- aimTarget.x>=EDGE&&aimTarget.x<N&&aimTarget.layer===hAt(aimTarget.x)&&
- aimTarget.layer<target&&aimTarget.layer<3&&
- (aimTarget.layer!==2||supported(aimTarget.x));
+ Math.abs(visualX-p.x)<.0001&&poseReady(aimTarget.pose)&&validAimTile(aimTarget);
 }
 // Short crossfades only when the animation STATE changes (never on frame advances).
 let lastDrawnMotion=null,blendFromMotion=null,blendStartMs=0;
@@ -397,27 +425,27 @@ if(miningReady()&&digElapsed>0){
  g.restore();
 }
 
-// Context beam: starts at the miner, ends at the selected individual rock tile.
+// Raycast visualization: a thin beam stops at the *first* rock hit.
 if(canvasDrag&&canvasDrag.action!=='waiting'){
- const sy=BASE-(rigPose<1?129:rigPose<4?84:38);
- const ox=(visualX+.5)*CW,oy=sy;
- let tx,ty,valid=true;
+ const origin=aimOrigin();
+ let tx=origin.x+Math.sign(canvasDrag.dx||1)*CW*2.1,ty=origin.y;
+ let valid=true;
  if(canvasDrag.action==='aim'&&aimTarget){
-  tx=(aimTarget.x+.5)*CW;ty=BASE-(aimTarget.layer+.5)*TH;
-  valid=aimTarget.layer<target&&aimTarget.layer<3&&
-   (aimTarget.layer!==2||supported(aimTarget.x));
-  const y=BASE-(aimTarget.layer+1)*TH;
-  g.fillStyle=valid?'rgba(245,190,99,.21)':'rgba(193,85,67,.18)';
-  g.strokeStyle=valid?'rgba(255,207,114,.94)':'rgba(224,106,89,.85)';
-  g.lineWidth=1.6;g.fillRect(aimTarget.x*CW+1,y+1,CW-2,TH-2);
-  g.strokeRect(aimTarget.x*CW+1.5,y+1.5,CW-3,TH-3);
- }else{
-  tx=ox+Math.sign(canvasDrag.dx||1)*CW*2.1;ty=oy;
+  tx=aimTarget.hitX;ty=aimTarget.hitY;
+  valid=validAimTile(aimTarget);
+  if(aimTarget.x!==null){
+   const by=BASE-(aimTarget.layer+1)*TH;
+   g.fillStyle=valid?'rgba(245,190,99,.21)':'rgba(193,85,67,.18)';
+   g.strokeStyle=valid?'rgba(255,207,114,.94)':'rgba(224,106,89,.85)';
+   g.lineWidth=1.6;
+   g.fillRect(aimTarget.x*CW+1,by+1,CW-2,TH-2);
+   g.strokeRect(aimTarget.x*CW+1.5,by+1.5,CW-3,TH-3);
+  }
  }
  const color=valid?'rgba(255,196,107,.82)':'rgba(222,102,83,.8)';
  g.save();g.strokeStyle=color;g.fillStyle=color;g.lineWidth=2;g.setLineDash([7,6]);
- g.beginPath();g.moveTo(ox,oy);g.lineTo(tx,ty);g.stroke();g.setLineDash([]);
- const ang=Math.atan2(ty-oy,tx-ox);
+ g.beginPath();g.moveTo(origin.x,origin.y);g.lineTo(tx,ty);g.stroke();g.setLineDash([]);
+ const ang=Math.atan2(ty-origin.y,tx-origin.x);
  g.beginPath();g.moveTo(tx,ty);
  g.lineTo(tx-11*Math.cos(ang-.46),ty-11*Math.sin(ang-.46));
  g.lineTo(tx-11*Math.cos(ang+.46),ty-11*Math.sin(ang+.46));
@@ -712,7 +740,7 @@ g.fillStyle='rgba(220,178,103,.10)';g.fillRect(w-165,12,145,22);g.fillStyle='#de
 }
 function loop(t){const dt=last?Math.min(.06,(t-last)/1000):0;last=t;
 advanceDragIntent();
-const desired=transitionHold?transitionGoal:(pendingRise!==null||pendingLower!==null?rigPose:(nextDigPose()??poseFor(p.x)));
+const desired=transitionHold?transitionGoal:(pendingRise!==null||pendingLower!==null?rigPose:(aimTarget?aimTarget.pose:(nextDigPose()??poseFor(p.x))));
 const delta=desired-rigPose;
 rigPose+=Math.sign(delta)*Math.min(Math.abs(delta),dt*6/1.8);
 if(transitionHold&&poseReady(transitionGoal)){
@@ -777,17 +805,18 @@ function setGesture(e){
  if(upward||drag.action==='aim'){
   // Once aim has begun, it is latched until finger release. No movement.
   moveDir=0;elapsed=0;
-  const offset=Math.abs(dx)>=21?Math.sign(dx):0;
-  const x=p.x+offset;
-  const layer=hAt(x);
-  // Update only when changing column, not when the highlighted rock breaks.
-  const changed=!aimTarget||aimTarget.x!==x||drag.action!=='aim';
+  const hit=traceAim(dx,dy);
+  // Latch completed targets: small thumb movements must not auto-mine another.
+  if(aimTarget?.done)return;
+  const changed=!aimTarget||aimTarget.x!==hit.x||
+    aimTarget.layer!==hit.layer||drag.action!=='aim';
   drag.action='aim';
   if(changed){
-   aimTarget={x,layer,done:false};
+   aimTarget={...hit,pose:transitionHold?transitionGoal:poseFor(p.x),done:false};
    digElapsed=0;rigSwing=0;widenArmed=false;
-  }
-  if(offset)p.dir=offset; // face the tile without stepping toward it
+  }else Object.assign(aimTarget,{hitX:hit.hitX,hitY:hit.hitY,
+    rayX:hit.rayX,rayY:hit.rayY});
+  p.dir=hit.dir; // face the target, without stepping
   return;
  }
  // Allow a brief intent window for the vertical component of a diagonal
