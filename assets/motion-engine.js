@@ -1,13 +1,13 @@
 /* The Depths — Prototype 013 motion library
  * 8 chroma-keyed user-video clips, each resampled to 12 aligned transparent
- * 160×120 bitmask frames (zlib compressed text assets).
+ * 96×72 bitmask frames (zlib-compressed JavaScript data assets).
  * These are experimental silhouettes, not production-grade sprite artwork.
  * The in-game joint rig remains a complete fallback and comparison mode.
  */
 (()=>{
 'use strict';
 const names=['walk','standCrouch','crouchWalk','crouchProne','proneCrawl','standMine','crouchMine','proneMine'];
-const WIDTH=160, HEIGHT=120, FRAMES=12, BYTES_PER_FRAME=WIDTH*HEIGHT/8;
+const WIDTH=96, HEIGHT=72, FRAMES=12, BYTES_PER_FRAME=WIDTH*HEIGHT/8;
 const frames=Object.create(null);
 const errors=Object.create(null);
 let completed=0;
@@ -23,9 +23,8 @@ window.DepthMotions=api;
 async function load(name){
   try{
     if(typeof DecompressionStream!=='function')throw new Error('Browser lacks DecompressionStream');
-    const response=await fetch('assets/motion-'+name+'.txt');
-    if(!response.ok)throw new Error('HTTP '+response.status);
-    const b64=(await response.text()).trim();
+    const b64=(window.DEPTHS_MOTION_DATA||{})[name];
+    if(!b64)throw new Error('Missing bundled video-derived motion data');
     if(!/^[a-zA-Z0-9+/=]+$/.test(b64))throw new Error('Invalid frame data');
     const compressed=Uint8Array.from(atob(b64),c=>c.charCodeAt(0));
     const stream=new Blob([compressed]).stream().pipeThrough(new DecompressionStream('deflate'));
@@ -45,7 +44,11 @@ async function load(name){
         }
       }
       context.putImageData(rgba,0,0);
-      images.push(surface);
+      // Upscale once to the original aligned 320×240 source coordinate system.
+      // Keeps all existing character positioning and Animation Studio unchanged.
+      const scaled=document.createElement('canvas');scaled.width=320;scaled.height=240;
+      const scaledCtx=scaled.getContext('2d');scaledCtx.imageSmoothingEnabled=true;
+      scaledCtx.drawImage(surface,0,0,320,240);images.push(scaled);
     }
     frames[name]=images;
   }catch(e){errors[name]=String(e)}
