@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"><meta name="theme-color" content="#080a0c"><title>The Depths — Prototype 021</title>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"><meta name="theme-color" content="#080a0c"><title>The Depths — Prototype 022</title>
 <style>
 *{box-sizing:border-box}html,body{margin:0;background:#080a0c;color:#e9e0d3;font-family:system-ui,-apple-system,Arial,sans-serif;overflow-x:hidden}body{min-height:100dvh;overscroll-behavior:none}main{max-width:920px;margin:auto;padding:12px 12px max(18px,env(safe-area-inset-bottom))}.top{display:flex;align-items:center;justify-content:space-between;gap:8px}h1{margin:3px 0 0;font-size:21px}.eyebrow{font-size:10px;letter-spacing:2px;color:#bda889}.sub{font-size:12px;color:#b3a99a}.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:12px 0}.stat{background:#181b1d;border:1px solid #343537;border-radius:9px;padding:8px 7px}.stat span{font-size:10px;color:#aaa097;display:block}.stat b{font-size:14px;display:block;margin-top:2px}.view{position:relative;border:1px solid #4a443d;border-radius:12px;overflow:hidden;background:#070809;touch-action:none}canvas{width:100%;display:block;aspect-ratio:960/450;touch-action:none}.progress{position:absolute;bottom:0;left:0;height:4px;width:0;background:#e0ae67;transition:width .08s}.modes,.heights,.controls{display:flex;gap:8px;margin-top:10px}.modes button,.heights button{flex:1}.controls button{flex:1;min-height:65px;font-size:19px}button{background:#25282b;color:#f2e7d8;border:1px solid #555048;padding:12px 8px;border-radius:10px;font-size:13px;font-weight:700;touch-action:none;-webkit-user-select:none;user-select:none;cursor:pointer}button.selected{background:#725032;border-color:#d9ac72}button:disabled{opacity:.4}.actions{display:flex;gap:8px;margin-top:10px}.actions button{flex:1}.message{font-size:13px;line-height:1.45;color:#e7d4ba;border:1px solid #49443e;background:#181b1d;border-radius:10px;padding:11px;margin-top:10px;min-height:57px}.help{font-size:12px;line-height:1.55;color:#aaa097;margin:10px 2px}.meter{height:5px;border-radius:9px;background:#353739;overflow:hidden;margin-top:5px}.meter div{height:100%;background:#dfb47d;width:0;transition:width .15s}#phase{font-size:11px;color:#d7b27c;margin:8px 0 0}@media (max-width:500px){main{padding:8px 8px max(10px,env(safe-area-inset-bottom))}.stat{padding:7px 5px}.stat b{font-size:12px}.controls button{min-height:70px;font-size:18px}.modes button,.heights button{padding:11px 3px;font-size:12px}.actions button{font-size:12px}.eyebrow{font-size:9px}h1{font-size:18px}}
 .lab{margin-top:14px;border:1px solid #49443e;background:#171a1c;border-radius:10px;padding:10px}
@@ -9,7 +9,7 @@
 #labCanvas{display:block;width:100%;height:auto;aspect-ratio:600/280;border-radius:9px;background:#0c1012;margin-top:9px}
 #labStatus{font-size:12px;color:#cbb28b;padding-top:7px}
 </style></head><body><main>
-<div class="top"><div><div class="eyebrow">THE DEPTHS / PLAYTEST 021</div><h1>Dig. Haul. Repeat.</h1></div><button id="reset">↻ Restart</button></div>
+<div class="top"><div><div class="eyebrow">THE DEPTHS / PLAYTEST 022</div><h1>Dig. Haul. Repeat.</h1></div><button id="reset">↻ Restart</button></div>
 <div class="stats"><div class="stat"><span>Posture</span><b id="pose">Standing</b></div><div class="stat"><span>Bag</span><b id="bag">0 / 8</b><div class="meter"><div id="bagbar"></div></div></div><div class="stat"><span>Strips mined</span><b id="mined">0</b></div><div class="stat"><span>Dump trips</span><b id="trips">0</b></div></div>
 <div class="view"><canvas id="world" width="960" height="450" aria-label="Playable mining tunnel with automatic spoil bag and horizontal excavation"></canvas><div class="progress" id="progress"></div></div>
 <div id="phase">Prototype 013 • video-derived animation playtest</div>
@@ -43,6 +43,9 @@ const walkSheet=new Image();walkSheet.src='assets/miner-walk-vector.svg';
 let walkSheetReady=false,spriteEnabled=true,walkFrameTime=0,walkReverse=true,walkCycleSpeed=1;
 // Visual position is continuous; p.x remains integer for excavation and collisions.
 let visualX=START,visualMoving=false;
+// Short crossfades only when the animation STATE changes (never on frame advances).
+let lastDrawnMotion=null,blendFromMotion=null,blendStartMs=0;
+const MOTION_BLEND_MS=145;
 const WALK_CELLS_PER_SECOND=5,WALK_CELLS_PER_CYCLE=3.0;
 walkSheet.onload=()=>{walkSheetReady=true};walkSheet.onerror=()=>{walkSheetReady=false;$('sprite').textContent='⚠ Sprite unavailable'};
 let heights,braces,p,mode,target,bag,mined,trips,phase,returnX,moveDir=0,holding=false,last=0,digElapsed=0,fx=[],cam=0,showTime=0,notice='',elapsed=0,roofTarget=-1,shake=0,rigPose=0,rigStride=0,rigSwing=0,zoomed=true,transitionGoal=null,transitionHold=false,animState="IDLE",lockedX=null,lockedCam=null,lockViolations=0,pendingStepTo=null,pendingRise=null,pendingLower=null;
@@ -127,7 +130,7 @@ function visibleTransition(){return transitionHold||!poseReady(poseFor(p.x))}
 function transitionName(){return rigPose>transitionGoal?'Getting up':'Lowering down'}
 function reset(){
 heights=Array(N).fill(0);for(let x=EDGE;x<=9;x++)heights[x]=3;
-braces=new Set([4,8]);p={x:START,dir:1};mode='excavate';target=1;bag=0;mined=0;trips=0;phase='manual';returnX=START;moveDir=0;holding=false;last=0;digElapsed=0;fx=[];cam=0;showTime=0;roofTarget=-1;shake=0;rigPose=0;rigStride=0;rigSwing=0;transitionGoal=null;transitionHold=false;animState="IDLE";lockedX=null;lockedCam=null;lockViolations=0;pendingStepTo=null;pendingRise=null;pendingLower=null;walkFrameTime=0;visualX=START;visualMoving=false;
+braces=new Set([4,8]);p={x:START,dir:1};mode='excavate';target=1;bag=0;mined=0;trips=0;phase='manual';returnX=START;moveDir=0;holding=false;last=0;digElapsed=0;fx=[];cam=0;showTime=0;roofTarget=-1;shake=0;rigPose=0;rigStride=0;rigSwing=0;transitionGoal=null;transitionHold=false;animState="IDLE";lockedX=null;lockedCam=null;lockViolations=0;pendingStepTo=null;pendingRise=null;pendingLower=null;walkFrameTime=0;visualX=START;visualMoving=false;lastDrawnMotion=null;blendFromMotion=null;blendStartMs=0;
 $('progress').style.width='0%';say('Hold RIGHT in Excavate mode to cut a narrow prospecting tunnel. The bag holds 8 strips before the miner must dump at the ledge.');update();
 }
 function update(){
@@ -279,6 +282,12 @@ function node(k,r=3){const A=at(k);g.fillStyle='#dbad72';g.beginPath();g.arc(A[0
 const head=at('head'),hand=at('hand'),hip=at('hip'),fhand=at('farHand');
 const [motionName,motionFrame]=animationChoice(moving,digging,poseValue);
 const motionImage=spriteEnabled&&window.DepthMotions?.get(motionName,motionFrame);
+// A retained frame provides a visual bridge at walk/idle, crawl/mine, and
+// posture-animation boundaries. The movement system and posture locks do not change.
+if(motionImage&&lastDrawnMotion&&lastDrawnMotion.name!==motionName&&lastDrawnMotion.dir===d){
+ blendFromMotion=lastDrawnMotion;blendStartMs=t;
+}
+if(!motionImage){blendFromMotion=null;lastDrawnMotion=null;}
 // Keep visual style consistent while the new atlases load: fall back to the joint rig, not 012 vector artwork.
 const legacyWalk=false;
 const spriteWalking=!!motionImage||legacyWalk;
@@ -294,6 +303,10 @@ if(spriteWalking){
   const y=-(b.y+b.h)*sy;
   spriteDraw={x,y,sx,sy};
   g.imageSmoothingEnabled=true;
+  const rawBlend=blendFromMotion?Math.max(0,Math.min(1,(t-blendStartMs)/MOTION_BLEND_MS)):1;
+  const easeBlend=rawBlend*rawBlend*(3-2*rawBlend);
+  const outgoingWeight=blendFromMotion&&rawBlend<1?1-easeBlend:0;
+  if(rawBlend>=1)blendFromMotion=null;
   // One calibrated world-space size across all nine animation sequences.
   // Ground contact is locked; only actual anatomy in the source can move.
   // The walking source is not a perfect closed cycle. Blend the last frame
@@ -309,14 +322,28 @@ if(spriteWalking){
    }
   }
   if(seamFrame&&seamBlend>0){
-   g.globalAlpha=1-seamBlend;
+   g.globalAlpha=(1-outgoingWeight)*(1-seamBlend);
    g.drawImage(motionImage,x,y,256*sx,208*sy);
    const sb=seamFrame.bodyBox||{x:0,y:0,w:256,h:208};
    const sr=seamFrame.motionReference||reference;
-   g.globalAlpha=seamBlend;
+   g.globalAlpha=(1-outgoingWeight)*seamBlend;
    g.drawImage(seamFrame,-sr.centerX*sx,-(sb.y+sb.h)*sy,256*sx,208*sy);
    g.globalAlpha=1;
-  }else g.drawImage(motionImage,x,y,256*sx,208*sy);
+  }else{
+   g.globalAlpha=1-outgoingWeight;
+   g.drawImage(motionImage,x,y,256*sx,208*sy);
+  }
+  if(outgoingWeight>0&&blendFromMotion){
+   const previous=blendFromMotion;
+   const prevBox=previous.img.bodyBox||{x:0,y:0,w:256,h:208};
+   const prevRef=previous.img.motionReference||{centerX:prevBox.x+prevBox.w/2};
+   const prevScale=motionScale(previous.name,previous.frame);
+   g.globalAlpha=outgoingWeight;
+   g.drawImage(previous.img,-prevRef.centerX*prevScale.sx,
+     -(prevBox.y+prevBox.h)*prevScale.sy,256*prevScale.sx,208*prevScale.sy);
+   g.globalAlpha=1;
+  }
+  lastDrawnMotion={name:motionName,frame:motionFrame,img:motionImage,dir:d};
  }else{
   const frame=Math.floor(walkFrameTime*12)%12;
   g.drawImage(walkSheet,(frame%4)*80,Math.floor(frame/4)*120,80,120,-60,-180,120,180);
