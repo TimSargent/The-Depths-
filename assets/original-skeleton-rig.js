@@ -19,7 +19,12 @@ function sourceInfo(){
 }
 function crop(info,points,pad,mask){
  const {source}=info;
- const xs=points.map(p=>p.x),ys=points.map(p=>p.y);
+ let xs=points.map(p=>p.x),ys=points.map(p=>p.y);
+ if(mask==='ellipse'){
+  const center=points[0],radius=points[1];
+  xs=[center.x-radius.x,center.x+radius.x];
+  ys=[center.y-radius.y,center.y+radius.y];
+ }
  const x=Math.max(0,Math.floor(Math.min(...xs)-pad));
  const y=Math.max(0,Math.floor(Math.min(...ys)-pad));
  const w=Math.min(source.width-x,Math.ceil(Math.max(...xs)-x+pad));
