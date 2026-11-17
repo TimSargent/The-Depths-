@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"><meta name="theme-color" content="#080a0c"><title>The Depths — Prototype 033</title>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"><meta name="theme-color" content="#080a0c"><title>The Depths — Prototype 034</title>
 <style>
 *{box-sizing:border-box}html,body{margin:0;background:#080a0c;color:#e9e0d3;font-family:system-ui,-apple-system,Arial,sans-serif;overflow-x:hidden}body{min-height:100dvh;overscroll-behavior:none}main{max-width:920px;margin:auto;padding:12px 12px max(18px,env(safe-area-inset-bottom))}.top{display:flex;align-items:center;justify-content:space-between;gap:8px}h1{margin:3px 0 0;font-size:21px}.eyebrow{font-size:10px;letter-spacing:2px;color:#bda889}.sub{font-size:12px;color:#b3a99a}.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:12px 0}.stat{background:#181b1d;border:1px solid #343537;border-radius:9px;padding:8px 7px}.stat span{font-size:10px;color:#aaa097;display:block}.stat b{font-size:14px;display:block;margin-top:2px}.view{position:relative;border:1px solid #4a443d;border-radius:12px;overflow:hidden;background:#070809;touch-action:none}canvas{width:100%;display:block;aspect-ratio:960/450;touch-action:none}.progress{position:absolute;bottom:0;left:0;height:4px;width:0;background:#e0ae67;transition:width .08s}.modes,.heights,.controls{display:flex;gap:8px;margin-top:10px}.modes button,.heights button{flex:1}.controls button{flex:1;min-height:65px;font-size:19px}button{background:#25282b;color:#f2e7d8;border:1px solid #555048;padding:12px 8px;border-radius:10px;font-size:13px;font-weight:700;touch-action:none;-webkit-user-select:none;user-select:none;cursor:pointer}button.selected{background:#725032;border-color:#d9ac72}button:disabled{opacity:.4}.actions{display:flex;gap:8px;margin-top:10px}.actions button{flex:1}.message{font-size:13px;line-height:1.45;color:#e7d4ba;border:1px solid #49443e;background:#181b1d;border-radius:10px;padding:11px;margin-top:10px;min-height:57px}.help{font-size:12px;line-height:1.55;color:#aaa097;margin:10px 2px}.meter{height:5px;border-radius:9px;background:#353739;overflow:hidden;margin-top:5px}.meter div{height:100%;background:#dfb47d;width:0;transition:width .15s}#phase{font-size:11px;color:#d7b27c;margin:8px 0 0}@media (max-width:500px){main{padding:8px 8px max(10px,env(safe-area-inset-bottom))}.stat{padding:7px 5px}.stat b{font-size:12px}.controls button{min-height:70px;font-size:18px}.modes button,.heights button{padding:11px 3px;font-size:12px}.actions button{font-size:12px}.eyebrow{font-size:9px}h1{font-size:18px}}
 .lab{margin-top:14px;border:1px solid #49443e;background:#171a1c;border-radius:10px;padding:10px}
@@ -9,7 +9,7 @@
 #labCanvas{display:block;width:100%;height:auto;aspect-ratio:600/280;border-radius:9px;background:#0c1012;margin-top:9px}
 #labStatus{font-size:12px;color:#cbb28b;padding-top:7px}
 </style></head><body><main>
-<div class="top"><div><div class="eyebrow">THE DEPTHS / PLAYTEST 033</div><h1>Dig. Haul. Repeat.</h1></div><button id="reset">↻ Restart</button></div>
+<div class="top"><div><div class="eyebrow">THE DEPTHS / PLAYTEST 034</div><h1>Dig. Haul. Repeat.</h1></div><button id="reset">↻ Restart</button></div>
 <div class="stats"><div class="stat"><span>Posture</span><b id="pose">Standing</b></div><div class="stat"><span>Bag</span><b id="bag">0 / 8</b><div class="meter"><div id="bagbar"></div></div></div><div class="stat"><span>Strips mined</span><b id="mined">0</b></div><div class="stat"><span>Dump trips</span><b id="trips">0</b></div></div>
 <div class="view"><canvas id="world" width="960" height="450" aria-label="Playable mining tunnel with automatic spoil bag and horizontal excavation"></canvas><div class="progress" id="progress"></div></div>
 <div id="phase">Prototype 013 • video-derived animation playtest</div>
@@ -711,6 +711,7 @@ g.fillStyle='rgba(220,178,103,.10)';g.fillRect(w-165,12,145,22);g.fillStyle='#de
 }
 }
 function loop(t){const dt=last?Math.min(.06,(t-last)/1000):0;last=t;
+advanceDragIntent();
 const desired=transitionHold?transitionGoal:(pendingRise!==null||pendingLower!==null?rigPose:(nextDigPose()??poseFor(p.x)));
 const delta=desired-rigPose;
 rigPose+=Math.sign(delta)*Math.min(Math.abs(delta),dt*6/1.8);
@@ -760,29 +761,48 @@ bindHold('left',-1);bindHold('right',1);
 // Diagonal-up targets the next unbroken ceiling tile in the adjacent column;
 // straight-up targets the miner's own overhead tile.
 const playCanvas=$('world');
+// Drag intent is deliberately separated from player movement. Diagonal
+// drags must never accidentally walk the miner into a low tunnel.
 function setGesture(e){
  if(!canvasDrag||canvasDrag.id!==e.pointerId||phase!=='manual')return;
  const dx=e.clientX-canvasDrag.x,dy=e.clientY-canvasDrag.y;
- const min=17;
- if(Math.hypot(dx,dy)<min)return;
- const upward=mode==='excavate'&&dy< -28&&-dy>Math.abs(dx)*.42;
- if(upward){
-  moveDir=0;
-  const offset=Math.abs(dx)>23?Math.sign(dx):0;
+ const distance=Math.hypot(dx,dy);
+ const min=19;
+ if(distance<min)return;
+ const drag=canvasDrag;
+ drag.dx=dx;drag.dy=dy;
+ // A slightly upward diagonal (including long horizontal reach) means aim.
+ // Earlier builds demanded a steep angle, incorrectly causing LEFT movement.
+ const upward=mode==='excavate'&&dy<-24&&(-dy>=Math.abs(dx)*.20);
+ if(upward||drag.action==='aim'){
+  // Once aim has begun, it is latched until finger release. No movement.
+  moveDir=0;elapsed=0;
+  const offset=Math.abs(dx)>=21?Math.sign(dx):0;
   const x=p.x+offset;
   const layer=hAt(x);
-  // Once a particular rock tile breaks, keep it selected until release;
-  // normal small finger movements must not accidentally mine the next layer.
-  const changed=!aimTarget||aimTarget.x!==x||canvasDrag.action!=='aim';
-  canvasDrag.action='aim';canvasDrag.dx=dx;canvasDrag.dy=dy;
-  if(changed){aimTarget={x,layer,done:false};digElapsed=0;rigSwing=0;widenArmed=false;}
- }else if(Math.abs(dx)>=20){
+  // Update only when changing column, not when the highlighted rock breaks.
+  const changed=!aimTarget||aimTarget.x!==x||drag.action!=='aim';
+  drag.action='aim';
+  if(changed){
+   aimTarget={x,layer,done:false};
+   digElapsed=0;rigSwing=0;widenArmed=false;
+  }
+  if(offset)p.dir=offset; // face the tile without stepping toward it
+  return;
+ }
+ // Allow a brief intent window for the vertical component of a diagonal
+ // gesture to arrive before the first horizontal gameplay step.
+ if(Math.abs(dx)>=22){
   const direction=Math.sign(dx);
-  if(canvasDrag.action!=='move'||moveDir!==direction){
+  drag.candidate=direction;
+  const elapsedMs=performance.now()-drag.startedAt;
+  const clearlyHorizontal=Math.abs(dx)>=85&&Math.abs(dy)<14;
+  if(elapsedMs<145&&!clearlyHorizontal)return;
+  if(drag.action!=='move'||moveDir!==direction){
    aimTarget=null;digElapsed=0;rigSwing=0;
    activeExcavationCell=null;activeExcavationDir=0;
   }
-  canvasDrag.action='move';canvasDrag.dx=dx;canvasDrag.dy=dy;
+  drag.action='move';
   moveDir=direction;p.dir=direction;
  }else{
   moveDir=0;
@@ -792,10 +812,18 @@ playCanvas.addEventListener('pointerdown',e=>{
  if(phase!=='manual'||canvasDrag)return;
  e.preventDefault();
  playCanvas.setPointerCapture(e.pointerId);
- canvasDrag={id:e.pointerId,x:e.clientX,y:e.clientY,dx:0,dy:0,action:'waiting'};
+ canvasDrag={id:e.pointerId,x:e.clientX,y:e.clientY,dx:0,dy:0,action:'waiting',startedAt:performance.now(),candidate:0};
  moveDir=0;aimTarget=null;digElapsed=0;
 });
 playCanvas.addEventListener('pointermove',e=>{if(canvasDrag){e.preventDefault();setGesture(e)}});
+// The finger may stop moving before the intent window expires; resolve its
+// held drag on each frame rather than requiring another pointermove event.
+function advanceDragIntent(){
+ if(!canvasDrag||canvasDrag.action!=='waiting'||!canvasDrag.candidate)return;
+ if(performance.now()-canvasDrag.startedAt<145)return;
+ const dir=canvasDrag.candidate;
+ canvasDrag.action='move';moveDir=dir;p.dir=dir;
+}
 function endCanvasGesture(e){
  if(!canvasDrag||canvasDrag.id!==e.pointerId)return;
  canvasDrag=null;aimTarget=null;moveDir=0;digElapsed=0;rigSwing=0;
