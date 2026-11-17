@@ -1,6 +1,6 @@
 # The Depths — Prioritized Development Backlog
 
-**Current playable build:** Prototype 031, `index.html`. Keep the same published URL / entry point for every playtest. This list contains *planned* work, not completed features.
+**Current playable build:** Prototype 032, `index.html`. Keep the same published URL / entry point for every playtest. This list contains *planned* work, not completed features.
 
 ## NOW — Prototype 021: grounded walking and seamless travel
 
@@ -234,6 +234,18 @@ Audited all nine decoded video-derived animations using the actual silhouette bo
 - [x] Simulated new two-tile-height excavation from solid rock: completed **two strips in the same cell**, then advanced.
 - [x] Full eight-strip bag/dump/return regression passed, zero position-lock violations; visual travel max 0.08334 cells per 60Hz frame.
 - [ ] Consider separate explicit widening interaction for previously excavated cells, rather than restricting free movement in order to auto-widen existing openings.
+
+## Prototype 032 — bidirectional widening pockets inside existing tunnels
+
+- [x] Added explicit **Widen pocket** action: select 2-tile or 3-tile clearance, arm widening, hold LEFT or RIGHT toward an already-open lower tunnel section.
+- [x] Both directions mine exactly the adjacent opening to the selected height; the miner remains in place after completion, and widening automatically disarms.
+- [x] Walking through existing open passages remains completely independent of mode and selected target height while widening is not armed.
+- [x] Existing solid-face excavation and the uninterrupted continuation of a partial cut still behave as before.
+- [x] Simulation: widening a 1-tile-high passage to 2 tiles worked to the LEFT (x14 from x15) and RIGHT (x10 from x9), with no character movement during the widening action.
+- [x] Simulation: 1-tile retreat in 2-tile Excavate mode from x15 toward shaft without extra excavation.
+- [x] Simulation: standard forward excavation and full eight-strip bag-return/dump/resume preserved; no posture lock violations or abrupt frame-size jumps.
+- [ ] iPhone QA: tap **Widen pocket: OFF** to arm; try widening left while prone, then test normal walking once the pocket is complete.
+- [ ] Future: add an option to widen directly overhead while stationary, for a pocket at the exact cell the miner occupies.
 
 ## Decision log
 
