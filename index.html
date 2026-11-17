@@ -509,7 +509,8 @@ g.moveTo(hip[0]-d*3,hip[1]-4);g.lineTo(hip[0]-d*13+bagSway,hip[1]-8);g.stroke();
 // Detailed articulated graphite character, fitted to the SAME joints as the
 // existing rig. First production test: standing mining only (other states
 // retain their proven sprite playback/temporary rig).
-const useSkinnedStand=smoothSwing&&digging&&poseValue<1&&rigOpacity>.001;
+// Keep the skinned body during the fade into/out of standing mining as well.
+const useSkinnedStand=smoothSwing&&poseValue<1&&rigOpacity>.001;
 function drawSkinnedStand(){
  g.save();g.translate(px,BASE);g.scale(d,1);
  const loc=k=>pose[k],charcoal='#171a1b',ink='#111415',edge='#a8aaa4',shine='#d4cbb8';
