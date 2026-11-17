@@ -801,7 +801,9 @@ function setGesture(e){
  drag.dx=dx;drag.dy=dy;
  // A slightly upward diagonal (including long horizontal reach) means aim.
  // Earlier builds demanded a steep angle, incorrectly causing LEFT movement.
- const upward=mode==='excavate'&&dy<-24&&(-dy>=Math.abs(dx)*.20);
+ // A shallow upward aim still casts a beam through open rock columns;
+ // keep a minimum vertical commitment to distinguish ordinary LEFT/RIGHT travel.
+ const upward=mode==='excavate'&&dy<-18&&(-dy>=Math.abs(dx)*.12);
  if(upward||drag.action==='aim'){
   // Once aim has begun, it is latched until finger release. No movement.
   moveDir=0;elapsed=0;
