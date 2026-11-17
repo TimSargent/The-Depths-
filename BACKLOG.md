@@ -1,6 +1,6 @@
 # The Depths — Prioritized Development Backlog
 
-**Current playable build:** Prototype 021, `index.html`. Keep the same published URL / entry point for every playtest. This list contains *planned* work, not completed features.
+**Current playable build:** Prototype 022, `index.html`. Keep the same published URL / entry point for every playtest. This list contains *planned* work, not completed features.
 
 ## NOW — Prototype 021: grounded walking and seamless travel
 
@@ -132,6 +132,16 @@ Audited all nine decoded video-derived animations using the actual silhouette bo
 - [ ] Check the visual loop cadence, seam blur and foot sliding on iPhone; tune stride-distance ratio if required.
 - [ ] Check rapid start/stop tapping and automatic bag journeys after movement changes.
 - [ ] Fix residual animation quality only if the video source still lacks a clean cycle.
+
+## Prototype 022 — animation state blending
+
+- [x] 145 ms eased visual crossfade when switching between walking/idle, crawling/mining and posture animation sets; no blend restarts on ordinary frame changes.
+- [x] Preserve calibrated per-animation body scale and headlamp tracking from Prototype 020.
+- [x] Preserve distance-synchronized walking and smooth grid travel from Prototype 021.
+- [x] Avoid mid-step position jumps when auto-return, resuming excavation and preparation for mining initiate a posture transition.
+- [x] Simulation regression: complete eight-strip bag filling, return, dump and resume; continuous visual travel (max 0.0833 cells per simulated 60 Hz frame) and zero posture lock violations.
+- [ ] Verify actual sprite blending, no objectionable double-image ghosting or headlamp jumps on iPhone; adjust duration if necessary.
+- [ ] Verify fast tapping and transitions between all three tunnel heights in a live playtest.
 
 ## Decision log
 
