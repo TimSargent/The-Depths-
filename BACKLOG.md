@@ -1,6 +1,6 @@
 # The Depths — Prioritized Development Backlog
 
-**Current playable build:** Prototype 024, `index.html`. Keep the same published URL / entry point for every playtest. This list contains *planned* work, not completed features.
+**Current playable build:** Prototype 025, `index.html`. Keep the same published URL / entry point for every playtest. This list contains *planned* work, not completed features.
 
 ## NOW — Prototype 021: grounded walking and seamless travel
 
@@ -159,6 +159,16 @@ Audited all nine decoded video-derived animations using the actual silhouette bo
 - [x] Keep impact camera shake subtle, more pronounced only at final fracture; no new animation assets or video credits.
 - [x] Simulated 3,500 frames at 60 Hz: impact and break events both occurred; eight sections excavated, bag dumped and miner resumed; zero posture-lock violations and maximum smooth travel step ~0.08333 cells.
 - [ ] Confirm impact timing, rock-fracture visibility, chip scale, and camera feedback on iPhone. Tune to taste.
+
+## Prototype 025 — heavy deliberate mining swing
+
+- [x] Replace rapid 1.15-cycle/s mining with **one full swing every 2 seconds**, across standing, crouched and prone mining.
+- [x] Curate frames within each existing sprite animation into **one** wind-up, downstroke, and recovery rather than multiple fast actions.
+- [x] Trigger rock-contact chips once per swing, aligned with animation's impact pose.
+- [x] Maintain the **4-second rock cutting interval**, delivering two meaningful pickaxe hits per completed section.
+- [x] Simulation regression: 16 strikes across 8 strips, full bag/dump/return, no premature upright swings, no posture lock violations.
+- [ ] Evaluate heavy-swing feeling in iPhone playtest; adjust pause on wind-up and recoil if needed.
+- [ ] Consider coupling final collapse more tightly to the second impact; current rock section dislodges ~0.75 sec after last strike.
 
 ## Decision log
 
