@@ -14,7 +14,7 @@
 <div class="view"><canvas id="world" width="960" height="450" aria-label="Playable mining tunnel with automatic spoil bag and horizontal excavation"></canvas><div class="progress" id="progress"></div></div>
 <div id="phase">Prototype 013 • video-derived animation playtest</div>
 <div id="debug" style="font:12px ui-monospace,SFMono-Regular,monospace;color:#e1b778;background:#14171a;border:1px solid #393a38;padding:7px 10px;border-radius:8px;margin-top:7px">State: IDLE | X: 6 | Pose: 0 | Camera: stable</div>
-<div class="actions"><button id="zoom" class="selected">🔍 Close-up camera ON</button><button id="sprite" class="selected">🎞 Video animations ON</button></div>
+<div class="actions"><button id="zoom" class="selected">🔍 Close-up camera ON</button><button id="sprite" class="selected">🎞 Video animations ON</button><button id="walkDirection">🚶 Walk cycle: reversed</button></div>
 <div class="modes"><button id="explore">↗ Explore</button><button id="excavate" class="selected">⛏ Excavate</button></div>
 <div class="heights"><button id="crawl" class="selected">1 tile · Crawl</button><button id="crouch">2 tiles · Crouch</button><button id="stand">3 tiles · Stand</button></div>
 <div class="controls"><button id="left">◀ HOLD LEFT</button><button id="right">HOLD RIGHT ▶</button></div>
@@ -342,6 +342,7 @@ $('dump').onclick=()=>{if(phase!=='manual'||bag===0)return;returnX=p.x;phase='re
 $('reset').onclick=reset;
 $('zoom').onclick=()=>{zoomed=!zoomed;$('zoom').textContent=zoomed?'🔍 Close-up camera ON':'🔭 Wide camera ON';$('zoom').classList.toggle('selected',zoomed)};
 $('sprite').onclick=()=>{spriteEnabled=!spriteEnabled;$('sprite').textContent=spriteEnabled?'🎞 Video animations ON':'🦴 Rig animations ON';$('sprite').classList.toggle('selected',spriteEnabled)};
+$('walkDirection').onclick=()=>{walkReverse=!walkReverse;walkFrameTime=0;$('walkDirection').textContent=walkReverse?'🚶 Walk cycle: reversed':'🚶 Walk cycle: original'};
 const pressed=new Set();document.addEventListener('keydown',e=>{if(e.target.tagName==='BUTTON'||e.target.tagName==='INPUT')return;let dir=e.key==='ArrowLeft'||e.key==='a'?-1:e.key==='ArrowRight'||e.key==='d'?1:0;if(dir){e.preventDefault();pressed.add(e.key);if(phase==='manual'){moveDir=dir;p.dir=dir}}});document.addEventListener('keyup',e=>{pressed.delete(e.key);if(!pressed.size){moveDir=0;digElapsed=0}});window.addEventListener('blur',()=>{pressed.clear();moveDir=0;digElapsed=0});
 reset();requestAnimationFrame(loop);
 })();
