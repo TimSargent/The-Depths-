@@ -1,6 +1,6 @@
 # The Depths — Prioritized Development Backlog
 
-**Current playable build:** Prototype 026, `index.html`. Keep the same published URL / entry point for every playtest. This list contains *planned* work, not completed features.
+**Current playable build:** Prototype 027, `index.html`. Keep the same published URL / entry point for every playtest. This list contains *planned* work, not completed features.
 
 ## NOW — Prototype 021: grounded walking and seamless travel
 
@@ -179,6 +179,17 @@ Audited all nine decoded video-derived animations using the actual silhouette bo
 - [x] Emit contact chips at 67.5% of the cycle; simulation confirms 16 impacts across 8 rock strips, full bag return/dump, and no posture lock violations.
 - [ ] Visually inspect whether frame blending creates ghosted hands/pickaxe. This is an interim solution, not true skeletal tweening, optical flow, or 200 unique authored frames.
 - [ ] If ghosting is visible, create a joint-anchored 2D rig or use optical-flow in-between frames from the video source instead of adding more crossfade.
+
+## Prototype 027 — continuous joint motion for mining and posture transitions
+
+- [x] Diagnosed flashing from crossfading full images of inconsistent arm/pickaxe poses rather than interpolating joint positions.
+- [x] Implemented continuous procedural wrist, elbow and pickaxe positions at render FPS for standing, crouched and prone mining; preserves the heavy 2-second swing and 4-second excavation interval.
+- [x] Reuses the existing seven key-pose articulated rig for smooth standing/crouching/prone transitions and eases over ~150 ms between video locomotion and the rig.
+- [x] **Joint motion ON / Video frames ON** toggle to compare rigged movement with the old clip-based method without generating more videos.
+- [x] Simulated both tunnel directions (enter and exit): transition locked at x=9, zero position-lock violations, max travel 0.0833 cells/frame.
+- [x] Simulated full 8-strip bag/dump/resume cycle with smooth locomotion and no premature standing mining.
+- [ ] Watch iPhone playback for visual character-style discrepancies between rig and sprite; this is an interim mechanical rig rather than fully traced skeleton art.
+- [ ] Tune arm reach, rock-contact point, pickaxe length, and transition blending to maintain consistent proportions across styles.
 
 ## Decision log
 
