@@ -1,6 +1,6 @@
 # The Depths — Prioritized Development Backlog
 
-**Current playable build:** Prototype 027, `index.html`. Keep the same published URL / entry point for every playtest. This list contains *planned* work, not completed features.
+**Current playable build:** Prototype 028, `index.html`. Keep the same published URL / entry point for every playtest. This list contains *planned* work, not completed features.
 
 ## NOW — Prototype 021: grounded walking and seamless travel
 
@@ -190,6 +190,17 @@ Audited all nine decoded video-derived animations using the actual silhouette bo
 - [x] Simulated full 8-strip bag/dump/resume cycle with smooth locomotion and no premature standing mining.
 - [ ] Watch iPhone playback for visual character-style discrepancies between rig and sprite; this is an interim mechanical rig rather than fully traced skeleton art.
 - [ ] Tune arm reach, rock-contact point, pickaxe length, and transition blending to maintain consistent proportions across styles.
+
+## Prototype 028 — standing graphite-skin rig
+
+- [x] Attached custom hand-drawn-style graphite skull, neck, six etched rib pairs and sternum, pelvis, tapered limbs, joints, angular hands and boots to the existing joint rig.
+- [x] Applied the illustrated rig to **standing mining first** only; the video-derived walking cycle and crouched/prone art systems remain unchanged for comparison.
+- [x] The pickaxe stays attached to the animated wrist, with a heavy 2-second wind-up/strike/recovery loop.
+- [x] Retained the same figure through the brief fade into and out of standing mining rather than briefly showing the primitive rig.
+- [x] Standing mining test: character rendered in standing mining for 1,100+ simulated frames, four excavations, no lock violations and smooth grid motion.
+- [x] Regression: existing crawl route, 8-strip bag fill, return, dump and resume completed with zero transition-lock violations.
+- [ ] iPhone visual QA: verify graphite texture, anatomy, hand-to-tool attachment, smooth skin blend and readability against dark rock.
+- [ ] After approval, extend same illustrated rig to crouched/prone mining and posture transitions; avoid changing the working walking motion until needed.
 
 ## Decision log
 
