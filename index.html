@@ -21,7 +21,7 @@
 <div class="controls"><button id="left">◀ HOLD LEFT</button><button id="right">HOLD RIGHT ▶</button></div>
 <div class="actions"><button id="brace">▥ Install support</button><button id="dump">◩ Dump at ledge</button></div>
 <div class="message" id="message">Hold RIGHT in Excavate mode. The miner will chip forward through the wall, collect rubble in his duffle bag, and automatically return to the shaft ledge when the bag is full.</div>
-<div class="help">Each thin horizontal section takes <b>4 seconds</b> to mine. Four sections make one full tunnel-length tile. New crawl tunnels need the least excavation; crouch tunnels need twice as much. Standing tunnels require supports. The miner cannot dig downward. Eight aligned video-derived animation clips cover walking, crouch walking, prone crawling, posture transitions, and all three mining stances. The toggle switches between video-derived animation and the original articulated rig. Seven anatomical poses still shift weight from feet to knees to hands before lowering fully prone. World X and camera remain locked throughout standing/crawling transitions; watch the State/X debug readout. Use Close-up camera to inspect the joints. Controls: hold left or right (keyboard A/D or arrow keys on a computer). When the bag fills, he automatically returns to the ledge, empties it, and resumes.</div>
+<div class="help"><b>NEW:</b> Drag anywhere on the game screen. Drag left/right to move; drag up or diagonally up to aim at a ceiling section and hold to mine it. A faint beam marks the target. The LEFT/RIGHT buttons still work. Each thin horizontal section takes <b>4 seconds</b> to mine. Four sections make one full tunnel-length tile. New crawl tunnels need the least excavation; crouch tunnels need twice as much. Standing tunnels require supports. The miner cannot dig downward. Eight aligned video-derived animation clips cover walking, crouch walking, prone crawling, posture transitions, and all three mining stances. The toggle switches between video-derived animation and the original articulated rig. Seven anatomical poses still shift weight from feet to knees to hands before lowering fully prone. World X and camera remain locked throughout standing/crawling transitions; watch the State/X debug readout. Use Close-up camera to inspect the joints. Controls: hold left or right (keyboard A/D or arrow keys on a computer). When the bag fills, he automatically returns to the ledge, empties it, and resumes.</div>
 <details class="lab"><summary>🎬 Animation Studio — preview all 8 motions</summary>
 <div class="lab-controls"><select id="labSelect" aria-label="Choose miner animation"></select>
 <button id="labPause">⏸ Pause</button><button id="labReverse">↩ Reverse OFF</button>
@@ -56,7 +56,8 @@ function aimReady(){
  !transitionHold&&pendingStepTo===null&&pendingRise===null&&pendingLower===null&&
  Math.abs(visualX-p.x)<.0001&&poseReady(poseFor(p.x))&&
  aimTarget.x>=EDGE&&aimTarget.x<N&&aimTarget.layer===hAt(aimTarget.x)&&
- aimTarget.layer<3&&(aimTarget.layer!==2||supported(aimTarget.x));
+ aimTarget.layer<target&&aimTarget.layer<3&&
+ (aimTarget.layer!==2||supported(aimTarget.x));
 }
 // Short crossfades only when the animation STATE changes (never on frame advances).
 let lastDrawnMotion=null,blendFromMotion=null,blendStartMs=0;
@@ -241,7 +242,7 @@ if(heights[x]>=ceiling){activeExcavationCell=null;activeExcavationDir=0;}
 fx.push({kind:'break',x:breakPoint.x,y:breakPoint.y,t:performance.now(),
          strength:1,dir:moveDir,seed:mined*37});
 say('CRACK! A thin horizontal section breaks free. The loose rock goes into the duffle bag ('+bag+'/8).');
-if(bag>=8){returnX=p.x;phase='return';moveDir=0;say('Duffel full! The miner packs up, heads back through the tunnel, and dumps the spoil over the shaft ledge.')}
+if(bag>=8){returnX=p.x;phase='return';moveDir=0;aimTarget=null;canvasDrag=null;say('Duffel full! The miner packs up, heads back through the tunnel, and dumps the spoil over the shaft ledge.')}
 return true;
 }
 function setMode(v){if(phase!=='manual')return;mode=v;digElapsed=0;moveDir=0;if(v!=='excavate'){activeExcavationCell=null;activeExcavationDir=0;widenArmed=false;aimTarget=null;}say(v==='explore'?'Pickaxe stowed. Hold LEFT or RIGHT to travel through the tunnel.':'Pickaxe ready. Hold a direction and the miner excavates the selected tunnel height.');update()}
@@ -729,6 +730,52 @@ b.addEventListener('pointerdown',e=>{e.preventDefault();if(phase!=='manual')retu
 b.addEventListener('pointerup',end);b.addEventListener('pointercancel',end);b.addEventListener('lostpointercapture',end);
 }
 bindHold('left',-1);bindHold('right',1);
+// Canvas is a full-screen-relative touch surface, not a draggable joystick.
+// Diagonal-up targets the next unbroken ceiling tile in the adjacent column;
+// straight-up targets the miner's own overhead tile.
+const playCanvas=$('world');
+function setGesture(e){
+ if(!canvasDrag||canvasDrag.id!==e.pointerId||phase!=='manual')return;
+ const dx=e.clientX-canvasDrag.x,dy=e.clientY-canvasDrag.y;
+ const min=17;
+ if(Math.hypot(dx,dy)<min)return;
+ const upward=mode==='excavate'&&dy< -28&&-dy>Math.abs(dx)*.42;
+ if(upward){
+  moveDir=0;
+  const offset=Math.abs(dx)>23?Math.sign(dx):0;
+  const x=p.x+offset;
+  const layer=hAt(x);
+  const changed=!aimTarget||aimTarget.x!==x||aimTarget.layer!==layer||
+       canvasDrag.action!=='aim';
+  canvasDrag.action='aim';canvasDrag.dx=dx;canvasDrag.dy=dy;
+  if(changed){aimTarget={x,layer,done:false};digElapsed=0;rigSwing=0;widenArmed=false;}
+ }else if(Math.abs(dx)>=20){
+  const direction=Math.sign(dx);
+  if(canvasDrag.action!=='move'||moveDir!==direction){
+   aimTarget=null;digElapsed=0;rigSwing=0;
+   activeExcavationCell=null;activeExcavationDir=0;
+  }
+  canvasDrag.action='move';canvasDrag.dx=dx;canvasDrag.dy=dy;
+  moveDir=direction;p.dir=direction;
+ }else{
+  moveDir=0;
+ }
+}
+playCanvas.addEventListener('pointerdown',e=>{
+ if(phase!=='manual'||canvasDrag)return;
+ e.preventDefault();
+ playCanvas.setPointerCapture(e.pointerId);
+ canvasDrag={id:e.pointerId,x:e.clientX,y:e.clientY,dx:0,dy:0,action:'waiting'};
+ moveDir=0;aimTarget=null;digElapsed=0;
+});
+playCanvas.addEventListener('pointermove',e=>{if(canvasDrag){e.preventDefault();setGesture(e)}});
+function endCanvasGesture(e){
+ if(!canvasDrag||canvasDrag.id!==e.pointerId)return;
+ canvasDrag=null;aimTarget=null;moveDir=0;digElapsed=0;rigSwing=0;
+}
+for(const name of ['pointerup','pointercancel','lostpointercapture'])
+ playCanvas.addEventListener(name,endCanvasGesture);
+
 $('widen').onclick=()=>{
  if(phase!=='manual')return;
  if(target<2){say('Choose 2-tile crouch or 3-tile standing height before widening a pocket.');return;}
