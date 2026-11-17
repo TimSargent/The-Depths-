@@ -1,6 +1,6 @@
 # The Depths — Prioritized Development Backlog
 
-**Current playable build:** Prototype 017, `index.html`. Keep the same published URL / entry point for every playtest. This list contains *planned* work, not completed features.
+**Current playable build:** Prototype 018, `index.html`. Keep the same published URL / entry point for every playtest. This list contains *planned* work, not completed features.
 
 ## NOW — Prototype 014: nine-state anti-aliased video animation library
 
@@ -93,6 +93,12 @@ The animation state now explicitly reports IDLE/MOVING/TRANSITION/AUTO TRAVEL/DU
 - [x] Motion decoder now detects near-empty frames and substitutes the nearest intact frame from the same animation. This avoids sudden tiny/vanishing sprites without changing gameplay timing.
 - [x] Verified the replacement indices in source-data analysis: crouch-walk now renders [0,0,2,3,4,4,6,0]; prone crawl and both major posture transitions remain untouched.
 - [ ] Test the fix on an actual iPhone recording. Duplicate frames may be visually choppy; later we can regenerate or reconstruct *only* the damaged images, without new video credits.
+
+## Prototype 018 visual calibration
+
+- [x] Compare the upright and prone source-frame dimensions; prone mining was generated at a smaller apparent physical scale.
+- [x] Increase prone crawl and prone-mining display scale slightly (50 and 53 calibrated world pixels, respectively) without reintroducing per-frame scaling.
+- [ ] Confirm the miner's prone length now matches standing proportions on iPhone, and that no tool swing clips the one-tile roof.
 
 ## Decision log
 
