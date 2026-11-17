@@ -1,3 +1,14 @@
+## Prototype 037W — Original walk animation calibration (current playable update)
+
+- [x] Inspected the original transparent upright-walking PNGs in Animation Library 014. Frame bottoms vary by about 10 original-source pixels (visible jitter when anchored independently).
+- [x] Store a **single floor reference across all eight original walking PNGs** in `assets/full-detail-037.js`, while keeping original frame body proportions and imagery.
+- [x] Playable character now supports **Ground lock ON/OFF** comparison and **Seam blend ON/OFF** comparison without touching terrain, movement speed, mining, or any other source animation.
+- [x] Added frame scrub control to Animation Studio, aligned to the same original-image ground reference, for frame-by-frame walk-loop review.
+- [x] Runtime simulation: eight mined strips, automated bag return/dump/resume, zero position-lock violations, and maximum smooth movement 0.08334 cells per 60Hz frame; toggle state callbacks work.
+- [ ] **Required iPhone QA:** open Prototype 037W with imported high-detail artwork active; test walk both directions with ground lock and seam blend ON/OFF. Observe feet, body bob and whether the seam still snaps/ghosts.
+- [ ] If source frames still look discontinuous, create authentic in-between animation from the original drawings/pose landmarks rather than image crossfades or a new character.
+- [ ] After walking is approved, continue posture transitions and mining, then maintain the agreed **038 → 036** order.
+
 ## Locked production sequence (Nov 17, 2026)
 
 **037 → 038 → 036.** Do not skip or reorder without asking.
