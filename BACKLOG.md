@@ -1,6 +1,6 @@
 # The Depths — Prioritized Development Backlog
 
-**Current playable build:** Prototype 015, `index.html`. Keep the same published URL / entry point for every playtest. This list contains *planned* work, not completed features.
+**Current playable build:** Prototype 016, `index.html`. Keep the same published URL / entry point for every playtest. This list contains *planned* work, not completed features.
 
 ## NOW — Prototype 014: nine-state anti-aliased video animation library
 
@@ -77,6 +77,15 @@ The animation state now explicitly reports IDLE/MOVING/TRANSITION/AUTO TRAVEL/DU
 - [ ] Verify on iPhone which gait order actually reads as forward motion; adjust frame ordering/cadence against real player travel if neither does.
 - [ ] Visually compare stand → crouch → prone size, ground contact, pickaxe reach and headlamp placement. These are provisional physical scale values.
 - [ ] Ensure transitions remain stationary and automated bag trips still work during gameplay.
+
+## Prototype 016 fix and QA
+
+- [x] Fixed animation-frame scaling: **one reference height and X-center per sequence**, rather than resizing every frame based on that frame's changing silhouette bounds.
+- [x] Keeps the miner's feet aligned with the tunnel floor, while allowing the posture itself to naturally lower the head and torso.
+- [x] Maintains the corrected walking frame order and selectable comparison mode from Prototype 015.
+- [ ] Visually confirm on iPhone that prone crawling and transitions no longer pulse in size.
+- [ ] Check residual source-video frame inconsistencies (which cannot be eliminated by renderer scaling alone).
+- [ ] Verify movement locks, bag return/dump, pickaxe and headlamp placement after the geometry change.
 
 ## Decision log
 
