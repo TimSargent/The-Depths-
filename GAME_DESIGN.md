@@ -1,6 +1,6 @@
 # The Depths — Living Game Design
 
-**Status:** pre-alpha browser playtest. **Current build:** Prototype 020 (`index.html`). **Last design update:** 2026-11-16.
+**Status:** pre-alpha browser playtest. **Current build:** Prototype 021 (`index.html`). **Last design update:** 2026-11-16.
 
 This is the concise, source-of-truth design for the *game we intend to make*. It is not a claim that all features already exist. When in doubt, preserve the current playable prototype and record open questions in BACKLOG.md.
 
