@@ -12,7 +12,7 @@
 <div class="top"><div><div class="eyebrow">THE DEPTHS / PLAYTEST 013</div><h1>Dig. Haul. Repeat.</h1></div><button id="reset">↻ Restart</button></div>
 <div class="stats"><div class="stat"><span>Posture</span><b id="pose">Standing</b></div><div class="stat"><span>Bag</span><b id="bag">0 / 8</b><div class="meter"><div id="bagbar"></div></div></div><div class="stat"><span>Strips mined</span><b id="mined">0</b></div><div class="stat"><span>Dump trips</span><b id="trips">0</b></div></div>
 <div class="view"><canvas id="world" width="960" height="450" aria-label="Playable mining tunnel with automatic spoil bag and horizontal excavation"></canvas><div class="progress" id="progress"></div></div>
-<div id="phase">Prototype 010 • animation state lock</div>
+<div id="phase">Prototype 013 • video-derived animation playtest</div>
 <div id="debug" style="font:12px ui-monospace,SFMono-Regular,monospace;color:#e1b778;background:#14171a;border:1px solid #393a38;padding:7px 10px;border-radius:8px;margin-top:7px">State: IDLE | X: 6 | Pose: 0 | Camera: stable</div>
 <div class="actions"><button id="zoom" class="selected">🔍 Close-up camera ON</button><button id="sprite" class="selected">🎞 Video animations ON</button></div>
 <div class="modes"><button id="explore">↗ Explore</button><button id="excavate" class="selected">⛏ Excavate</button></div>
@@ -20,7 +20,7 @@
 <div class="controls"><button id="left">◀ HOLD LEFT</button><button id="right">HOLD RIGHT ▶</button></div>
 <div class="actions"><button id="brace">▥ Install support</button><button id="dump">◩ Dump at ledge</button></div>
 <div class="message" id="message">Hold RIGHT in Excavate mode. The miner will chip forward through the wall, collect rubble in his duffle bag, and automatically return to the shaft ledge when the bag is full.</div>
-<div class="help">Each thin horizontal section takes <b>4 seconds</b> to mine. Four sections make one full tunnel-length tile. New crawl tunnels need the least excavation; crouch tunnels need twice as much. Standing tunnels require supports. The miner cannot dig downward. Experimental video-derived vector walk frames are used only for upright movement; the toggle compares sprite and rig walking. Seven anatomical poses still shift weight from feet to knees to hands before lowering fully prone. World X and camera remain locked throughout standing/crawling transitions; watch the State/X debug readout. Use Close-up camera to inspect the joints. Controls: hold left or right (keyboard A/D or arrow keys on a computer). When the bag fills, he automatically returns to the ledge, empties it, and resumes.</div>
+<div class="help">Each thin horizontal section takes <b>4 seconds</b> to mine. Four sections make one full tunnel-length tile. New crawl tunnels need the least excavation; crouch tunnels need twice as much. Standing tunnels require supports. The miner cannot dig downward. Eight aligned video-derived animation clips cover walking, crouch walking, prone crawling, posture transitions, and all three mining stances. The toggle switches between video-derived animation and the original articulated rig. Seven anatomical poses still shift weight from feet to knees to hands before lowering fully prone. World X and camera remain locked throughout standing/crawling transitions; watch the State/X debug readout. Use Close-up camera to inspect the joints. Controls: hold left or right (keyboard A/D or arrow keys on a computer). When the bag fills, he automatically returns to the ledge, empties it, and resumes.</div>
 <details class="lab"><summary>🎬 Animation Studio — preview all 8 motions</summary>
 <div class="lab-controls"><select id="labSelect" aria-label="Choose miner animation"></select>
 <button id="labPause">⏸ Pause</button><button id="labReverse">↩ Reverse OFF</button>
@@ -30,6 +30,8 @@
 <div class="help">A separate preview only; it does not alter game movement. These early sprites are simplified monochrome extractions of your green-screen videos, not the final textured character art.</div>
 </details>
 </main>
+<script src="assets/motion-data-a.js"></script>
+<script src="assets/motion-data-b.js"></script>
 <script src="assets/motion-engine.js"></script>
 <script>
 (()=>{
