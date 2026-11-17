@@ -1,6 +1,6 @@
 # The Depths — Living Game Design
 
-**Status:** pre-alpha browser playtest. **Current build:** Prototype 011 (`index.html`). **Last design update:** 2026-11-16.
+**Status:** pre-alpha browser playtest. **Current build:** Prototype 012 (`index.html`). **Last design update:** 2026-11-16.
 
 This is the concise, source-of-truth design for the *game we intend to make*. It is not a claim that all features already exist. When in doubt, preserve the current playable prototype and record open questions in BACKLOG.md.
 
@@ -50,7 +50,7 @@ Persistent underground world with organic rock silhouettes over hidden destructi
 
 ## Prototype status — what is actually implemented
 
-`index.html` (Prototype 011) is a **standalone browser game** with left/right hold controls, Explore/Excavate, crawl/crouch/standing target selectors, rough supports, a 4-second excavation progress cycle, duffle capacity of **8 mined sections**, automatic return/dump/resume, camera zoom toggle and 2D joint miner with refined weight-transfer poses (feet → knees → palms → prone). The animation state gate locks world X and the camera for the full transition, queues the step into lower clearance until the lowering animation completes, and pauses travel after entering higher clearance until standing completes. A debug readout shows state, position, and pose. Simulated movement tests passed; mobile visual playtesting is still needed. These are provisional balancing values. It has placeholder graphics and simplified terrain; a production-grade rig, detailed physics, ore materials, particle/audio fidelity, and long-term progression are **not built**. Review the actual code before asserting that a specific mechanic is complete.
+`index.html` (Prototype 012) is a **standalone browser game** with left/right hold controls, Explore/Excavate, crawl/crouch/standing target selectors, rough supports, a 4-second excavation progress cycle, duffle capacity of **8 mined sections**, automatic return/dump/resume, camera zoom toggle and 2D joint miner with refined weight-transfer poses (feet → knees → palms → prone). Prototype 012 also offers a toggleable, video-derived 12-frame SVG silhouette walking cycle in standing clearance, with the rig used as fallback for every other action. This is a comparison prototype; original detailed PNG artwork is not published to the repo. The animation state gate locks world X and the camera for the full transition, queues the step into lower clearance until the lowering animation completes, and pauses travel after entering higher clearance until standing completes. A debug readout shows state, position, and pose. Simulated movement tests passed; mobile visual playtesting is still needed. These are provisional balancing values. It has placeholder graphics and simplified terrain; a production-grade rig, detailed physics, ore materials, particle/audio fidelity, and long-term progression are **not built**. Review the actual code before asserting that a specific mechanic is complete.
 
 ## Decision discipline
 
