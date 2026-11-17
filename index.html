@@ -1,12 +1,12 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"><meta name="theme-color" content="#080a0c"><title>The Depths — Prototype 007</title>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"><meta name="theme-color" content="#080a0c"><title>The Depths — Prototype 008</title>
 <style>
 *{box-sizing:border-box}html,body{margin:0;background:#080a0c;color:#e9e0d3;font-family:system-ui,-apple-system,Arial,sans-serif;overflow-x:hidden}body{min-height:100dvh;overscroll-behavior:none}main{max-width:920px;margin:auto;padding:12px 12px max(18px,env(safe-area-inset-bottom))}.top{display:flex;align-items:center;justify-content:space-between;gap:8px}h1{margin:3px 0 0;font-size:21px}.eyebrow{font-size:10px;letter-spacing:2px;color:#bda889}.sub{font-size:12px;color:#b3a99a}.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:12px 0}.stat{background:#181b1d;border:1px solid #343537;border-radius:9px;padding:8px 7px}.stat span{font-size:10px;color:#aaa097;display:block}.stat b{font-size:14px;display:block;margin-top:2px}.view{position:relative;border:1px solid #4a443d;border-radius:12px;overflow:hidden;background:#070809;touch-action:none}canvas{width:100%;display:block;aspect-ratio:960/450;touch-action:none}.progress{position:absolute;bottom:0;left:0;height:4px;width:0;background:#e0ae67;transition:width .08s}.modes,.heights,.controls{display:flex;gap:8px;margin-top:10px}.modes button,.heights button{flex:1}.controls button{flex:1;min-height:65px;font-size:19px}button{background:#25282b;color:#f2e7d8;border:1px solid #555048;padding:12px 8px;border-radius:10px;font-size:13px;font-weight:700;touch-action:none;-webkit-user-select:none;user-select:none;cursor:pointer}button.selected{background:#725032;border-color:#d9ac72}button:disabled{opacity:.4}.actions{display:flex;gap:8px;margin-top:10px}.actions button{flex:1}.message{font-size:13px;line-height:1.45;color:#e7d4ba;border:1px solid #49443e;background:#181b1d;border-radius:10px;padding:11px;margin-top:10px;min-height:57px}.help{font-size:12px;line-height:1.55;color:#aaa097;margin:10px 2px}.meter{height:5px;border-radius:9px;background:#353739;overflow:hidden;margin-top:5px}.meter div{height:100%;background:#dfb47d;width:0;transition:width .15s}#phase{font-size:11px;color:#d7b27c;margin:8px 0 0}@media (max-width:500px){main{padding:8px 8px max(10px,env(safe-area-inset-bottom))}.stat{padding:7px 5px}.stat b{font-size:12px}.controls button{min-height:70px;font-size:18px}.modes button,.heights button{padding:11px 3px;font-size:12px}.actions button{font-size:12px}.eyebrow{font-size:9px}h1{font-size:18px}}
 </style></head><body><main>
-<div class="top"><div><div class="eyebrow">THE DEPTHS / PLAYTEST 007</div><h1>Dig. Haul. Repeat.</h1></div><button id="reset">↻ Restart</button></div>
+<div class="top"><div><div class="eyebrow">THE DEPTHS / PLAYTEST 008</div><h1>Dig. Haul. Repeat.</h1></div><button id="reset">↻ Restart</button></div>
 <div class="stats"><div class="stat"><span>Posture</span><b id="pose">Standing</b></div><div class="stat"><span>Bag</span><b id="bag">0 / 8</b><div class="meter"><div id="bagbar"></div></div></div><div class="stat"><span>Strips mined</span><b id="mined">0</b></div><div class="stat"><span>Dump trips</span><b id="trips">0</b></div></div>
 <div class="view"><canvas id="world" width="960" height="450" aria-label="Playable mining tunnel with automatic spoil bag and horizontal excavation"></canvas><div class="progress" id="progress"></div></div>
-<div id="phase">Ready to excavate • 4 seconds per strip</div>
+<div id="phase">Rigged miner test • 4 seconds per strip</div>
 <div class="modes"><button id="explore">↗ Explore</button><button id="excavate" class="selected">⛏ Excavate</button></div>
 <div class="heights"><button id="crawl" class="selected">1 tile · Crawl</button><button id="crouch">2 tiles · Crouch</button><button id="stand">3 tiles · Stand</button></div>
 <div class="controls"><button id="left">◀ HOLD LEFT</button><button id="right">HOLD RIGHT ▶</button></div>
@@ -18,7 +18,7 @@
 (()=>{
 const $=id=>document.getElementById(id),canvas=$('world'),g=canvas.getContext('2d');
 const CW=28,TH=72,N=130,BASE=365,START=6,EDGE=2;
-let heights,braces,p,mode,target,bag,mined,trips,phase,returnX,moveDir=0,holding=false,last=0,digElapsed=0,fx=[],cam=0,showTime=0,notice='',elapsed=0,roofTarget=-1,shake=0;
+let heights,braces,p,mode,target,bag,mined,trips,phase,returnX,moveDir=0,holding=false,last=0,digElapsed=0,fx=[],cam=0,showTime=0,notice='',elapsed=0,roofTarget=-1,shake=0,rigPose=0,rigStride=0,rigSwing=0;
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 function say(s){notice=s;$('message').textContent=s}
 function hAt(x){return x<0||x>=N?0:heights[x]}
@@ -27,7 +27,7 @@ function status(){return p.x<=EDGE+1?'At shaft ledge':phase==='return'?'Returnin
 function posture(){let h=hAt(p.x);return h>=3?'Standing':h>=2?'Crouching':'Crawling'}
 function reset(){
 heights=Array(N).fill(0);for(let x=EDGE;x<=9;x++)heights[x]=3;
-braces=new Set([4,8]);p={x:START,dir:1};mode='excavate';target=1;bag=0;mined=0;trips=0;phase='manual';returnX=START;moveDir=0;holding=false;last=0;digElapsed=0;fx=[];cam=0;showTime=0;roofTarget=-1;shake=0;
+braces=new Set([4,8]);p={x:START,dir:1};mode='excavate';target=1;bag=0;mined=0;trips=0;phase='manual';returnX=START;moveDir=0;holding=false;last=0;digElapsed=0;fx=[];cam=0;showTime=0;roofTarget=-1;shake=0;rigPose=0;rigStride=0;rigSwing=0;
 $('progress').style.width='0%';say('Hold RIGHT in Excavate mode to cut a narrow prospecting tunnel. The bag holds 8 strips before the miner must dump at the ledge.');update();
 }
 function update(){
@@ -102,28 +102,72 @@ g.beginPath();g.moveTo(xx+2,BASE);g.lineTo(xx+2,top+5);g.lineTo(xx+CW-2,top+5);g
 g.lineWidth=3;g.beginPath();g.moveTo(xx+2,BASE-8);g.lineTo(xx+CW-2,top+10);g.stroke();
 }
 }
-const px=(p.x+.5)*CW,foot=BASE,po=posture(),d=p.dir,hh=po==='Standing'?190:po==='Crouching'?119:57;
-const hx=px+(po==='Standing'?0:d*9),hy=foot-hh+16;
-function line(a,b,c,e,width=4){g.strokeStyle='#f0d6a3';g.lineWidth=width;g.lineCap='round';g.beginPath();g.moveTo(a,b);g.lineTo(c,e);g.stroke()}
-const moving=phase!=='manual'||moveDir!==0,wiggle=moving?Math.sin(t/115)*5:0;
-g.strokeStyle='#f0d6a3';g.lineWidth=4;g.beginPath();g.arc(hx,hy,11,0,Math.PI*2);g.stroke();
-if(po==='Standing'){
-line(px,hy+11,px,foot-65);line(px,foot-65,px-16-wiggle,foot-4);line(px,foot-65,px+16+wiggle,foot-4);line(px,hy+45,px-18,hy+80);line(px,hy+45,px+18,hy+80);
-}else if(po==='Crouching'){
-line(hx,hy+13,px-d*11,foot-38);line(px-d*11,foot-38,px-d*25,foot-4);line(px-d*11,foot-38,px+d*26,foot-4);line(hx,hy+37,px+d*21,foot-46);line(hx,hy+37,px-d*15,foot-41);
-}else{
-line(hx-d*9,hy+8,px-d*21,foot-22);line(px-d*21,foot-22,px-d*26,foot-3);line(hx-d*9,hy+8,px+d*15,foot-3);line(hx-d*9,hy+8,px+d*26,foot-18);line(px+d*26,foot-18,px+d*27,foot-3);
+
+const px=(p.x+.5)*CW,foot=BASE,d=p.dir;
+const moving=phase==='return'||phase==='resume'||(phase==='manual'&&moveDir!==0);
+const digging=phase==='manual'&&mode==='excavate'&&moveDir!==0&&hAt(p.x+moveDir)<target;
+const nearFace=(p.x+moveDir>=EDGE&&p.x+moveDir<N);
+// Seven keyframes blend between upright and prone; intermediate states are visible during transitions.
+// Coordinates in screen pixels, anchored at the miner's floor contact.
+// Positive local X means forward. In the prone keyframe, knees sit ahead
+// of the hips while shins extend back behind knees (human low crawl).
+const poses=[
+{hip:[0,-64],shoulder:[0,-142],head:[1,-176],elbow:[13,-120],hand:[16,-92],farElbow:[-11,-122],farHand:[-10,-94],knee:[13,-34],ankle:[14,-5],toe:[23,0],farKnee:[-14,-34],farAnkle:[-14,-5],farToe:[-7,0]},
+{hip:[-4,-62],shoulder:[13,-130],head:[19,-163],elbow:[29,-111],hand:[32,-85],farElbow:[0,-114],farHand:[5,-91],knee:[12,-33],ankle:[14,-5],toe:[23,0],farKnee:[-17,-34],farAnkle:[-15,-5],farToe:[-7,0]},
+{hip:[-11,-52],shoulder:[19,-116],head:[26,-149],elbow:[38,-91],hand:[40,-63],farElbow:[7,-96],farHand:[11,-66],knee:[11,-40],ankle:[14,-5],toe:[23,0],farKnee:[-22,-36],farAnkle:[-15,-5],farToe:[-7,0]},
+{hip:[-18,-38],shoulder:[20,-85],head:[27,-115],elbow:[39,-60],hand:[47,-37],farElbow:[9,-62],farHand:[25,-35],knee:[5,-15],ankle:[-20,-4],toe:[-29,0],farKnee:[-28,-15],farAnkle:[-50,-4],farToe:[-60,0]},
+{hip:[-25,-35],shoulder:[20,-63],head:[44,-86],elbow:[39,-37],hand:[51,-8],farElbow:[12,-38],farHand:[24,-9],knee:[3,-15],ankle:[-20,-4],toe:[-31,0],farKnee:[-28,-15],farAnkle:[-51,-4],farToe:[-62,0]},
+{hip:[-29,-37],shoulder:[18,-44],head:[45,-61],elbow:[32,-26],hand:[42,-3],farElbow:[4,-25],farHand:[14,-3],knee:[-1,-16],ankle:[-29,-4],toe:[-42,0],farKnee:[-40,-16],farAnkle:[-65,-4],farToe:[-74,0]},
+{hip:[-34,-23],shoulder:[17,-27],head:[46,-39],elbow:[33,-15],hand:[41,-3],farElbow:[-1,-14],farHand:[9,-3],knee:[-7,-12],ankle:[-45,-4],toe:[-61,0],farKnee:[-36,-13],farAnkle:[-68,-5],farToe:[-82,0]}
+];
+// Visual posture blends continuously, independent of the collision grid.
+const poseValue=clamp(rigPose,0,6),i0=Math.floor(poseValue),i1=Math.min(6,i0+1),alpha=poseValue-i0;
+const smooth=alpha*alpha*(3-2*alpha);
+const pose={};
+for(const key of Object.keys(poses[0])){
+ pose[key]=[poses[i0][key][0]+(poses[i1][key][0]-poses[i0][key][0])*smooth,
+            poses[i0][key][1]+(poses[i1][key][1]-poses[i0][key][1])*smooth];
 }
-g.strokeStyle='#989d9a';g.lineWidth=4;g.beginPath();g.arc(hx,hy-2,13,Math.PI*1.1,Math.PI*1.9);g.stroke();
-const lx=hx+d*13,ly=hy-4;g.fillStyle='#fce1aa';g.shadowColor='#f3c78b';g.shadowBlur=18;g.beginPath();g.arc(lx,ly,5,0,Math.PI*2);g.fill();g.shadowBlur=0;
-g.save();g.translate(lx,ly);if(d<0)g.rotate(Math.PI);const beam=g.createLinearGradient(0,0,230,0);beam.addColorStop(0,'rgba(255,207,133,.21)');beam.addColorStop(1,'rgba(255,207,133,0)');g.fillStyle=beam;g.beginPath();g.moveTo(0,0);g.lineTo(230,-73);g.lineTo(230,73);g.fill();g.restore();
+const stride=Math.sin(rigStride)*Math.min(1,Math.abs(moving?1:0));
+const gaitScale=poseValue>=5?.38:poseValue>=3?.32:1;
+pose.knee[0]+=stride*8*gaitScale;pose.farKnee[0]-=stride*8*gaitScale;
+pose.toe[0]+=stride*9*gaitScale;pose.farToe[0]-=stride*9*gaitScale;
+pose.hand[0]-=stride*5*gaitScale;pose.farHand[0]+=stride*5*gaitScale;
+// Face both directions by mirroring the rig about the character's origin.
+const at=k=>[px+d*pose[k][0],foot+pose[k][1]];
+function strokeBone(a,b,width=4,color='#ead2a7'){
+ const A=at(a),B=at(b);g.strokeStyle=color;g.lineWidth=width;g.lineCap='round';g.beginPath();g.moveTo(A[0],A[1]);g.lineTo(B[0],B[1]);g.stroke();
+}
+function node(k,r=3){const A=at(k);g.fillStyle='#dbad72';g.beginPath();g.arc(A[0],A[1],r,0,Math.PI*2);g.fill()}
+const head=at('head'),hand=at('hand'),hip=at('hip'),fhand=at('farHand');
+// Duffel is attached to the hip; visibly sways and grows with spoil load.
+const bagSway=moving?Math.sin(rigStride-0.8)*4:0;
+g.fillStyle='#51483f';g.strokeStyle='#a58e71';g.lineWidth=2;
+g.beginPath();g.ellipse(hip[0]-d*(13+bag*.3)+bagSway,hip[1]+6,10+bag*.65,11+bag*.65,-d*.17,0,Math.PI*2);g.fill();g.stroke();
+g.strokeStyle='#b3a08a';g.lineWidth=1.7;g.beginPath();
+g.moveTo(hip[0]-d*3,hip[1]-4);g.lineTo(hip[0]-d*13+bagSway,hip[1]-8);g.stroke();
+strokeBone('hip','farKnee',3,'#8e8b81');strokeBone('farKnee','farAnkle',3,'#8e8b81');strokeBone('farAnkle','farToe',3,'#8e8b81');
+strokeBone('shoulder','farElbow',3,'#8e8b81');strokeBone('farElbow','farHand',3,'#8e8b81');
+strokeBone('hip','shoulder',6);strokeBone('hip','knee',4);strokeBone('knee','ankle',4);strokeBone('ankle','toe',3);
+strokeBone('shoulder','elbow',4);strokeBone('elbow','hand',4);
+for(const k of ['hip','shoulder','knee','ankle','elbow','hand','farKnee','farElbow'])node(k,k==='hip'?3.4:2.7);
+g.fillStyle='#202326';g.strokeStyle='#ead2a7';g.lineWidth=3;
+g.beginPath();g.arc(head[0],head[1],11,0,Math.PI*2);g.fill();g.stroke();
+// Helmet shell and headlamp move with the head (independent of torso pose).
+g.strokeStyle='#a6aba9';g.lineWidth=4;g.beginPath();
+g.arc(head[0],head[1]-2,13,d>0?Math.PI*1.12:Math.PI*1.08,d>0?Math.PI*1.87:Math.PI*1.88);g.stroke();
+const lx=head[0]+d*13,ly=head[1]-3;
+const beam=g.createLinearGradient(lx,ly,lx+d*225,ly);beam.addColorStop(0,'rgba(255,210,140,.23)');beam.addColorStop(1,'rgba(255,210,140,0)');
+g.fillStyle=beam;g.beginPath();g.moveTo(lx,ly);g.lineTo(lx+d*225,ly-66);g.lineTo(lx+d*225,ly+66);g.closePath();g.fill();
+g.fillStyle='#ffe3b0';g.shadowColor='#f5cb88';g.shadowBlur=17;g.beginPath();g.arc(lx,ly,5,0,Math.PI*2);g.fill();g.shadowBlur=0;
+// Pickaxe follows a separate animated angle; strike only during actual digging.
 if(mode==='excavate'&&phase==='manual'){
-const swing=moveDir&&hAt(p.x+moveDir)<target?Math.sin(t/130)*16:0;
-const ax=px+d*12,ay=po==='Standing'?foot-107:po==='Crouching'?foot-64:foot-31;
-line(ax,ay,ax+d*(32+swing),ay-29,3);
-g.strokeStyle='#bfc1be';g.lineWidth=5;g.beginPath();g.moveTo(ax+d*(22+swing),ay-37);g.lineTo(ax+d*(46+swing),ay-22);g.stroke();
+ const cycle=(rigSwing%1+1)%1;
+ const swingAngle=digging?(-1.15+Math.sin(cycle*2*Math.PI)*.9):-.68;
+ const cx=hand[0],cy=hand[1],tipx=cx+d*(30*Math.cos(swingAngle)),tipy=cy+30*Math.sin(swingAngle);
+ g.strokeStyle='#a77d4c';g.lineWidth=4;g.lineCap='round';g.beginPath();g.moveTo(cx,cy);g.lineTo(tipx,tipy);g.stroke();
+ g.strokeStyle='#c4c7c6';g.lineWidth=5;g.beginPath();g.moveTo(tipx-d*11,tipy-10);g.lineTo(tipx+d*12,tipy+10);g.stroke();
 }
-g.fillStyle='#655c50';g.strokeStyle='#b3a08a';g.lineWidth=2;g.beginPath();g.ellipse(px-d*17,foot-17,12+bag*.5,13+bag*.5,0,0,Math.PI*2);g.fill();g.stroke();
 if(phase==='dump'){
 g.fillStyle='#bca68a';for(let i=0;i<18;i++){const yy=BASE+((t/14+i*31)%160);const xx=EDGE*CW-15+(Math.sin(i*8+t/180)*13);g.fillRect(xx,yy,3+i%3,3+i%4)}
 }
@@ -134,7 +178,7 @@ if(phase==='manual'&&mode==='excavate'&&moveDir&&hAt(p.x+moveDir)<target){
 g.fillStyle='rgba(220,178,103,.10)';g.fillRect(w-165,12,145,22);g.fillStyle='#dec08d';g.font='14px system-ui';g.fillText('Rock '+Math.floor(digElapsed/4*100)+'%',w-152,28)
 }
 }
-function loop(t){const dt=last?Math.min(.06,(t-last)/1000):0;last=t;action(dt);draw(t);update();$('progress').style.width=(phase==='manual'&&mode==='excavate'&&moveDir?clamp(digElapsed/4,0,1)*100:0)+'%';requestAnimationFrame(loop)}
+function loop(t){const dt=last?Math.min(.06,(t-last)/1000):0;last=t;action(dt);const desired=hAt(p.x)>=3?0:hAt(p.x)===2?3:hAt(p.x)===1?6:0;const delta=desired-rigPose;rigPose+=Math.sign(delta)*Math.min(Math.abs(delta),dt*6/1.8);const movingRig=phase==='return'||phase==='resume'||(phase==='manual'&&moveDir!==0);if(movingRig)rigStride+=dt*(rigPose>=5?7:rigPose>=3?8:10);if(phase==='manual'&&mode==='excavate'&&moveDir&&hAt(p.x+moveDir)<target)rigSwing+=dt*1.15;else rigSwing=0;draw(t);update();$('progress').style.width=(phase==='manual'&&mode==='excavate'&&moveDir?clamp(digElapsed/4,0,1)*100:0)+'%';requestAnimationFrame(loop)}
 function bindHold(id,d){
 const b=$(id);
 const end=()=>{holding=false;moveDir=0;digElapsed=0};
