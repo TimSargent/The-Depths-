@@ -1,6 +1,6 @@
 # The Depths — Prioritized Development Backlog
 
-**Current playable build:** Prototype 032, `index.html`. Keep the same published URL / entry point for every playtest. This list contains *planned* work, not completed features.
+**Current playable build:** Prototype 033, `index.html`. Keep the same published URL / entry point for every playtest. This list contains *planned* work, not completed features.
 
 ## NOW — Prototype 021: grounded walking and seamless travel
 
@@ -246,6 +246,19 @@ Audited all nine decoded video-derived animations using the actual silhouette bo
 - [x] Simulation: standard forward excavation and full eight-strip bag-return/dump/resume preserved; no posture lock violations or abrupt frame-size jumps.
 - [ ] iPhone QA: tap **Widen pocket: OFF** to arm; try widening left while prone, then test normal walking once the pocket is complete.
 - [ ] Future: add an option to widen directly overhead while stationary, for a pocket at the exact cell the miner occupies.
+
+## Prototype 033 — anywhere-on-screen touch-drag targeting
+
+- [x] Game canvas supports one-finger hold-and-drag from **any starting point** on the playable area, with native touch scrolling disabled.
+- [x] Horizontal drag moves freely left/right in either Explore or Excavate mode, retaining the smooth distance-based locomotion and old button fallback.
+- [x] Excavate mode: **up-left / up-right** aims at the next solid overhead layer of the adjacent tunnel cell; **straight up** aims directly overhead. A light-beam arrow and highlighted individual tile show the selected target.
+- [x] Hold the upward aim for the original four-second excavation; character stays in the same physical cell and mines only **one individual 28×72 rock layer** before requiring another drag.
+- [x] Red target indicates an invalid target (above chosen cut height, at maximum ceiling height, or unsupported standing height).
+- [x] Upward aimed excavation shares rock cracking, contact particles, bag capacity and impact timing with normal mining. Old Widen pocket button and LEFT/RIGHT fallback retained.
+- [x] Simulated standing pocket at x12 with crawl tunnels at x11/x13: aiming up-left upgraded x11 from 1→2 without moving, up-right upgraded x13 from 1→2 without moving, direct overhead raised x12 from 1→2 while stationary.
+- [x] Simulated canvas horizontal drag in Explore mode (no mining), horizontal drag into solid rock in Excavate mode, and full old-button 8-strip return/dump/resume—all passed with zero movement lock violations.
+- [ ] iPhone playtest: beam visibility, gesture threshold, target alignment, palm ergonomics, and ability to release/re-aim reliably.
+- [ ] This prototype targets **current or immediately adjacent column only**. Longer-distance world-coordinate targeting and vertical/diagonal miner traversal are future improvements.
 
 ## Decision log
 
