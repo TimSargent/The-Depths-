@@ -771,8 +771,9 @@ function setGesture(e){
   const offset=Math.abs(dx)>23?Math.sign(dx):0;
   const x=p.x+offset;
   const layer=hAt(x);
-  const changed=!aimTarget||aimTarget.x!==x||aimTarget.layer!==layer||
-       canvasDrag.action!=='aim';
+  // Once a particular rock tile breaks, keep it selected until release;
+  // normal small finger movements must not accidentally mine the next layer.
+  const changed=!aimTarget||aimTarget.x!==x||canvasDrag.action!=='aim';
   canvasDrag.action='aim';canvasDrag.dx=dx;canvasDrag.dy=dy;
   if(changed){aimTarget={x,layer,done:false};digElapsed=0;rigSwing=0;widenArmed=false;}
  }else if(Math.abs(dx)>=20){
