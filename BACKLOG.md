@@ -1,6 +1,6 @@
 # The Depths — Prioritized Development Backlog
 
-**Current playable build:** Prototype 025, `index.html`. Keep the same published URL / entry point for every playtest. This list contains *planned* work, not completed features.
+**Current playable build:** Prototype 026, `index.html`. Keep the same published URL / entry point for every playtest. This list contains *planned* work, not completed features.
 
 ## NOW — Prototype 021: grounded walking and seamless travel
 
@@ -169,6 +169,16 @@ Audited all nine decoded video-derived animations using the actual silhouette bo
 - [x] Simulation regression: 16 strikes across 8 strips, full bag/dump/return, no premature upright swings, no posture lock violations.
 - [ ] Evaluate heavy-swing feeling in iPhone playtest; adjust pause on wind-up and recoil if needed.
 - [ ] Consider coupling final collapse more tightly to the second impact; current rock section dislodges ~0.75 sec after last strike.
+
+## Prototype 026 — 60 FPS mining animation interpolation
+
+- [x] Preserve **2.0-second** deliberate pickaxe cycle and four-second rock strip break.
+- [x] Use a non-linear swing timing curve: slow wind-up, accelerating downstroke, longer recovery.
+- [x] Blend adjacent curated mining frames on every rendered frame rather than making hard visual pose jumps at 8 FPS.
+- [x] Add Smooth swing ON/OFF toggle for on-device visual comparison.
+- [x] Emit contact chips at 67.5% of the cycle; simulation confirms 16 impacts across 8 rock strips, full bag return/dump, and no posture lock violations.
+- [ ] Visually inspect whether frame blending creates ghosted hands/pickaxe. This is an interim solution, not true skeletal tweening, optical flow, or 200 unique authored frames.
+- [ ] If ghosting is visible, create a joint-anchored 2D rig or use optical-flow in-between frames from the video source instead of adding more crossfade.
 
 ## Decision log
 
