@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"><meta name="theme-color" content="#080a0c"><title>The Depths — Prototype 013</title>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"><meta name="theme-color" content="#080a0c"><title>The Depths — Prototype 014</title>
 <style>
 *{box-sizing:border-box}html,body{margin:0;background:#080a0c;color:#e9e0d3;font-family:system-ui,-apple-system,Arial,sans-serif;overflow-x:hidden}body{min-height:100dvh;overscroll-behavior:none}main{max-width:920px;margin:auto;padding:12px 12px max(18px,env(safe-area-inset-bottom))}.top{display:flex;align-items:center;justify-content:space-between;gap:8px}h1{margin:3px 0 0;font-size:21px}.eyebrow{font-size:10px;letter-spacing:2px;color:#bda889}.sub{font-size:12px;color:#b3a99a}.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:12px 0}.stat{background:#181b1d;border:1px solid #343537;border-radius:9px;padding:8px 7px}.stat span{font-size:10px;color:#aaa097;display:block}.stat b{font-size:14px;display:block;margin-top:2px}.view{position:relative;border:1px solid #4a443d;border-radius:12px;overflow:hidden;background:#070809;touch-action:none}canvas{width:100%;display:block;aspect-ratio:960/450;touch-action:none}.progress{position:absolute;bottom:0;left:0;height:4px;width:0;background:#e0ae67;transition:width .08s}.modes,.heights,.controls{display:flex;gap:8px;margin-top:10px}.modes button,.heights button{flex:1}.controls button{flex:1;min-height:65px;font-size:19px}button{background:#25282b;color:#f2e7d8;border:1px solid #555048;padding:12px 8px;border-radius:10px;font-size:13px;font-weight:700;touch-action:none;-webkit-user-select:none;user-select:none;cursor:pointer}button.selected{background:#725032;border-color:#d9ac72}button:disabled{opacity:.4}.actions{display:flex;gap:8px;margin-top:10px}.actions button{flex:1}.message{font-size:13px;line-height:1.45;color:#e7d4ba;border:1px solid #49443e;background:#181b1d;border-radius:10px;padding:11px;margin-top:10px;min-height:57px}.help{font-size:12px;line-height:1.55;color:#aaa097;margin:10px 2px}.meter{height:5px;border-radius:9px;background:#353739;overflow:hidden;margin-top:5px}.meter div{height:100%;background:#dfb47d;width:0;transition:width .15s}#phase{font-size:11px;color:#d7b27c;margin:8px 0 0}@media (max-width:500px){main{padding:8px 8px max(10px,env(safe-area-inset-bottom))}.stat{padding:7px 5px}.stat b{font-size:12px}.controls button{min-height:70px;font-size:18px}.modes button,.heights button{padding:11px 3px;font-size:12px}.actions button{font-size:12px}.eyebrow{font-size:9px}h1{font-size:18px}}
 .lab{margin-top:14px;border:1px solid #49443e;background:#171a1c;border-radius:10px;padding:10px}
@@ -9,7 +9,7 @@
 #labCanvas{display:block;width:100%;height:auto;aspect-ratio:600/280;border-radius:9px;background:#0c1012;margin-top:9px}
 #labStatus{font-size:12px;color:#cbb28b;padding-top:7px}
 </style></head><body><main>
-<div class="top"><div><div class="eyebrow">THE DEPTHS / PLAYTEST 013</div><h1>Dig. Haul. Repeat.</h1></div><button id="reset">↻ Restart</button></div>
+<div class="top"><div><div class="eyebrow">THE DEPTHS / PLAYTEST 014</div><h1>Dig. Haul. Repeat.</h1></div><button id="reset">↻ Restart</button></div>
 <div class="stats"><div class="stat"><span>Posture</span><b id="pose">Standing</b></div><div class="stat"><span>Bag</span><b id="bag">0 / 8</b><div class="meter"><div id="bagbar"></div></div></div><div class="stat"><span>Strips mined</span><b id="mined">0</b></div><div class="stat"><span>Dump trips</span><b id="trips">0</b></div></div>
 <div class="view"><canvas id="world" width="960" height="450" aria-label="Playable mining tunnel with automatic spoil bag and horizontal excavation"></canvas><div class="progress" id="progress"></div></div>
 <div id="phase">Prototype 013 • video-derived animation playtest</div>
@@ -30,9 +30,8 @@
 <div class="help">A separate preview only; it does not alter game movement. These early sprites are simplified monochrome extractions of your green-screen videos, not the final textured character art.</div>
 </details>
 </main>
-<script src="assets/motion-data-a.js"></script>
-<script src="assets/motion-data-b.js"></script>
-<script src="assets/motion-engine.js"></script>
+<script src="assets/motion-ink14-data.js"></script>
+<script src="assets/motion-ink14-engine.js"></script>
 <script>
 (()=>{
 const $=id=>document.getElementById(id),canvas=$('world'),g=canvas.getContext('2d');
@@ -54,9 +53,9 @@ function nextDigPose(){
  return Math.max(poseFor(p.x),targetPose);
 }
 function animationChoice(moving,digging,poseValue){
- if(transitionHold)return poseValue<3?['standCrouch',Math.round(clamp(poseValue/3,0,1)*11)]:['crouchProne',Math.round(clamp((poseValue-3)/3,0,1)*11)];
- if(digging)return [poseValue<1?'standMine':poseValue<4?'crouchMine':'proneMine',Math.floor((((rigSwing%1)+1)%1)*12)];
- if(moving)return [poseValue<1?'walk':poseValue<4?'crouchWalk':'proneCrawl',Math.floor(walkFrameTime*12)%12];
+ if(transitionHold)return poseValue<3?['standCrouch',Math.round(clamp(poseValue/3,0,1)*7)]:['crouchProne',Math.round(clamp((poseValue-3)/3,0,1)*7)];
+ if(digging)return [poseValue<1?'standMine':poseValue<4?'crouchMine':'proneMine',Math.floor((((rigSwing%1)+1)%1)*8)];
+ if(moving)return [poseValue<1?'walk':poseValue<4?'crouchWalk':'proneCrawl',Math.floor(walkFrameTime*8)%8];
  return poseValue<1?['standCrouch',0]:poseValue<4?['crouchProne',0]:['proneCrawl',0];
 }
 function say(s){notice=s;$('message').textContent=s}
@@ -90,7 +89,7 @@ for(const [k,n] of [['crawl',1],['crouch',2],['stand',3]])$(k).classList.toggle(
 $('brace').disabled=hAt(p.x)<2||supported(p.x)||phase!=='manual';
 $('dump').disabled=phase!=='manual'||bag===0;
 $('phase').textContent=transitionHold?(transitionName()+' · position locked'):(status()+' · '+(phase==='manual'&&moveDir&&mode==='excavate'?'Mining '+Math.floor(digElapsed/4*100)+'%':'4 sec per strip'));
-$('debug').textContent='Animation: '+activeMotion+' ('+(window.DepthMotions?.stats().ready||0)+'/8 loaded) | State: '+animState+' | X: '+p.x.toFixed(2)+(lockedX!==null?' (lock '+lockedX.toFixed(2)+')':'')+' | Pose: '+rigPose.toFixed(2)+'/6 | Camera: '+(transitionHold?'LOCKED':'FOLLOW')+(lockViolations?' | ⚠ X changed during transition':'');
+$('debug').textContent='Animation: '+activeMotion+' ('+(window.DepthMotions?.stats().ready||0)+'/9 loaded) | State: '+animState+' | X: '+p.x.toFixed(2)+(lockedX!==null?' (lock '+lockedX.toFixed(2)+')':'')+' | Pose: '+rigPose.toFixed(2)+'/6 | Camera: '+(transitionHold?'LOCKED':'FOLLOW')+(lockViolations?' | ⚠ X changed during transition':'');
 }
 function mineAt(x){
 if(x<EDGE||x>=N||hAt(x)>=target)return false;
@@ -224,7 +223,7 @@ if(spriteWalking){
  g.save();g.translate(px,BASE);g.scale(d,1);
  if(motionImage){
   g.imageSmoothingEnabled=true;
-  g.drawImage(motionImage,-160,-222,320,240);
+  g.drawImage(motionImage,-160,-236,320,240);
  }else{
   const frame=Math.floor(walkFrameTime*12)%12;
   g.drawImage(walkSheet,(frame%4)*80,Math.floor(frame/4)*120,80,120,-60,-180,120,180);
@@ -264,7 +263,10 @@ g.beginPath();g.arc(head[0],head[1],11,0,Math.PI*2);g.fill();g.stroke();
 g.strokeStyle='#a6aba9';g.lineWidth=4;g.beginPath();
 g.arc(head[0],head[1]-2,13,d>0?Math.PI*1.12:Math.PI*1.08,d>0?Math.PI*1.87:Math.PI*1.88);g.stroke();
 }
-const lx=head[0]+d*13,ly=head[1]-3;
+const spriteHead=motionImage?.headPoint;
+const headX=spriteHead?px+d*(-160+spriteHead.x*320/256):head[0];
+const headY=spriteHead?BASE-236+spriteHead.y*240/208:head[1];
+const lx=headX+d*13,ly=headY-3;
 const beam=g.createLinearGradient(lx,ly,lx+d*225,ly);beam.addColorStop(0,'rgba(255,210,140,.23)');beam.addColorStop(1,'rgba(255,210,140,0)');
 g.fillStyle=beam;g.beginPath();g.moveTo(lx,ly);g.lineTo(lx+d*225,ly-66);g.lineTo(lx+d*225,ly+66);g.closePath();g.fill();
 g.fillStyle='#ffe3b0';g.shadowColor='#f5cb88';g.shadowBlur=17;g.beginPath();g.arc(lx,ly,5,0,Math.PI*2);g.fill();g.shadowBlur=0;
