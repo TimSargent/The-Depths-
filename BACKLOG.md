@@ -1,6 +1,6 @@
 # The Depths — Prioritized Development Backlog
 
-**Current playable build:** Prototype 014, `index.html`. Keep the same published URL / entry point for every playtest. This list contains *planned* work, not completed features.
+**Current playable build:** Prototype 015, `index.html`. Keep the same published URL / entry point for every playtest. This list contains *planned* work, not completed features.
 
 ## NOW — Prototype 014: nine-state anti-aliased video animation library
 
@@ -69,6 +69,14 @@ Seven rig keyframes were refined to model a human lowering into prone: feet plan
 ## Prototype 010 technical notes
 
 The animation state now explicitly reports IDLE/MOVING/TRANSITION/AUTO TRAVEL/DUMP and displays world X, pose, and camera lock. A lowering transition queues the boundary step until animation ends; rising enters the tall tile then locks there before further travel. While transitioning, X and camera are frozen. A simulated keyboard/timing test of both directions passed 108 locked frames apiece with no X changes or camera drift. Visual mobile playtest still required.
+
+## Prototype 015 visual QA
+
+- [x] Replace fixed 320×240 sprite drawing with per-frame visible-body cropping, height tiers (standing ~176, crouch ~112, prone ~46 screen-world px) and feet-on-floor anchoring.
+- [x] Reverse default walking cycle order and add a **Walk cycle: reversed/original** comparison button to help diagnose the observed moonwalk.
+- [ ] Verify on iPhone which gait order actually reads as forward motion; adjust frame ordering/cadence against real player travel if neither does.
+- [ ] Visually compare stand → crouch → prone size, ground contact, pickaxe reach and headlamp placement. These are provisional physical scale values.
+- [ ] Ensure transitions remain stationary and automated bag trips still work during gameplay.
 
 ## Decision log
 
