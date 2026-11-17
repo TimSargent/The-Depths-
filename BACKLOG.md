@@ -1,8 +1,8 @@
 # The Depths — Prioritized Development Backlog
 
-**Current playable build:** Prototype 020, `index.html`. Keep the same published URL / entry point for every playtest. This list contains *planned* work, not completed features.
+**Current playable build:** Prototype 021, `index.html`. Keep the same published URL / entry point for every playtest. This list contains *planned* work, not completed features.
 
-## NOW — Prototype 020: all-animation proportion calibration
+## NOW — Prototype 021: grounded walking and seamless travel
 
 - [ ] **Define and integrate an articulated stick-figure rig.** Head, torso, shoulders, elbows, hands, pelvis, knees, ankles, pickaxe and bag. Rig is separate from gameplay state. Test at close actual-game camera zoom.
 - [ ] **Fix low-crawl anatomy**: knees human, shins angle back behind knees, feet trail; no animal-like forward-bent lower legs.
@@ -119,6 +119,19 @@ Audited all nine decoded video-derived animations using the actual silhouette bo
 - [x] Damaged crouch-walk frames remain substituted from neighboring valid frames; no frame-dependent scaling reintroduced.
 - [ ] Visual iPhone QA needed for silhouette distortion, pickaxe length, contact points, headlamp tracking, and transition continuity.
 - [ ] Source AI-video anatomy may vary frame to frame; deterministic scaling cannot repair morphing within a source frame.
+
+## Prototype 021 — walking cycle and tile locomotion
+
+- [x] Separate integer gameplay grid X from smoothly interpolated visual X.
+- [x] Match visible movement speed to tile cadence (five cells/second; 0.20-second steps in Explore and auto return).
+- [x] Drive walking animation phase by **distance actually traveled**, rather than elapsed time or a held key. Stops frame cycling when standing still or blocked.
+- [x] Rebuild active walking loop from seven better-matching source poses (discard the discontinuous last pose).
+- [x] Add a short crossfade from the final pose to the first at the loop seam.
+- [x] Await the last rendered step before triggering the auto-dump and before completing a return.
+- [x] Delay standing-up until the visual miner reaches the taller cell, preserving prior movement locks.
+- [ ] Check the visual loop cadence, seam blur and foot sliding on iPhone; tune stride-distance ratio if required.
+- [ ] Check rapid start/stop tapping and automatic bag journeys after movement changes.
+- [ ] Fix residual animation quality only if the video source still lacks a clean cycle.
 
 ## Decision log
 
