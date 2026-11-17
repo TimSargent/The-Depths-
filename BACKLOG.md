@@ -1,8 +1,8 @@
 # The Depths — Prioritized Development Backlog
 
-**Current playable build:** Prototype 019, `index.html`. Keep the same published URL / entry point for every playtest. This list contains *planned* work, not completed features.
+**Current playable build:** Prototype 020, `index.html`. Keep the same published URL / entry point for every playtest. This list contains *planned* work, not completed features.
 
-## NOW — Prototype 014: nine-state anti-aliased video animation library
+## NOW — Prototype 020: all-animation proportion calibration
 
 - [ ] **Define and integrate an articulated stick-figure rig.** Head, torso, shoulders, elbows, hands, pelvis, knees, ankles, pickaxe and bag. Rig is separate from gameplay state. Test at close actual-game camera zoom.
 - [ ] **Fix low-crawl anatomy**: knees human, shins angle back behind knees, feet trail; no animal-like forward-bent lower legs.
@@ -105,6 +105,20 @@ The animation state now explicitly reports IDLE/MOVING/TRANSITION/AUTO TRAVEL/DU
 - [x] Compared video-derived geometry: last crouch-to-prone pose spans ~191 world units; prior prone mining ~178 and prone crawl ~175.
 - [x] Calibrated sequence-wide prone mining to 57 and crawl to 55 reference height units, bringing their horizontal length close to the transition end pose without per-frame scaling.
 - [ ] Verify visually on iPhone that prone entry no longer looks smaller, with no excess clipping or headlamp displacement.
+
+## Prototype 020 — complete sprite calibration audit
+
+Audited all nine decoded video-derived animations using the actual silhouette bounds in each 256×208 atlas frame. Shared physical targets: **standing height 176**, **crouched height 119**, **prone body length 203**, **prone body height 65** (world pixels).
+
+- [x] Upright walk and standing pickaxe swing normalized to standing height.
+- [x] Stand-to-crouch first/end poses aligned with standing/crouch endpoints.
+- [x] Crouch walk and crouched pickaxe swing normalized to crouch height.
+- [x] Crouch-to-prone first/end poses aligned with crouch/prone endpoints.
+- [x] Prone crawl and prone pick strike normalized by **both** horizontal body length and vertical body height.
+- [x] Stand-to-prone transition smoothly reconciled to matching prone endpoint despite source video's unusually tall ending pose.
+- [x] Damaged crouch-walk frames remain substituted from neighboring valid frames; no frame-dependent scaling reintroduced.
+- [ ] Visual iPhone QA needed for silhouette distortion, pickaxe length, contact points, headlamp tracking, and transition continuity.
+- [ ] Source AI-video anatomy may vary frame to frame; deterministic scaling cannot repair morphing within a source frame.
 
 ## Decision log
 
