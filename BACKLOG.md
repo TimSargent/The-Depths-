@@ -1,6 +1,6 @@
 # The Depths — Prioritized Development Backlog
 
-**Current playable build:** Prototype 023, `index.html`. Keep the same published URL / entry point for every playtest. This list contains *planned* work, not completed features.
+**Current playable build:** Prototype 024, `index.html`. Keep the same published URL / entry point for every playtest. This list contains *planned* work, not completed features.
 
 ## NOW — Prototype 021: grounded walking and seamless travel
 
@@ -150,6 +150,15 @@ Audited all nine decoded video-derived animations using the actual silhouette bo
 - [x] A selected 1-tile clearance cannot trigger a standing pickaxe swing while lowering; the character plays the lowering transition first.
 - [x] Simulated 3,500 frames at 60 Hz: zero inappropriate standing swing frames, zero mining frames before posture readiness, first prone strike only after reaching pose 6, complete 8-strip dump/return, zero movement-lock violations.
 - [ ] Verify actual iPhone animation boundary and headlamp positioning on screen.
+
+## Prototype 024 — mining impact polish
+
+- [x] Progressive dark rock fractures grow inside the next unbroken horizontal rock strip over the original four-second excavation interval.
+- [x] Emit pickaxe contact particles on the downstroke (sprite frame 5 of 8) only while `miningReady()` holds; no premature strikes.
+- [x] Separate small impact chips and amber glint from larger break-off debris when the four-second section completes.
+- [x] Keep impact camera shake subtle, more pronounced only at final fracture; no new animation assets or video credits.
+- [x] Simulated 3,500 frames at 60 Hz: impact and break events both occurred; eight sections excavated, bag dumped and miner resumed; zero posture-lock violations and maximum smooth travel step ~0.08333 cells.
+- [ ] Confirm impact timing, rock-fracture visibility, chip scale, and camera feedback on iPhone. Tune to taste.
 
 ## Decision log
 
