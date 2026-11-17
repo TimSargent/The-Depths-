@@ -5,7 +5,7 @@
 ### Prototype 037 — restore approved graphite skeleton (NEXT)
 - [x] Verify the original Animation Library 014 remains available (nine transparent sprite sheets, eight frames each; original videos/reference images preserved)
 - [x] Compare approved original source visuals with current compressed 2-bit game sprites; current asset path loses texture and anatomical fidelity
-- [ ] Ship original full-detail art in runtime without inventing replacement anatomy
+- [x] Add original full-detail PNG playback in runtime, using an imported Animation Library 014 ZIP cached locally in browser (source media still must be selected once on iPhone; no binary assets pushed to GitHub)
 - [ ] Preserve stable character scale, walk timing/loop, and two-second heavy pickaxe swing
 - [ ] Run visual walk/crouch/prone/mine comparison on iPhone before marking complete
 
@@ -21,7 +21,7 @@
 
 # The Depths — Prioritized Development Backlog
 
-**Current playable build:** Prototype 035, `index.html`. Keep the same published URL / entry point for every playtest. This list contains *planned* work, not completed features.
+**Current playable build:** Prototype 037, `index.html`. Keep the same published URL / entry point for every playtest. This list contains *planned* work, not completed features.
 
 ## NOW — Prototype 021: grounded walking and seamless travel
 
@@ -304,6 +304,17 @@ Audited all nine decoded video-derived animations using the actual silhouette bo
 - [x] Horizontal drags still move normally; full 8-strip rock/bag/dump/resume regression passed with zero lock violations.
 - [ ] Confirm on iPhone: beam begins at miner and can be aimed through multiple open sections; adjust directional threshold and 7-tile reach according to user feedback.
 - [ ] Future: use a slightly wider selection corridor/assist cone if an exact thin ray remains too demanding; render a truly continuous laser/flashlight beam if desired.
+
+## Prototype 037 — full-original-art first playable pass
+
+- [x] Added `assets/full-detail-037.js`: parse original library ZIP directly in browser, decode 72 full-resolution original PNG frames, remove black/green-screen residue, keep fine graphite-line details, and calculate animation reference anchors.
+- [x] Replace compressed runtime artwork when source PNGs have been loaded, including animation lab; original approved character is the only high-detail source. The experimental hand-drawn rig stays OFF by default.
+- [x] Cache the imported ZIP in the current device's IndexedDB; use compressed fallback before import and if persistence isn't supported.
+- [x] Preserve original gameplay behavior and existing gait logic; simulation verified 8-strip mining, full bag return/dump/resume, zero transition lock violations and smooth ~0.0833-cell maximum step per 60 Hz frame.
+- [ ] User must download `The_Depths_Animation_Library_014.zip` from the conversation and choose **Load ORIGINAL artwork ZIP** once in the game on iPhone. The full-resolution media are not yet automatically bundled/hosted in the GitHub repository.
+- [ ] Visual iPhone QA: frame registration, stand/crouch/prone proportion consistency, contrast and green-key cleanup, and heavy pickaxe motion. Only then mark 037 complete.
+- [ ] Later bundle source PNG assets directly in repository to avoid manual ZIP importing, if a binary upload path becomes available.
+- [ ] Next sequence remains **038 → 036** once 037 visually approved.
 
 ## Decision log
 
