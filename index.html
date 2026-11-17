@@ -216,7 +216,8 @@ function node(k,r=3){const A=at(k);g.fillStyle='#dbad72';g.beginPath();g.arc(A[0
 const head=at('head'),hand=at('hand'),hip=at('hip'),fhand=at('farHand');
 const [motionName,motionFrame]=animationChoice(moving,digging,poseValue);
 const motionImage=spriteEnabled&&window.DepthMotions?.get(motionName,motionFrame);
-const legacyWalk=!motionImage&&walkSheetReady&&spriteEnabled&&moving&&!digging&&!transitionHold&&poseValue<0.01&&hAt(p.x)>=3;
+// Keep visual style consistent while the new atlases load: fall back to the joint rig, not 012 vector artwork.
+const legacyWalk=false;
 const spriteWalking=!!motionImage||legacyWalk;
 activeMotion=motionImage?motionName:(legacyWalk?'OLD WALK':'RIG');
 if(spriteWalking){
