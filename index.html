@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"><meta name="theme-color" content="#080a0c"><title>The Depths — Prototype 010</title>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"><meta name="theme-color" content="#080a0c"><title>The Depths — Prototype 011</title>
 <style>
 *{box-sizing:border-box}html,body{margin:0;background:#080a0c;color:#e9e0d3;font-family:system-ui,-apple-system,Arial,sans-serif;overflow-x:hidden}body{min-height:100dvh;overscroll-behavior:none}main{max-width:920px;margin:auto;padding:12px 12px max(18px,env(safe-area-inset-bottom))}.top{display:flex;align-items:center;justify-content:space-between;gap:8px}h1{margin:3px 0 0;font-size:21px}.eyebrow{font-size:10px;letter-spacing:2px;color:#bda889}.sub{font-size:12px;color:#b3a99a}.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:12px 0}.stat{background:#181b1d;border:1px solid #343537;border-radius:9px;padding:8px 7px}.stat span{font-size:10px;color:#aaa097;display:block}.stat b{font-size:14px;display:block;margin-top:2px}.view{position:relative;border:1px solid #4a443d;border-radius:12px;overflow:hidden;background:#070809;touch-action:none}canvas{width:100%;display:block;aspect-ratio:960/450;touch-action:none}.progress{position:absolute;bottom:0;left:0;height:4px;width:0;background:#e0ae67;transition:width .08s}.modes,.heights,.controls{display:flex;gap:8px;margin-top:10px}.modes button,.heights button{flex:1}.controls button{flex:1;min-height:65px;font-size:19px}button{background:#25282b;color:#f2e7d8;border:1px solid #555048;padding:12px 8px;border-radius:10px;font-size:13px;font-weight:700;touch-action:none;-webkit-user-select:none;user-select:none;cursor:pointer}button.selected{background:#725032;border-color:#d9ac72}button:disabled{opacity:.4}.actions{display:flex;gap:8px;margin-top:10px}.actions button{flex:1}.message{font-size:13px;line-height:1.45;color:#e7d4ba;border:1px solid #49443e;background:#181b1d;border-radius:10px;padding:11px;margin-top:10px;min-height:57px}.help{font-size:12px;line-height:1.55;color:#aaa097;margin:10px 2px}.meter{height:5px;border-radius:9px;background:#353739;overflow:hidden;margin-top:5px}.meter div{height:100%;background:#dfb47d;width:0;transition:width .15s}#phase{font-size:11px;color:#d7b27c;margin:8px 0 0}@media (max-width:500px){main{padding:8px 8px max(10px,env(safe-area-inset-bottom))}.stat{padding:7px 5px}.stat b{font-size:12px}.controls button{min-height:70px;font-size:18px}.modes button,.heights button{padding:11px 3px;font-size:12px}.actions button{font-size:12px}.eyebrow{font-size:9px}h1{font-size:18px}}
 </style></head><body><main>
-<div class="top"><div><div class="eyebrow">THE DEPTHS / PLAYTEST 010</div><h1>Dig. Haul. Repeat.</h1></div><button id="reset">↻ Restart</button></div>
+<div class="top"><div><div class="eyebrow">THE DEPTHS / PLAYTEST 011</div><h1>Dig. Haul. Repeat.</h1></div><button id="reset">↻ Restart</button></div>
 <div class="stats"><div class="stat"><span>Posture</span><b id="pose">Standing</b></div><div class="stat"><span>Bag</span><b id="bag">0 / 8</b><div class="meter"><div id="bagbar"></div></div></div><div class="stat"><span>Strips mined</span><b id="mined">0</b></div><div class="stat"><span>Dump trips</span><b id="trips">0</b></div></div>
 <div class="view"><canvas id="world" width="960" height="450" aria-label="Playable mining tunnel with automatic spoil bag and horizontal excavation"></canvas><div class="progress" id="progress"></div></div>
 <div id="phase">Prototype 010 • animation state lock</div>
@@ -14,7 +14,7 @@
 <div class="controls"><button id="left">◀ HOLD LEFT</button><button id="right">HOLD RIGHT ▶</button></div>
 <div class="actions"><button id="brace">▥ Install support</button><button id="dump">◩ Dump at ledge</button></div>
 <div class="message" id="message">Hold RIGHT in Excavate mode. The miner will chip forward through the wall, collect rubble in his duffle bag, and automatically return to the shaft ledge when the bag is full.</div>
-<div class="help">Each thin horizontal section takes <b>4 seconds</b> to mine. Four sections make one full tunnel-length tile. New crawl tunnels need the least excavation; crouch tunnels need twice as much. Standing tunnels require supports. The miner cannot dig downward. During a posture transition, character X and the camera freeze completely; watch the on-screen State/X debug readout. Use Close-up camera to inspect the joints. Controls: hold left or right (keyboard A/D or arrow keys on a computer). When the bag fills, he automatically returns to the ledge, empties it, and resumes.</div>
+<div class="help">Each thin horizontal section takes <b>4 seconds</b> to mine. Four sections make one full tunnel-length tile. New crawl tunnels need the least excavation; crouch tunnels need twice as much. Standing tunnels require supports. The miner cannot dig downward. Seven anatomical poses now shift weight from feet to knees to hands before lowering fully prone. World X and camera remain locked throughout standing/crawling transitions; watch the State/X debug readout. Use Close-up camera to inspect the joints. Controls: hold left or right (keyboard A/D or arrow keys on a computer). When the bag fills, he automatically returns to the ledge, empties it, and resumes.</div>
 </main>
 <script>
 (()=>{
@@ -136,23 +136,34 @@ const nearFace=(p.x+moveDir>=EDGE&&p.x+moveDir<N);
 // Positive local X means forward. In the prone keyframe, knees sit ahead
 // of the hips while shins extend back behind knees (human low crawl).
 const poses=[
-{hip:[0,-64],shoulder:[0,-142],head:[1,-176],elbow:[13,-120],hand:[16,-92],farElbow:[-11,-122],farHand:[-10,-94],knee:[13,-34],ankle:[14,-5],toe:[23,0],farKnee:[-14,-34],farAnkle:[-14,-5],farToe:[-7,0]},
-{hip:[-4,-62],shoulder:[13,-130],head:[19,-163],elbow:[29,-111],hand:[32,-85],farElbow:[0,-114],farHand:[5,-91],knee:[12,-33],ankle:[14,-5],toe:[23,0],farKnee:[-17,-34],farAnkle:[-15,-5],farToe:[-7,0]},
-{hip:[-11,-52],shoulder:[19,-116],head:[26,-149],elbow:[38,-91],hand:[40,-63],farElbow:[7,-96],farHand:[11,-66],knee:[11,-40],ankle:[14,-5],toe:[23,0],farKnee:[-22,-36],farAnkle:[-15,-5],farToe:[-7,0]},
-{hip:[-18,-38],shoulder:[20,-85],head:[27,-115],elbow:[39,-60],hand:[47,-37],farElbow:[9,-62],farHand:[25,-35],knee:[5,-15],ankle:[-20,-4],toe:[-29,0],farKnee:[-28,-15],farAnkle:[-50,-4],farToe:[-60,0]},
-{hip:[-25,-35],shoulder:[20,-63],head:[44,-86],elbow:[39,-37],hand:[51,-8],farElbow:[12,-38],farHand:[24,-9],knee:[3,-15],ankle:[-20,-4],toe:[-31,0],farKnee:[-28,-15],farAnkle:[-51,-4],farToe:[-62,0]},
-{hip:[-29,-37],shoulder:[18,-44],head:[45,-61],elbow:[32,-26],hand:[42,-3],farElbow:[4,-25],farHand:[14,-3],knee:[-1,-16],ankle:[-29,-4],toe:[-42,0],farKnee:[-40,-16],farAnkle:[-65,-4],farToe:[-74,0]},
-{hip:[-34,-23],shoulder:[17,-27],head:[46,-39],elbow:[33,-15],hand:[41,-3],farElbow:[-1,-14],farHand:[9,-3],knee:[-7,-12],ankle:[-45,-4],toe:[-61,0],farKnee:[-36,-13],farAnkle:[-68,-5],farToe:[-82,0]}
+// 0 — Upright: both feet stable; relaxed arms.
+{hip:[0,-65],shoulder:[0,-139],head:[3,-171],elbow:[16,-111],hand:[16,-88],farElbow:[-14,-113],farHand:[-12,-88],knee:[12,-34],ankle:[12,-6],toe:[24,0],farKnee:[-12,-34],farAnkle:[-12,-6],farToe:[-3,0]},
+// 1 — Lean at hips: feet remain planted; upper-body weight moves forward.
+{hip:[-2,-63],shoulder:[13,-132],head:[22,-164],elbow:[27,-105],hand:[33,-82],farElbow:[0,-108],farHand:[5,-85],knee:[12,-34],ankle:[12,-6],toe:[24,0],farKnee:[-12,-34],farAnkle:[-12,-6],farToe:[-3,0]},
+// 2 — Bend the knees: hips travel backwards/down while heels stay put.
+{hip:[-13,-51],shoulder:[17,-117],head:[28,-149],elbow:[34,-91],hand:[37,-67],farElbow:[5,-94],farHand:[11,-68],knee:[14,-31],ankle:[12,-6],toe:[24,0],farKnee:[-18,-29],farAnkle:[-12,-6],farToe:[-3,0]},
+// 3 — Kneel: knees touch first and take the weight; shins trail back.
+{hip:[-26,-40],shoulder:[16,-86],head:[29,-116],elbow:[36,-62],hand:[44,-36],farElbow:[0,-61],farHand:[16,-32],knee:[14,-7],ankle:[-17,-5],toe:[-29,0],farKnee:[-33,-7],farAnkle:[-62,-5],farToe:[-71,0]},
+// 4 — Reach: torso hinges down, palms approach the floor while knees hold.
+{hip:[-30,-36],shoulder:[21,-64],head:[44,-89],elbow:[37,-33],hand:[52,-3],farElbow:[8,-34],farHand:[24,-3],knee:[11,-6],ankle:[-19,-5],toe:[-31,0],farKnee:[-37,-7],farAnkle:[-64,-5],farToe:[-73,0]},
+// 5 — All fours: palms planted below shoulders; hips over bent knees.
+{hip:[-33,-34],shoulder:[15,-46],head:[43,-65],elbow:[31,-26],hand:[40,-3],farElbow:[1,-25],farHand:[12,-3],knee:[-4,-7],ankle:[-36,-4],toe:[-49,0],farKnee:[-43,-7],farAnkle:[-72,-4],farToe:[-84,0]},
+// 6 — Military low crawl: elbows under shoulders, chest and hips lowered;
+//     thighs angle toward the knees, shins/feet trail BACK behind them.
+{hip:[-38,-17],shoulder:[12,-25],head:[43,-38],elbow:[29,-12],hand:[40,-3],farElbow:[-3,-12],farHand:[9,-3],knee:[-8,-8],ankle:[-52,-4],toe:[-69,0],farKnee:[-43,-8],farAnkle:[-76,-4],farToe:[-89,0]}
 ];
 // Visual posture blends continuously, independent of the collision grid.
 const poseValue=clamp(rigPose,0,6),i0=Math.floor(poseValue),i1=Math.min(6,i0+1),alpha=poseValue-i0;
+// Ease between anatomical support poses; planted toes/palms hold their positions
+// in neighboring poses instead of drifting as the torso shifts weight.
 const smooth=alpha*alpha*(3-2*alpha);
 const pose={};
 for(const key of Object.keys(poses[0])){
  pose[key]=[poses[i0][key][0]+(poses[i1][key][0]-poses[i0][key][0])*smooth,
             poses[i0][key][1]+(poses[i1][key][1]-poses[i0][key][1])*smooth];
 }
-const stride=Math.sin(rigStride)*Math.min(1,Math.abs(moving?1:0));
+// Never apply gait offsets while lowering or standing up.
+const stride=Math.sin(rigStride)*(moving?1:0);
 const gaitScale=poseValue>=5?.38:poseValue>=3?.32:1;
 pose.knee[0]+=stride*8*gaitScale;pose.farKnee[0]-=stride*8*gaitScale;
 pose.toe[0]+=stride*9*gaitScale;pose.farToe[0]-=stride*9*gaitScale;
@@ -175,6 +186,21 @@ strokeBone('shoulder','farElbow',3,'#8e8b81');strokeBone('farElbow','farHand',3,
 strokeBone('hip','shoulder',6);strokeBone('hip','knee',4);strokeBone('knee','ankle',4);strokeBone('ankle','toe',3);
 strokeBone('shoulder','elbow',4);strokeBone('elbow','hand',4);
 for(const k of ['hip','shoulder','knee','ankle','elbow','hand','farKnee','farElbow'])node(k,k==='hip'?3.4:2.7);
+// Subtle floor-contact marks show weight changing from boots to knees to palms.
+// They are attached to the grounded joints rather than sliding with the torso.
+if(transitionHold){
+ const contactKeys=poseValue<2.9?['toe','farToe']:
+                   poseValue<3.9?['knee','farKnee','toe']:
+                   poseValue<5.5?['knee','farKnee','hand','farHand']:
+                   ['elbow','farElbow','toe','farToe'];
+ for(const k of contactKeys){
+  const A=at(k);const cy=BASE;
+  if(Math.abs(A[1]-cy)<15){
+   g.strokeStyle='rgba(226,183,117,.37)';g.lineWidth=2;
+   g.beginPath();g.moveTo(A[0]-7,cy+2);g.lineTo(A[0]+7,cy+2);g.stroke();
+  }
+ }
+}
 g.fillStyle='#202326';g.strokeStyle='#ead2a7';g.lineWidth=3;
 g.beginPath();g.arc(head[0],head[1],11,0,Math.PI*2);g.fill();g.stroke();
 // Helmet shell and headlamp move with the head (independent of torso pose).
