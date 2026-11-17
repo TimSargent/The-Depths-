@@ -184,6 +184,8 @@ elapsed+=dt;
 if(elapsed<0.20)return;elapsed-=0.20;
 const destination=phase==='return'?EDGE:returnX;
 if(p.x===destination){
+ // Finish the last visible walking step before dumping or ending auto-travel.
+ if(Math.abs(visualX-p.x)>0.0001)return;
  if(phase==='return'){phase='dump';showTime=1.8;say('The miner reaches the shaft, swings the duffle bag over the ledge, and pours the rubble into the darkness.')}
  else{phase='manual';say('Back at the mining face. Hold RIGHT to continue excavating.')}
  return;
