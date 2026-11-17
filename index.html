@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"><meta name="theme-color" content="#080a0c"><title>The Depths — Prototype 025</title>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"><meta name="theme-color" content="#080a0c"><title>The Depths — Prototype 026</title>
 <style>
 *{box-sizing:border-box}html,body{margin:0;background:#080a0c;color:#e9e0d3;font-family:system-ui,-apple-system,Arial,sans-serif;overflow-x:hidden}body{min-height:100dvh;overscroll-behavior:none}main{max-width:920px;margin:auto;padding:12px 12px max(18px,env(safe-area-inset-bottom))}.top{display:flex;align-items:center;justify-content:space-between;gap:8px}h1{margin:3px 0 0;font-size:21px}.eyebrow{font-size:10px;letter-spacing:2px;color:#bda889}.sub{font-size:12px;color:#b3a99a}.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:12px 0}.stat{background:#181b1d;border:1px solid #343537;border-radius:9px;padding:8px 7px}.stat span{font-size:10px;color:#aaa097;display:block}.stat b{font-size:14px;display:block;margin-top:2px}.view{position:relative;border:1px solid #4a443d;border-radius:12px;overflow:hidden;background:#070809;touch-action:none}canvas{width:100%;display:block;aspect-ratio:960/450;touch-action:none}.progress{position:absolute;bottom:0;left:0;height:4px;width:0;background:#e0ae67;transition:width .08s}.modes,.heights,.controls{display:flex;gap:8px;margin-top:10px}.modes button,.heights button{flex:1}.controls button{flex:1;min-height:65px;font-size:19px}button{background:#25282b;color:#f2e7d8;border:1px solid #555048;padding:12px 8px;border-radius:10px;font-size:13px;font-weight:700;touch-action:none;-webkit-user-select:none;user-select:none;cursor:pointer}button.selected{background:#725032;border-color:#d9ac72}button:disabled{opacity:.4}.actions{display:flex;gap:8px;margin-top:10px}.actions button{flex:1}.message{font-size:13px;line-height:1.45;color:#e7d4ba;border:1px solid #49443e;background:#181b1d;border-radius:10px;padding:11px;margin-top:10px;min-height:57px}.help{font-size:12px;line-height:1.55;color:#aaa097;margin:10px 2px}.meter{height:5px;border-radius:9px;background:#353739;overflow:hidden;margin-top:5px}.meter div{height:100%;background:#dfb47d;width:0;transition:width .15s}#phase{font-size:11px;color:#d7b27c;margin:8px 0 0}@media (max-width:500px){main{padding:8px 8px max(10px,env(safe-area-inset-bottom))}.stat{padding:7px 5px}.stat b{font-size:12px}.controls button{min-height:70px;font-size:18px}.modes button,.heights button{padding:11px 3px;font-size:12px}.actions button{font-size:12px}.eyebrow{font-size:9px}h1{font-size:18px}}
 .lab{margin-top:14px;border:1px solid #49443e;background:#171a1c;border-radius:10px;padding:10px}
@@ -9,12 +9,12 @@
 #labCanvas{display:block;width:100%;height:auto;aspect-ratio:600/280;border-radius:9px;background:#0c1012;margin-top:9px}
 #labStatus{font-size:12px;color:#cbb28b;padding-top:7px}
 </style></head><body><main>
-<div class="top"><div><div class="eyebrow">THE DEPTHS / PLAYTEST 025</div><h1>Dig. Haul. Repeat.</h1></div><button id="reset">↻ Restart</button></div>
+<div class="top"><div><div class="eyebrow">THE DEPTHS / PLAYTEST 026</div><h1>Dig. Haul. Repeat.</h1></div><button id="reset">↻ Restart</button></div>
 <div class="stats"><div class="stat"><span>Posture</span><b id="pose">Standing</b></div><div class="stat"><span>Bag</span><b id="bag">0 / 8</b><div class="meter"><div id="bagbar"></div></div></div><div class="stat"><span>Strips mined</span><b id="mined">0</b></div><div class="stat"><span>Dump trips</span><b id="trips">0</b></div></div>
 <div class="view"><canvas id="world" width="960" height="450" aria-label="Playable mining tunnel with automatic spoil bag and horizontal excavation"></canvas><div class="progress" id="progress"></div></div>
 <div id="phase">Prototype 013 • video-derived animation playtest</div>
 <div id="debug" style="font:12px ui-monospace,SFMono-Regular,monospace;color:#e1b778;background:#14171a;border:1px solid #393a38;padding:7px 10px;border-radius:8px;margin-top:7px">State: IDLE | X: 6 | Pose: 0 | Camera: stable</div>
-<div class="actions"><button id="zoom" class="selected">🔍 Close-up camera ON</button><button id="sprite" class="selected">🎞 Video animations ON</button><button id="walkDirection">🚶 Walk cycle: reversed</button></div>
+<div class="actions"><button id="zoom" class="selected">🔍 Close-up camera ON</button><button id="sprite" class="selected">🎞 Video animations ON</button><button id="walkDirection">🚶 Walk cycle: reversed</button><button id="swingBlend" class="selected">⛏ Smooth swing ON</button></div>
 <div class="modes"><button id="explore">↗ Explore</button><button id="excavate" class="selected">⛏ Excavate</button></div>
 <div class="heights"><button id="crawl" class="selected">1 tile · Crawl</button><button id="crouch">2 tiles · Crouch</button><button id="stand">3 tiles · Stand</button></div>
 <div class="controls"><button id="left">◀ HOLD LEFT</button><button id="right">HOLD RIGHT ▶</button></div>
@@ -40,7 +40,7 @@ const CW=28,TH=72,N=130,BASE=365,START=6,EDGE=2;
 // Sprite is only used for upright walking. The original joint rig remains
 // responsible for every other state (idle, mining, crawling, transitions).
 const walkSheet=new Image();walkSheet.src='assets/miner-walk-vector.svg';
-let walkSheetReady=false,spriteEnabled=true,walkFrameTime=0,walkReverse=true,walkCycleSpeed=1;
+let walkSheetReady=false,spriteEnabled=true,walkFrameTime=0,walkReverse=true,walkCycleSpeed=1,smoothSwing=true;
 // Visual position is continuous; p.x remains integer for excavation and collisions.
 let visualX=START,visualMoving=false;
 // Short crossfades only when the animation STATE changes (never on frame advances).
@@ -54,7 +54,27 @@ const MINING_FRAME_ORDER={
  crouchMine:[0,1,3,4,5,6,7,7],
  proneMine:[1,1,2,0,3,4,7,7]
 };
-function miningFrame(name){const step=Math.min(7,Math.floor(((rigSwing%1)+1)%1*8));return MINING_FRAME_ORDER[name]?.[step]??step;}
+// Slow wind-up, rapid impact, and recovery in each two-second heavy swing.
+function swingPhase(t){
+ const p=((t%1)+1)%1;
+ const timeline=[[0,0],[.40,.27],[.55,.40],[.675,.625],[.83,.83],[1,1]];
+ for(let i=1;i<timeline.length;i++){
+  if(p<=timeline[i][0]){
+   const [a,b]=timeline[i-1],[c,d]=timeline[i];
+   let k=(p-a)/(c-a);k=k*k*(3-2*k);
+   return b+(d-b)*k;
+  }
+ }
+ return 1;
+}
+function miningTween(name){
+ const order=MINING_FRAME_ORDER[name]||MINING_FRAME_ORDER.standMine;
+ const pos=swingPhase(rigSwing)*7;
+ const i=Math.min(7,Math.floor(pos)),j=Math.min(7,i+1);
+ const mix=Math.max(0,Math.min(1,pos-i));
+ return {from:order[i],to:order[j],mix:mix*mix*(3-2*mix)};
+}
+function miningFrame(name){return miningTween(name).from;}
 walkSheet.onload=()=>{walkSheetReady=true};walkSheet.onerror=()=>{walkSheetReady=false;$('sprite').textContent='⚠ Sprite unavailable'};
 let heights,braces,p,mode,target,bag,mined,trips,phase,returnX,moveDir=0,holding=false,last=0,digElapsed=0,fx=[],cam=0,showTime=0,notice='',elapsed=0,roofTarget=-1,shake=0,rigPose=0,rigStride=0,rigSwing=0,zoomed=true,transitionGoal=null,transitionHold=false,animState="IDLE",lockedX=null,lockedCam=null,lockViolations=0,pendingStepTo=null,pendingRise=null,pendingLower=null;
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
@@ -408,8 +428,23 @@ if(spriteWalking){
    g.drawImage(seamFrame,-sr.centerX*sx,-(sb.y+sb.h)*sy,256*sx,208*sy);
    g.globalAlpha=1;
   }else{
-   g.globalAlpha=1-outgoingWeight;
-   g.drawImage(motionImage,x,y,256*sx,208*sy);
+   // Continuous visual blending of adjacent existing mining poses at render FPS.
+   // This creates interpolated appearances, not new anatomical 2D rig frames.
+   const interp=digging&&smoothSwing?miningTween(motionName):null;
+   const nextImage=interp&&interp.from!==interp.to?
+     window.DepthMotions?.get(motionName,interp.to):null;
+   if(nextImage&&interp.mix>0){
+    g.globalAlpha=(1-outgoingWeight)*(1-interp.mix);
+    g.drawImage(motionImage,x,y,256*sx,208*sy);
+    const nb=nextImage.bodyBox||{x:0,y:0,w:256,h:208};
+    const nr=nextImage.motionReference||reference;
+    g.globalAlpha=(1-outgoingWeight)*interp.mix;
+    g.drawImage(nextImage,-nr.centerX*sx,-(nb.y+nb.h)*sy,256*sx,208*sy);
+   }else{
+    g.globalAlpha=1-outgoingWeight;
+    g.drawImage(motionImage,x,y,256*sx,208*sy);
+   }
+   g.globalAlpha=1;
   }
   if(outgoingWeight>0&&blendFromMotion){
    const previous=blendFromMotion;
@@ -538,12 +573,9 @@ if(visualMoving){
 if(miningReady()){
  const before=rigSwing;
  rigSwing+=dt/SWING_SECONDS;
- // The pick contacts the rock at frame 5 of the curated 8-pose sequence.
- // A two-second period yields TWO meaningful strikes per four-second cut.
- const startStep=Math.floor(before*8),endStep=Math.floor(rigSwing*8);
- for(let k=startStep+1;k<=endStep;k++){
-  if(k%8===SWING_IMPACT_FRAME)emitImpact();
- }
+ // One impact event per cycle at the accelerated portion of the downstroke.
+ const startCycle=Math.floor(before-.675),endCycle=Math.floor(rigSwing-.675);
+ for(let k=startCycle+1;k<=endCycle;k++)emitImpact();
 }else rigSwing=0;
 draw(t);update();$('progress').style.width=(phase==='manual'&&mode==='excavate'&&moveDir?clamp(digElapsed/4,0,1)*100:0)+'%';requestAnimationFrame(loop)}
 function bindHold(id,d){
@@ -561,6 +593,7 @@ $('reset').onclick=reset;
 $('zoom').onclick=()=>{zoomed=!zoomed;$('zoom').textContent=zoomed?'🔍 Close-up camera ON':'🔭 Wide camera ON';$('zoom').classList.toggle('selected',zoomed)};
 $('sprite').onclick=()=>{spriteEnabled=!spriteEnabled;$('sprite').textContent=spriteEnabled?'🎞 Video animations ON':'🦴 Rig animations ON';$('sprite').classList.toggle('selected',spriteEnabled)};
 $('walkDirection').onclick=()=>{walkReverse=!walkReverse;walkFrameTime=0;$('walkDirection').textContent=walkReverse?'🚶 Walk cycle: reversed':'🚶 Walk cycle: original'};
+$('swingBlend').onclick=()=>{smoothSwing=!smoothSwing;$('swingBlend').textContent=smoothSwing?'⛏ Smooth swing ON':'⛏ Smooth swing OFF';$('swingBlend').classList.toggle('selected',smoothSwing)};
 const pressed=new Set();document.addEventListener('keydown',e=>{if(e.target.tagName==='BUTTON'||e.target.tagName==='INPUT')return;let dir=e.key==='ArrowLeft'||e.key==='a'?-1:e.key==='ArrowRight'||e.key==='d'?1:0;if(dir){e.preventDefault();pressed.add(e.key);if(phase==='manual'){moveDir=dir;p.dir=dir}}});document.addEventListener('keyup',e=>{pressed.delete(e.key);if(!pressed.size){moveDir=0;digElapsed=0}});window.addEventListener('blur',()=>{pressed.clear();moveDir=0;digElapsed=0});
 reset();requestAnimationFrame(loop);
 })();
