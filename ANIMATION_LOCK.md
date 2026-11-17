@@ -56,6 +56,15 @@
 4. Run gameplay regressions and confirm effects remain aligned.
 5. Only mark the **whole animation system LOCKED** after the player approves the look and feel of these six sections.
 
+## Prototype 037W2 — upright walk Pass 1 (November 17, 2026)
+- [x] New **Walk polish ON/OFF** comparison switch; retain 037P as legacy OFF behavior.
+- [x] Upright walk frame progress now tracks **upright distance only** at 1.25 cells per seven-frame cycle, rather than legacy 3.0 cells / cycle shared with crawling and scooting.
+- [x] Hold the last original upright walking frame at a stationary stop instead of switching immediately to the unrelated `standCrouch` still. Preserve the original full-detail foot datum calibration.
+- [x] Skip transparent walk-loop seam crossfade in polished mode (prevent doubled ghost legs); use original frames 0–6, excluding the previously identified discontinuous frame 7. Legacy mode retains its seam toggle.
+- [x] Simulated 3,400-frame dig/return/dump/resume with polish ON and OFF: 8 sections, 1 return trip, 7 scoots, no position-lock errors. Standing and crouch excavation regressions passed.
+- [ ] **Visual approval pending:** source sprites contain their own stepping poses; holding the last frame removes a pose swap, but may leave a foot lifted when stopping. Confirm planted-foot quality, gait cadence, loop seam and start/stop visually on iPhone. May require choosing a dedicated original planted-foot frame / extra captured artwork instead of just freezing the last frame.
+- [ ] Adjust 1.25 cell cadence based on real phone playback; it is a testable tuning value, not yet proven perfect.
+
 ## Current checkpoint
 - Prototype **037P** is playable and mechanically validated; **no global visual lock**.
 - Open high-priority bug: prone sprite extends beyond aimed rock location.
