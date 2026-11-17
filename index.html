@@ -397,6 +397,32 @@ if(miningReady()&&digElapsed>0){
  g.restore();
 }
 
+// Context beam: starts at the miner, ends at the selected individual rock tile.
+if(canvasDrag&&canvasDrag.action!=='waiting'){
+ const sy=BASE-(rigPose<1?129:rigPose<4?84:38);
+ const ox=(visualX+.5)*CW,oy=sy;
+ let tx,ty,valid=true;
+ if(canvasDrag.action==='aim'&&aimTarget){
+  tx=(aimTarget.x+.5)*CW;ty=BASE-(aimTarget.layer+.5)*TH;
+  valid=aimTarget.layer<target&&aimTarget.layer<3&&
+   (aimTarget.layer!==2||supported(aimTarget.x));
+  const y=BASE-(aimTarget.layer+1)*TH;
+  g.fillStyle=valid?'rgba(245,190,99,.21)':'rgba(193,85,67,.18)';
+  g.strokeStyle=valid?'rgba(255,207,114,.94)':'rgba(224,106,89,.85)';
+  g.lineWidth=1.6;g.fillRect(aimTarget.x*CW+1,y+1,CW-2,TH-2);
+  g.strokeRect(aimTarget.x*CW+1.5,y+1.5,CW-3,TH-3);
+ }else{
+  tx=ox+Math.sign(canvasDrag.dx||1)*CW*2.1;ty=oy;
+ }
+ const color=valid?'rgba(255,196,107,.82)':'rgba(222,102,83,.8)';
+ g.save();g.strokeStyle=color;g.fillStyle=color;g.lineWidth=2;g.setLineDash([7,6]);
+ g.beginPath();g.moveTo(ox,oy);g.lineTo(tx,ty);g.stroke();g.setLineDash([]);
+ const ang=Math.atan2(ty-oy,tx-ox);
+ g.beginPath();g.moveTo(tx,ty);
+ g.lineTo(tx-11*Math.cos(ang-.46),ty-11*Math.sin(ang-.46));
+ g.lineTo(tx-11*Math.cos(ang+.46),ty-11*Math.sin(ang+.46));
+ g.closePath();g.fill();g.restore();
+}
 const px=(visualX+.5)*CW,foot=BASE,d=p.dir;
 const moving=!transitionHold&&visualMoving;
 const digging=miningReady();
