@@ -20,7 +20,7 @@
 (()=>{
 const $=id=>document.getElementById(id),canvas=$('world'),g=canvas.getContext('2d');
 const CW=28,TH=72,N=130,BASE=365,START=6,EDGE=2;
-let heights,braces,p,mode,target,bag,mined,trips,phase,returnX,moveDir=0,holding=false,last=0,digElapsed=0,fx=[],cam=0,showTime=0,notice='',elapsed=0,roofTarget=-1,shake=0,rigPose=0,rigStride=0,rigSwing=0,zoomed=true,transitionGoal=null,transitionHold=false,animState="IDLE",lockedX=null,lockedCam=null,lockViolations=0;
+let heights,braces,p,mode,target,bag,mined,trips,phase,returnX,moveDir=0,holding=false,last=0,digElapsed=0,fx=[],cam=0,showTime=0,notice='',elapsed=0,roofTarget=-1,shake=0,rigPose=0,rigStride=0,rigSwing=0,zoomed=true,transitionGoal=null,transitionHold=false,animState="IDLE",lockedX=null,lockedCam=null,lockViolations=0,pendingStepTo=null;
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 function say(s){notice=s;$('message').textContent=s}
 function hAt(x){return x<0||x>=N?0:heights[x]}
@@ -43,7 +43,7 @@ function visibleTransition(){return transitionHold||!poseReady(poseFor(p.x))}
 function transitionName(){return rigPose>transitionGoal?'Getting up':'Lowering down'}
 function reset(){
 heights=Array(N).fill(0);for(let x=EDGE;x<=9;x++)heights[x]=3;
-braces=new Set([4,8]);p={x:START,dir:1};mode='excavate';target=1;bag=0;mined=0;trips=0;phase='manual';returnX=START;moveDir=0;holding=false;last=0;digElapsed=0;fx=[];cam=0;showTime=0;roofTarget=-1;shake=0;rigPose=0;rigStride=0;rigSwing=0;transitionGoal=null;transitionHold=false;animState="IDLE";lockedX=null;lockedCam=null;lockViolations=0;
+braces=new Set([4,8]);p={x:START,dir:1};mode='excavate';target=1;bag=0;mined=0;trips=0;phase='manual';returnX=START;moveDir=0;holding=false;last=0;digElapsed=0;fx=[];cam=0;showTime=0;roofTarget=-1;shake=0;rigPose=0;rigStride=0;rigSwing=0;transitionGoal=null;transitionHold=false;animState="IDLE";lockedX=null;lockedCam=null;lockViolations=0;pendingStepTo=null;
 $('progress').style.width='0%';say('Hold RIGHT in Excavate mode to cut a narrow prospecting tunnel. The bag holds 8 strips before the miner must dump at the ledge.');update();
 }
 function update(){
@@ -72,7 +72,7 @@ function step(d){
 p.dir=d;const x=p.x+d;if(x<EDGE||x>=N||hAt(x)===0)return false;
 // Lower BEFORE entering a low ceiling. Rise only after entering high space.
 const nextPose=poseFor(x),currentPose=poseFor(p.x);
-if(nextPose>currentPose&&holdForPose(nextPose))return false;
+if(nextPose>currentPose&&holdForPose(nextPose)){pendingStepTo=x;return false;}
 p.x=x;
 if(nextPose<currentPose)holdForPose(nextPose);
 return true;
@@ -209,6 +209,8 @@ rigPose+=Math.sign(delta)*Math.min(Math.abs(delta),dt*6/1.8);
 if(transitionHold&&poseReady(transitionGoal)){
  if(p.x!==lockedX){lockViolations++;p.x=lockedX}
  transitionHold=false;transitionGoal=null;lockedX=null;lockedCam=null;elapsed=0;
+ // Complete the boundary step only AFTER finishing the lowering animation.
+ if(pendingStepTo!==null){p.x=pendingStepTo;pendingStepTo=null;}
 }
 animState=transitionHold?'TRANSITION':(phase==='dump'?'DUMP':phase==='return'||phase==='resume'?'AUTO TRAVEL':moveDir?'MOVING':'IDLE');
 action(dt);
