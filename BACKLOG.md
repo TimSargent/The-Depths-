@@ -1,3 +1,24 @@
+## Locked production sequence (Nov 17, 2026)
+
+**037 → 038 → 036.** Do not skip or reorder without asking.
+
+### Prototype 037 — restore approved graphite skeleton (NEXT)
+- [x] Verify the original Animation Library 014 remains available (nine transparent sprite sheets, eight frames each; original videos/reference images preserved)
+- [x] Compare approved original source visuals with current compressed 2-bit game sprites; current asset path loses texture and anatomical fidelity
+- [ ] Ship original full-detail art in runtime without inventing replacement anatomy
+- [ ] Preserve stable character scale, walk timing/loop, and two-second heavy pickaxe swing
+- [ ] Run visual walk/crouch/prone/mine comparison on iPhone before marking complete
+
+### Prototype 038 — true excavation freedom (AFTER 037)
+- [ ] Extend individual tile excavation to irregular chambers and pockets, including overhead roof work from stationary miner
+- [ ] Keep locomotion independent from mining mode; support work must remain logical
+- [ ] Preserve targeted raycast and the four-second cut / bag-return gameplay
+
+### Prototype 036 — targeting precision (AFTER 038)
+- [ ] Wider assisted aiming corridor, smooth target selection and clear feedback
+- [ ] Never mine a different cell than the indicator shows
+- [ ] Verify subtle gestures and long diagonals on iPhone
+
 # The Depths — Prioritized Development Backlog
 
 **Current playable build:** Prototype 035, `index.html`. Keep the same published URL / entry point for every playtest. This list contains *planned* work, not completed features.
