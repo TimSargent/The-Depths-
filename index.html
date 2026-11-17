@@ -602,14 +602,14 @@ if(spriteWalking){
      window.DepthsFullArt?.get(motionName,interp.to)||window.DepthMotions?.get(motionName,interp.to):null;
    if(nextImage&&interp.mix>0){
     g.globalAlpha=spriteOpacity*(1-outgoingWeight)*(1-interp.mix);
-    g.drawImage(motionImage,x,y,256*sx,208*sy);
+    g.drawImage(motionImage,x,y,motionImage.width*sx,motionImage.height*sy);
     const nb=nextImage.bodyBox||{x:0,y:0,w:256,h:208};
     const nr=nextImage.motionReference||reference;
     g.globalAlpha=spriteOpacity*(1-outgoingWeight)*interp.mix;
     g.drawImage(nextImage,-nr.centerX*sx,-(nb.y+nb.h)*sy,nextImage.width*sx,nextImage.height*sy);
    }else{
     g.globalAlpha=spriteOpacity*(1-outgoingWeight);
-    g.drawImage(motionImage,x,y,256*sx,208*sy);
+    g.drawImage(motionImage,x,y,motionImage.width*sx,motionImage.height*sy);
    }
    g.globalAlpha=1;
   }
