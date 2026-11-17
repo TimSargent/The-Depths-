@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"><meta name="theme-color" content="#080a0c"><title>The Depths — Prototype 032</title>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"><meta name="theme-color" content="#080a0c"><title>The Depths — Prototype 033</title>
 <style>
 *{box-sizing:border-box}html,body{margin:0;background:#080a0c;color:#e9e0d3;font-family:system-ui,-apple-system,Arial,sans-serif;overflow-x:hidden}body{min-height:100dvh;overscroll-behavior:none}main{max-width:920px;margin:auto;padding:12px 12px max(18px,env(safe-area-inset-bottom))}.top{display:flex;align-items:center;justify-content:space-between;gap:8px}h1{margin:3px 0 0;font-size:21px}.eyebrow{font-size:10px;letter-spacing:2px;color:#bda889}.sub{font-size:12px;color:#b3a99a}.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:12px 0}.stat{background:#181b1d;border:1px solid #343537;border-radius:9px;padding:8px 7px}.stat span{font-size:10px;color:#aaa097;display:block}.stat b{font-size:14px;display:block;margin-top:2px}.view{position:relative;border:1px solid #4a443d;border-radius:12px;overflow:hidden;background:#070809;touch-action:none}canvas{width:100%;display:block;aspect-ratio:960/450;touch-action:none}.progress{position:absolute;bottom:0;left:0;height:4px;width:0;background:#e0ae67;transition:width .08s}.modes,.heights,.controls{display:flex;gap:8px;margin-top:10px}.modes button,.heights button{flex:1}.controls button{flex:1;min-height:65px;font-size:19px}button{background:#25282b;color:#f2e7d8;border:1px solid #555048;padding:12px 8px;border-radius:10px;font-size:13px;font-weight:700;touch-action:none;-webkit-user-select:none;user-select:none;cursor:pointer}button.selected{background:#725032;border-color:#d9ac72}button:disabled{opacity:.4}.actions{display:flex;gap:8px;margin-top:10px}.actions button{flex:1}.message{font-size:13px;line-height:1.45;color:#e7d4ba;border:1px solid #49443e;background:#181b1d;border-radius:10px;padding:11px;margin-top:10px;min-height:57px}.help{font-size:12px;line-height:1.55;color:#aaa097;margin:10px 2px}.meter{height:5px;border-radius:9px;background:#353739;overflow:hidden;margin-top:5px}.meter div{height:100%;background:#dfb47d;width:0;transition:width .15s}#phase{font-size:11px;color:#d7b27c;margin:8px 0 0}@media (max-width:500px){main{padding:8px 8px max(10px,env(safe-area-inset-bottom))}.stat{padding:7px 5px}.stat b{font-size:12px}.controls button{min-height:70px;font-size:18px}.modes button,.heights button{padding:11px 3px;font-size:12px}.actions button{font-size:12px}.eyebrow{font-size:9px}h1{font-size:18px}}
 .lab{margin-top:14px;border:1px solid #49443e;background:#171a1c;border-radius:10px;padding:10px}
@@ -9,7 +9,7 @@
 #labCanvas{display:block;width:100%;height:auto;aspect-ratio:600/280;border-radius:9px;background:#0c1012;margin-top:9px}
 #labStatus{font-size:12px;color:#cbb28b;padding-top:7px}
 </style></head><body><main>
-<div class="top"><div><div class="eyebrow">THE DEPTHS / PLAYTEST 032</div><h1>Dig. Haul. Repeat.</h1></div><button id="reset">↻ Restart</button></div>
+<div class="top"><div><div class="eyebrow">THE DEPTHS / PLAYTEST 033</div><h1>Dig. Haul. Repeat.</h1></div><button id="reset">↻ Restart</button></div>
 <div class="stats"><div class="stat"><span>Posture</span><b id="pose">Standing</b></div><div class="stat"><span>Bag</span><b id="bag">0 / 8</b><div class="meter"><div id="bagbar"></div></div></div><div class="stat"><span>Strips mined</span><b id="mined">0</b></div><div class="stat"><span>Dump trips</span><b id="trips">0</b></div></div>
 <div class="view"><canvas id="world" width="960" height="450" aria-label="Playable mining tunnel with automatic spoil bag and horizontal excavation"></canvas><div class="progress" id="progress"></div></div>
 <div id="phase">Prototype 013 • video-derived animation playtest</div>
@@ -48,6 +48,16 @@ let visualX=START,visualMoving=false;
 // Active excavation is specific to one solid-rock cell. Existing openings
 // are always walkable in any mode, even below the selected cut height.
 let activeExcavationCell=null,activeExcavationDir=0,widenArmed=false;
+// One pointer works anywhere on the canvas; gestures are relative to the
+// initial touch so the thumb never needs to reach an on-screen joystick.
+let canvasDrag=null,aimTarget=null;
+function aimReady(){
+ return phase==='manual'&&mode==='excavate'&&aimTarget&&!aimTarget.done&&
+ !transitionHold&&pendingStepTo===null&&pendingRise===null&&pendingLower===null&&
+ Math.abs(visualX-p.x)<.0001&&poseReady(poseFor(p.x))&&
+ aimTarget.x>=EDGE&&aimTarget.x<N&&aimTarget.layer===hAt(aimTarget.x)&&
+ aimTarget.layer<3&&(aimTarget.layer!==2||supported(aimTarget.x));
+}
 // Short crossfades only when the animation STATE changes (never on frame advances).
 let lastDrawnMotion=null,blendFromMotion=null,blendStartMs=0;
 const MOTION_BLEND_MS=145;
@@ -93,6 +103,7 @@ function needsExcavation(x,dir){
   (widenArmed&&open>0&&open<target);
 }
 function nextDigPose(){
+ if(aimTarget)return null;
  if(phase!=='manual'||mode!=='excavate'||!moveDir)return null;
  const x=p.x+moveDir;
  if(!needsExcavation(x,moveDir))return null;
@@ -136,6 +147,7 @@ function motionScale(name,frame){
 // The selected excavation clearance determines the mining pose. Never start
 // mining until that pose is fully reached and the previous step is complete.
 function miningReady(){
+ if(aimTarget)return !!aimReady();
  if(phase!=='manual'||mode!=='excavate'||!moveDir||transitionHold||
     pendingRise!==null||pendingLower!==null||pendingStepTo!==null||
     Math.abs(visualX-p.x)>0.0001)return false;
@@ -185,7 +197,7 @@ function visibleTransition(){return transitionHold||!poseReady(poseFor(p.x))}
 function transitionName(){return rigPose>transitionGoal?'Getting up':'Lowering down'}
 function reset(){
 heights=Array(N).fill(0);for(let x=EDGE;x<=9;x++)heights[x]=3;
-braces=new Set([4,8]);p={x:START,dir:1};mode='excavate';target=1;bag=0;mined=0;trips=0;phase='manual';returnX=START;moveDir=0;holding=false;last=0;digElapsed=0;fx=[];cam=0;showTime=0;roofTarget=-1;shake=0;rigPose=0;rigStride=0;rigSwing=0;transitionGoal=null;transitionHold=false;animState="IDLE";lockedX=null;lockedCam=null;lockViolations=0;pendingStepTo=null;pendingRise=null;pendingLower=null;activeExcavationCell=null;activeExcavationDir=0;widenArmed=false;walkFrameTime=0;visualX=START;visualMoving=false;lastDrawnMotion=null;blendFromMotion=null;blendStartMs=0;
+braces=new Set([4,8]);p={x:START,dir:1};mode='excavate';target=1;bag=0;mined=0;trips=0;phase='manual';returnX=START;moveDir=0;holding=false;last=0;digElapsed=0;fx=[];cam=0;showTime=0;roofTarget=-1;shake=0;rigPose=0;rigStride=0;rigSwing=0;transitionGoal=null;transitionHold=false;animState="IDLE";lockedX=null;lockedCam=null;lockViolations=0;pendingStepTo=null;pendingRise=null;pendingLower=null;activeExcavationCell=null;activeExcavationDir=0;widenArmed=false;canvasDrag=null;aimTarget=null;walkFrameTime=0;visualX=START;visualMoving=false;lastDrawnMotion=null;blendFromMotion=null;blendStartMs=0;
 $('progress').style.width='0%';say('Hold RIGHT in Excavate mode to cut a narrow prospecting tunnel. The bag holds 8 strips before the miner must dump at the ledge.');update();
 }
 function update(){
@@ -201,10 +213,10 @@ $('debug').textContent='Animation: '+activeMotion+' ('+(window.DepthMotions?.sta
 }
 // World-space contact point for the next layer of unbroken rock.
 function rockImpactPoint(){
- const face=p.x+moveDir;
- const layer=Math.max(0,hAt(face));
- return {x:(moveDir>0?face*CW+4:(face+1)*CW-4),
-         y:BASE-(layer+0.47)*TH};
+ const face=aimTarget?.x??p.x+moveDir;
+ const layer=aimTarget?.layer??Math.max(0,hAt(face));
+ return aimTarget?{x:(face+.5)*CW,y:BASE-(layer+.47)*TH}:
+  {x:(moveDir>0?face*CW+4:(face+1)*CW-4),y:BASE-(layer+.47)*TH};
 }
 function emitImpact(strength=1){
  if(!miningReady())return;
@@ -215,24 +227,25 @@ function emitImpact(strength=1){
  // Small strike feedback; the actual rock break is more pronounced.
  shake=Math.max(shake,.9);
 }
-function mineAt(x){
-if(x<EDGE||x>=N||hAt(x)>=target)return false;
-if(target===3&&hAt(x)>=2&&!supported(x)){say('⚠ Standing height needs structural support. Stand in a crouch tunnel and install a brace.');return false}
-if(target===3&&!supported(x)&&hAt(x)===0){ // allow making first two levels; third level will need support
+function mineAt(x,aimed=false){
+const ceiling=aimed?aimTarget.layer+1:target;
+if(x<EDGE||x>=N||hAt(x)>=ceiling)return false;
+if(ceiling===3&&hAt(x)>=2&&!supported(x)){say('⚠ Standing height needs structural support. Stand in a crouch tunnel and install a brace.');return false}
+if(ceiling===3&&!supported(x)&&hAt(x)===0){ // allow making first two levels; third level will need support
 }
 // Emit the fracture before the layer disappears so debris originates at
 // the impact plane rather than suddenly appearing out of the empty tunnel.
 const breakPoint=rockImpactPoint();
 heights[x]++;bag++;mined++;shake=3.2;digElapsed=0;rigSwing=0;
-if(heights[x]>=target){activeExcavationCell=null;activeExcavationDir=0;}
+if(heights[x]>=ceiling){activeExcavationCell=null;activeExcavationDir=0;}
 fx.push({kind:'break',x:breakPoint.x,y:breakPoint.y,t:performance.now(),
          strength:1,dir:moveDir,seed:mined*37});
 say('CRACK! A thin horizontal section breaks free. The loose rock goes into the duffle bag ('+bag+'/8).');
 if(bag>=8){returnX=p.x;phase='return';moveDir=0;say('Duffel full! The miner packs up, heads back through the tunnel, and dumps the spoil over the shaft ledge.')}
 return true;
 }
-function setMode(v){if(phase!=='manual')return;mode=v;digElapsed=0;moveDir=0;if(v!=='excavate'){activeExcavationCell=null;activeExcavationDir=0;widenArmed=false;}say(v==='explore'?'Pickaxe stowed. Hold LEFT or RIGHT to travel through the tunnel.':'Pickaxe ready. Hold a direction and the miner excavates the selected tunnel height.');update()}
-function setTarget(v){target=v;digElapsed=0;say(v===1?'Prospecting: one tile tall, four narrow sections per full tunnel-length tile.':v===2?'Working passage: two tiles of height. More excavation, easier travel.':'Standing tunnel: three tiles of height, supports required before widening above two.');update()}
+function setMode(v){if(phase!=='manual')return;mode=v;digElapsed=0;moveDir=0;if(v!=='excavate'){activeExcavationCell=null;activeExcavationDir=0;widenArmed=false;aimTarget=null;}say(v==='explore'?'Pickaxe stowed. Hold LEFT or RIGHT to travel through the tunnel.':'Pickaxe ready. Hold a direction and the miner excavates the selected tunnel height.');update()}
+function setTarget(v){target=v;digElapsed=0;aimTarget=null;say(v===1?'Prospecting: one tile tall, four narrow sections per full tunnel-length tile.':v===2?'Working passage: two tiles of height. More excavation, easier travel.':'Standing tunnel: three tiles of height, supports required before widening above two.');update()}
 function step(d){
 p.dir=d;const x=p.x+d;if(x<EDGE||x>=N||hAt(x)===0)return false;
 // Lower BEFORE entering a low ceiling. Rise only after entering high space.
@@ -277,6 +290,22 @@ return;
 if(phase==='dump'){
 showTime-=dt;if(showTime<=0){bag=0;trips++;phase='resume';elapsed=0;say('Spoil dumped into the abyss. Returning to the tunnel face.')}
 return;
+}
+// Aimed cuts use the drag target rather than moveDir. The miner can stand
+// motionless in a pocket and raise one specific ceiling section to the left.
+if(aimTarget){
+ moveDir=0;
+ if(aimTarget.done||!aimReady()){digElapsed=0;return;}
+ if(bag>=8){returnX=p.x;aimTarget=null;canvasDrag=null;phase='return';return;}
+ digElapsed+=dt;
+ if(digElapsed>=4){
+  const finished=mineAt(aimTarget.x,true);
+  if(finished&&aimTarget) {
+   aimTarget.done=true;digElapsed=0;
+   say('Target section excavated. Release and drag again to select another section.');
+  }
+ }
+ return;
 }
 if(!moveDir){digElapsed=0;return}
 if(activeExcavationCell!==null&&moveDir!==activeExcavationDir){
@@ -335,9 +364,9 @@ g.lineWidth=3;g.beginPath();g.moveTo(xx+2,BASE-8);g.lineTo(xx+CW-2,top+10);g.str
 // They grow through the four-second excavation interval and fade instantly
 // when the strip breaks away. This effect is independent of sprite artwork.
 if(miningReady()&&digElapsed>0){
- const face=p.x+moveDir,open=hAt(face),progress=clamp(digElapsed/4,0,1);
- const edge=moveDir>0?face*CW:(face+1)*CW;
- const sign=moveDir;
+ const face=aimTarget?.x??p.x+moveDir,open=aimTarget?.layer??hAt(face),progress=clamp(digElapsed/4,0,1);
+ const edge=aimTarget?(face+.5)*CW:(moveDir>0?face*CW:(face+1)*CW);
+ const sign=aimTarget?1:moveDir;
  const rockTop=BASE-(open+1)*TH;
  g.save();g.beginPath();g.rect(face*CW+1,rockTop+1,CW-2,TH-2);g.clip();
  g.lineCap='round';
@@ -650,7 +679,7 @@ for(let i=fx.length-1;i>=0;i--){
  }
 }
 g.restore();
-if(phase==='manual'&&mode==='excavate'&&moveDir&&hAt(p.x+moveDir)<target){
+if(phase==='manual'&&mode==='excavate'&&(aimReady()||(moveDir&&hAt(p.x+moveDir)<target))){
 g.fillStyle='rgba(220,178,103,.10)';g.fillRect(w-165,12,145,22);g.fillStyle='#dec08d';g.font='14px system-ui';g.fillText('Rock '+Math.floor(digElapsed/4*100)+'%',w-152,28)
 }
 }
