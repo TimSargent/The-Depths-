@@ -97,11 +97,17 @@ function normalize(key,images){
  const prone=['proneCrawl','proneMine'].includes(key);
  const refH=(key==='standCrouch'||key==='crouchProne'||key==='standProne')?heights[0]:median(heights);
  const refW=median(widths);
+ // A single shared ground datum for upright walking. Earlier versions
+ // re-anchored to every cropped frame's bottom, creating visible bobbing.
+ const sharedWalkFloor=key==='walk'?median(images.map(im=>im.sourceY+im.height)):null;
  const targetH=stand?176:prone?65:119;
  const sx=prone?203/Math.max(1,refW):targetH/Math.max(1,refH);
  const sy=targetH/Math.max(1,refH);
  for(const im of images){
   im.motionReference={height:refH,centerX:centerX-im.sourceX};
+  // Keep boot contact aligned to one ground plane while preserving genuine
+  // frame-to-frame body motion from the original artwork.
+  if(key==='walk') im.motionReference.footY=sharedWalkFloor-im.sourceY;
   im.fullDetailScale={sx,sy};
   im.isOriginalArtwork=true;
  }
