@@ -16,7 +16,7 @@ function loop(t){
  const dt=last?Math.min(.08,(t-last)/1000):0;last=t;
  if(running)clock+=dt*speed;
  const isTransition=selected==='standCrouch'||selected==='standProne'||selected==='crouchProne';
- const count=window.DepthMotions?.count(selected)||8,duration=isTransition?1.8:1.0;
+ const count=selected==='walk'?7:(window.DepthMotions?.count(selected)||8),duration=isTransition?1.8:1.0;
  const normalized=(clock%duration)/duration;
  let frame=Math.min(count-1,Math.floor(normalized*count));
  if(reverse)frame=count-1-frame;
