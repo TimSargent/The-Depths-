@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"><meta name="theme-color" content="#080a0c"><title>The Depths — Prototype 030</title>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"><meta name="theme-color" content="#080a0c"><title>The Depths — Prototype 031</title>
 <style>
 *{box-sizing:border-box}html,body{margin:0;background:#080a0c;color:#e9e0d3;font-family:system-ui,-apple-system,Arial,sans-serif;overflow-x:hidden}body{min-height:100dvh;overscroll-behavior:none}main{max-width:920px;margin:auto;padding:12px 12px max(18px,env(safe-area-inset-bottom))}.top{display:flex;align-items:center;justify-content:space-between;gap:8px}h1{margin:3px 0 0;font-size:21px}.eyebrow{font-size:10px;letter-spacing:2px;color:#bda889}.sub{font-size:12px;color:#b3a99a}.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:12px 0}.stat{background:#181b1d;border:1px solid #343537;border-radius:9px;padding:8px 7px}.stat span{font-size:10px;color:#aaa097;display:block}.stat b{font-size:14px;display:block;margin-top:2px}.view{position:relative;border:1px solid #4a443d;border-radius:12px;overflow:hidden;background:#070809;touch-action:none}canvas{width:100%;display:block;aspect-ratio:960/450;touch-action:none}.progress{position:absolute;bottom:0;left:0;height:4px;width:0;background:#e0ae67;transition:width .08s}.modes,.heights,.controls{display:flex;gap:8px;margin-top:10px}.modes button,.heights button{flex:1}.controls button{flex:1;min-height:65px;font-size:19px}button{background:#25282b;color:#f2e7d8;border:1px solid #555048;padding:12px 8px;border-radius:10px;font-size:13px;font-weight:700;touch-action:none;-webkit-user-select:none;user-select:none;cursor:pointer}button.selected{background:#725032;border-color:#d9ac72}button:disabled{opacity:.4}.actions{display:flex;gap:8px;margin-top:10px}.actions button{flex:1}.message{font-size:13px;line-height:1.45;color:#e7d4ba;border:1px solid #49443e;background:#181b1d;border-radius:10px;padding:11px;margin-top:10px;min-height:57px}.help{font-size:12px;line-height:1.55;color:#aaa097;margin:10px 2px}.meter{height:5px;border-radius:9px;background:#353739;overflow:hidden;margin-top:5px}.meter div{height:100%;background:#dfb47d;width:0;transition:width .15s}#phase{font-size:11px;color:#d7b27c;margin:8px 0 0}@media (max-width:500px){main{padding:8px 8px max(10px,env(safe-area-inset-bottom))}.stat{padding:7px 5px}.stat b{font-size:12px}.controls button{min-height:70px;font-size:18px}.modes button,.heights button{padding:11px 3px;font-size:12px}.actions button{font-size:12px}.eyebrow{font-size:9px}h1{font-size:18px}}
 .lab{margin-top:14px;border:1px solid #49443e;background:#171a1c;border-radius:10px;padding:10px}
@@ -9,7 +9,7 @@
 #labCanvas{display:block;width:100%;height:auto;aspect-ratio:600/280;border-radius:9px;background:#0c1012;margin-top:9px}
 #labStatus{font-size:12px;color:#cbb28b;padding-top:7px}
 </style></head><body><main>
-<div class="top"><div><div class="eyebrow">THE DEPTHS / PLAYTEST 030</div><h1>Dig. Haul. Repeat.</h1></div><button id="reset">↻ Restart</button></div>
+<div class="top"><div><div class="eyebrow">THE DEPTHS / PLAYTEST 031</div><h1>Dig. Haul. Repeat.</h1></div><button id="reset">↻ Restart</button></div>
 <div class="stats"><div class="stat"><span>Posture</span><b id="pose">Standing</b></div><div class="stat"><span>Bag</span><b id="bag">0 / 8</b><div class="meter"><div id="bagbar"></div></div></div><div class="stat"><span>Strips mined</span><b id="mined">0</b></div><div class="stat"><span>Dump trips</span><b id="trips">0</b></div></div>
 <div class="view"><canvas id="world" width="960" height="450" aria-label="Playable mining tunnel with automatic spoil bag and horizontal excavation"></canvas><div class="progress" id="progress"></div></div>
 <div id="phase">Prototype 013 • video-derived animation playtest</div>
@@ -44,6 +44,9 @@ const walkSheet=new Image();walkSheet.src='assets/miner-walk-vector.svg';
 let walkSheetReady=false,spriteEnabled=true,walkFrameTime=0,walkReverse=true,walkCycleSpeed=1,smoothSwing=false,rigBlend=0;
 // Visual position is continuous; p.x remains integer for excavation and collisions.
 let visualX=START,visualMoving=false;
+// Active excavation is specific to one solid-rock cell. Existing openings
+// are always walkable in any mode, even below the selected cut height.
+let activeExcavationCell=null,activeExcavationDir=0;
 // Short crossfades only when the animation STATE changes (never on frame advances).
 let lastDrawnMotion=null,blendFromMotion=null,blendStartMs=0;
 const MOTION_BLEND_MS=145;
@@ -82,10 +85,15 @@ walkSheet.onload=()=>{walkSheetReady=true};walkSheet.onerror=()=>{walkSheetReady
 let heights,braces,p,mode,target,bag,mined,trips,phase,returnX,moveDir=0,holding=false,last=0,digElapsed=0,fx=[],cam=0,showTime=0,notice='',elapsed=0,roofTarget=-1,shake=0,rigPose=0,rigStride=0,rigSwing=0,zoomed=true,transitionGoal=null,transitionHold=false,animState="IDLE",lockedX=null,lockedCam=null,lockViolations=0,pendingStepTo=null,pendingRise=null,pendingLower=null;
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 let activeMotion='RIG';
+function needsExcavation(x,dir){
+ if(phase!=='manual'||mode!=='excavate'||!dir||x<EDGE||x>=N)return false;
+ const open=hAt(x);
+ return open===0||(x===activeExcavationCell&&dir===activeExcavationDir&&open<target);
+}
 function nextDigPose(){
  if(phase!=='manual'||mode!=='excavate'||!moveDir)return null;
  const x=p.x+moveDir;
- if(x<EDGE||x>=N||hAt(x)>=target)return null;
+ if(!needsExcavation(x,moveDir))return null;
  const targetPose=target===1?6:target===2?3:0;
  return Math.max(poseFor(p.x),targetPose);
 }
@@ -130,7 +138,7 @@ function miningReady(){
     pendingRise!==null||pendingLower!==null||pendingStepTo!==null||
     Math.abs(visualX-p.x)>0.0001)return false;
  const face=p.x+moveDir;
- if(face<EDGE||face>=N||hAt(face)>=target)return false;
+ if(!needsExcavation(face,moveDir))return false;
  const required=Math.max(poseFor(p.x),target===1?6:target===2?3:0);
  return poseReady(required);
 }
@@ -175,7 +183,7 @@ function visibleTransition(){return transitionHold||!poseReady(poseFor(p.x))}
 function transitionName(){return rigPose>transitionGoal?'Getting up':'Lowering down'}
 function reset(){
 heights=Array(N).fill(0);for(let x=EDGE;x<=9;x++)heights[x]=3;
-braces=new Set([4,8]);p={x:START,dir:1};mode='excavate';target=1;bag=0;mined=0;trips=0;phase='manual';returnX=START;moveDir=0;holding=false;last=0;digElapsed=0;fx=[];cam=0;showTime=0;roofTarget=-1;shake=0;rigPose=0;rigStride=0;rigSwing=0;transitionGoal=null;transitionHold=false;animState="IDLE";lockedX=null;lockedCam=null;lockViolations=0;pendingStepTo=null;pendingRise=null;pendingLower=null;walkFrameTime=0;visualX=START;visualMoving=false;lastDrawnMotion=null;blendFromMotion=null;blendStartMs=0;
+braces=new Set([4,8]);p={x:START,dir:1};mode='excavate';target=1;bag=0;mined=0;trips=0;phase='manual';returnX=START;moveDir=0;holding=false;last=0;digElapsed=0;fx=[];cam=0;showTime=0;roofTarget=-1;shake=0;rigPose=0;rigStride=0;rigSwing=0;transitionGoal=null;transitionHold=false;animState="IDLE";lockedX=null;lockedCam=null;lockViolations=0;pendingStepTo=null;pendingRise=null;pendingLower=null;activeExcavationCell=null;activeExcavationDir=0;walkFrameTime=0;visualX=START;visualMoving=false;lastDrawnMotion=null;blendFromMotion=null;blendStartMs=0;
 $('progress').style.width='0%';say('Hold RIGHT in Excavate mode to cut a narrow prospecting tunnel. The bag holds 8 strips before the miner must dump at the ledge.');update();
 }
 function update(){
@@ -212,13 +220,14 @@ if(target===3&&!supported(x)&&hAt(x)===0){ // allow making first two levels; thi
 // the impact plane rather than suddenly appearing out of the empty tunnel.
 const breakPoint=rockImpactPoint();
 heights[x]++;bag++;mined++;shake=3.2;digElapsed=0;rigSwing=0;
+if(heights[x]>=target){activeExcavationCell=null;activeExcavationDir=0;}
 fx.push({kind:'break',x:breakPoint.x,y:breakPoint.y,t:performance.now(),
          strength:1,dir:moveDir,seed:mined*37});
 say('CRACK! A thin horizontal section breaks free. The loose rock goes into the duffle bag ('+bag+'/8).');
 if(bag>=8){returnX=p.x;phase='return';moveDir=0;say('Duffel full! The miner packs up, heads back through the tunnel, and dumps the spoil over the shaft ledge.')}
 return true;
 }
-function setMode(v){if(phase!=='manual')return;mode=v;digElapsed=0;moveDir=0;say(v==='explore'?'Pickaxe stowed. Hold LEFT or RIGHT to travel through the tunnel.':'Pickaxe ready. Hold a direction and the miner excavates the selected tunnel height.');update()}
+function setMode(v){if(phase!=='manual')return;mode=v;digElapsed=0;moveDir=0;if(v!=='excavate'){activeExcavationCell=null;activeExcavationDir=0;}say(v==='explore'?'Pickaxe stowed. Hold LEFT or RIGHT to travel through the tunnel.':'Pickaxe ready. Hold a direction and the miner excavates the selected tunnel height.');update()}
 function setTarget(v){target=v;digElapsed=0;say(v===1?'Prospecting: one tile tall, four narrow sections per full tunnel-length tile.':v===2?'Working passage: two tiles of height. More excavation, easier travel.':'Standing tunnel: three tiles of height, supports required before widening above two.');update()}
 function step(d){
 p.dir=d;const x=p.x+d;if(x<EDGE||x>=N||hAt(x)===0)return false;
@@ -266,13 +275,25 @@ showTime-=dt;if(showTime<=0){bag=0;trips++;phase='resume';elapsed=0;say('Spoil d
 return;
 }
 if(!moveDir){digElapsed=0;return}
+if(activeExcavationCell!==null&&moveDir!==activeExcavationDir){
+ activeExcavationCell=null;activeExcavationDir=0;digElapsed=0;
+}
 p.dir=moveDir;const x=p.x+moveDir;
 if(mode==='explore'){elapsed+=dt;if(elapsed>=0.20){elapsed-=0.20;if(!step(moveDir))say('Rock blocks the path. Switch to Excavate mode.')}return}
 if(x<EDGE||x>=N)return;
-if(hAt(x)>=target){elapsed+=dt;if(elapsed>=0.20){elapsed-=0.20;step(moveDir)}digElapsed=0;return}
+// Movement is identical in Explore and Excavate on open passages.
+ // Only an actual solid-rock face, or the SAME cell we are already cutting,
+ // triggers excavation. This allows retreat through lower-clearance tunnels.
+if(hAt(x)>0&&!needsExcavation(x,moveDir)){
+ elapsed+=dt;if(elapsed>=0.20){elapsed-=0.20;step(moveDir)}
+ digElapsed=0;return;
+}
 if(bag>=8){returnX=p.x;phase='return';moveDir=0;return}
 if(target===3&&hAt(x)>=2&&!supported(x)){digElapsed=0;say('Support needed before raising the roof to standing height. Install one from a crouch-height passage.');moveDir=0;return}
 if(!miningReady()){digElapsed=0;return;}
+if(activeExcavationCell===null){
+ activeExcavationCell=x;activeExcavationDir=moveDir;
+}
 digElapsed+=dt;
 if(digElapsed>=4){mineAt(x);if(phase==='manual'&&hAt(x)>=target)step(moveDir)}
 }
