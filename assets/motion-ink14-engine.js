@@ -57,6 +57,15 @@ async function load(name){
    }else canvas.headPoint={x:W/2,y:40};
    result.push(canvas);
   }
+  // A shared reference pose/height per animation prevents frame-by-frame
+  // enlargement when limbs extend or contract. The original frames retain
+  // their changing anatomy at a single, stable pixel-to-world scale.
+  const heights=result.map(im=>im.bodyBox.h);
+  const refHeight=(name==='standCrouch'||name==='crouchProne'||name==='standProne')
+    ? heights[0] : [...heights].sort((a,b)=>a-b)[Math.floor(heights.length/2)];
+  const centers=result.map(im=>im.bodyBox.x+im.bodyBox.w/2).sort((a,b)=>a-b);
+  const centerX=centers[Math.floor(centers.length/2)];
+  for(const im of result){im.motionReference={height:Math.max(1,refHeight),centerX}}
   frames[name]=result;
  }catch(e){errors[name]=String(e)}
  finally{completed++}
