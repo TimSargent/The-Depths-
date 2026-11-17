@@ -1,6 +1,6 @@
 # The Depths — Prioritized Development Backlog
 
-**Current playable build:** Prototype 022, `index.html`. Keep the same published URL / entry point for every playtest. This list contains *planned* work, not completed features.
+**Current playable build:** Prototype 023, `index.html`. Keep the same published URL / entry point for every playtest. This list contains *planned* work, not completed features.
 
 ## NOW — Prototype 021: grounded walking and seamless travel
 
@@ -142,6 +142,14 @@ Audited all nine decoded video-derived animations using the actual silhouette bo
 - [x] Simulation regression: complete eight-strip bag filling, return, dump and resume; continuous visual travel (max 0.0833 cells per simulated 60 Hz frame) and zero posture lock violations.
 - [ ] Verify actual sprite blending, no objectionable double-image ghosting or headlamp jumps on iPhone; adjust duration if necessary.
 - [ ] Verify fast tapping and transitions between all three tunnel heights in a live playtest.
+
+## Prototype 023 — selected mining posture must finish before swings
+
+- [x] Gate rock-face mining animations, swing progression and actual excavation using the same explicit `miningReady()` predicate.
+- [x] Require completed posture change and completed smooth movement to the current tile center before swinging.
+- [x] A selected 1-tile clearance cannot trigger a standing pickaxe swing while lowering; the character plays the lowering transition first.
+- [x] Simulated 3,500 frames at 60 Hz: zero inappropriate standing swing frames, zero mining frames before posture readiness, first prone strike only after reaching pose 6, complete 8-strip dump/return, zero movement-lock violations.
+- [ ] Verify actual iPhone animation boundary and headlamp positioning on screen.
 
 ## Decision log
 
