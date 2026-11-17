@@ -1,6 +1,6 @@
 # The Depths — Prioritized Development Backlog
 
-**Current playable build:** Prototype 034, `index.html`. Keep the same published URL / entry point for every playtest. This list contains *planned* work, not completed features.
+**Current playable build:** Prototype 035, `index.html`. Keep the same published URL / entry point for every playtest. This list contains *planned* work, not completed features.
 
 ## NOW — Prototype 021: grounded walking and seamless travel
 
@@ -271,6 +271,18 @@ Audited all nine decoded video-derived animations using the actual silhouette bo
 - [x] Pure horizontal drag still traveled left into a crawl tunnel; no unintended excavation. Existing eight-strip bag return/dump passed with zero movement-lock violations.
 - [ ] iPhone QA: test up-left with strong lateral swipe, up-right, and distinguish from pure LEFT travel. Tune angle and intent window only based on actual touch recordings.
 - [ ] Later: extend targeting beyond the immediate adjacent column, with world-space raycast and per-layer aiming; currently one neighboring rock column per gesture.
+
+## Prototype 035 — raycast-based directional mining
+
+- [x] Replace thumb-driven adjacent-column targeting with a **first-solid-rock raycast** projected from the miner through open tunnel space in the drag direction (max seven world tile widths).
+- [x] Aim beam visually stops where it first contacts solid rock, highlighting that exact individual horizontal-layer tile rather than whichever column the thumb happens to be over.
+- [x] Miner stays stationary and holds the posture of the cell he occupies while aiming. Distinct left/right/overhead targeting no longer chooses the movement posture of the destination rock cell.
+- [x] Steep and shallow diagonal drags work; a shallow left/up ray from x12 through opened x11 hit **x10 layer 1** and excavated exactly that first intersected solid tile.
+- [x] If selected tile needs unsupported standing clearance or exceeds the chosen cut height, it shows invalid instead of excavating past the obstruction.
+- [x] Each drag locks to one target after breaking it—no accidental second ceiling strip while the finger is held.
+- [x] Horizontal drags still move normally; full 8-strip rock/bag/dump/resume regression passed with zero lock violations.
+- [ ] Confirm on iPhone: beam begins at miner and can be aimed through multiple open sections; adjust directional threshold and 7-tile reach according to user feedback.
+- [ ] Future: use a slightly wider selection corridor/assist cone if an exact thin ray remains too demanding; render a truly continuous laser/flashlight beam if desired.
 
 ## Decision log
 
