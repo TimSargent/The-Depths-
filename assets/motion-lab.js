@@ -8,7 +8,8 @@ let selected='walk',running=true,reverse=false,speed=1,clock=0,last=0;
 const names=['walk','standCrouch','crouchWalk','standProne','crouchProne','proneCrawl','standMine','crouchMine','proneMine'];
 const labels=['Upright walk','Stand → crouch','Crouch walk','Stand → prone','Crouch → prone','Prone crawl','Standing pickaxe','Crouched pickaxe','Prone rock pick'];
 names.forEach((name,i)=>{const option=document.createElement('option');option.value=name;option.textContent=labels[i];$('labSelect').appendChild(option)});
-$('labSelect').onchange=()=>{selected=$('labSelect').value;clock=0};
+$('labSelect').onchange=()=>{selected=$('labSelect').value;clock=0;$('labFrame').max=selected==='walk'?'6':'7';$('labFrame').value='0'};
+$('labFrame').oninput=()=>{running=false;$('labPause').textContent='▶ Play';const transition=['standCrouch','standProne','crouchProne'].includes(selected);const length=transition?1.8:1.0;const count=selected==='walk'?7:8;clock=(Number($('labFrame').value)+.01)/count*length};
 $('labPause').onclick=()=>{running=!running;$('labPause').textContent=running?'⏸ Pause':'▶ Play'};
 $('labReverse').onclick=()=>{reverse=!reverse;$('labReverse').textContent=reverse?'↩ Reverse ON':'↩ Reverse OFF';clock=0};
 $('labSpeed').onchange=()=>{speed=Number($('labSpeed').value)||1};
@@ -20,6 +21,7 @@ function loop(t){
  const normalized=(clock%duration)/duration;
  let frame=Math.min(count-1,Math.floor(normalized*count));
  if(reverse)frame=count-1-frame;
+ if(running)$('labFrame').value=String(frame);
  ctx.clearRect(0,0,canvas.width,canvas.height);
  ctx.fillStyle='#0c1012';ctx.fillRect(0,0,canvas.width,canvas.height);
  ctx.fillStyle='#313331';ctx.fillRect(0,247,canvas.width,33);
@@ -30,7 +32,9 @@ function loop(t){
    if(image.isOriginalArtwork){
      const {sx,sy}=image.fullDetailScale;
      const ref=image.motionReference;
-     ctx.drawImage(image,canvas.width/2-ref.centerX*sx,247-image.height*sy,
+     // The same fixed foot plane used in the playable upright gait.
+     const floor=selected==='walk'&&Number.isFinite(ref.footY)?ref.footY:image.height;
+     ctx.drawImage(image,canvas.width/2-ref.centerX*sx,247-floor*sy,
         image.width*sx,image.height*sy);
    }else ctx.drawImage(image,canvas.width/2-160,247-222,320,240);
    $('labStatus').textContent=labels[names.indexOf(selected)]+' • frame '+(frame+1)+'/'+count+
