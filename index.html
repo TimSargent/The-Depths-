@@ -85,7 +85,7 @@ function normalizeForwardAim(hit,dx,dy){
  // cuts the next LOWER strip rather than stalling on rock high above his route.
  // Steeper diagonal/upward beams keep precise raycast ceiling selection.
  if(hit.x!==null&&Math.abs(dx)>Math.abs(dy)*2.5&&
-    hit.layer>=target&&hAt(hit.x)<target){
+    hAt(hit.x)<target){
    return {...hit,layer:hAt(hit.x),
      hitY:BASE-(hAt(hit.x)+.5)*TH};
  }
