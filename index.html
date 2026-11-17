@@ -180,8 +180,8 @@ if(pendingRise!==null||pendingLower!==null){
  holdForPose(next);return;
 }
 const prepPose=nextDigPose();
-if(prepPose!==null&&!poseReady(prepPose)){holdForPose(prepPose);digElapsed=0;return;}
-if((phase==='return'||phase==='resume')&&!poseReady(poseFor(p.x))){holdForPose(poseFor(p.x));return;}
+if(prepPose!==null&&!poseReady(prepPose)){if(Math.abs(visualX-p.x)>0.0001)return;holdForPose(prepPose);digElapsed=0;return;}
+if((phase==='return'||phase==='resume')&&!poseReady(poseFor(p.x))){if(Math.abs(visualX-p.x)>0.0001)return;holdForPose(poseFor(p.x));return;}
 if(phase==='return'||phase==='resume'){
 elapsed+=dt;
 if(elapsed<0.20)return;elapsed-=0.20;
