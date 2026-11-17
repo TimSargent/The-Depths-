@@ -294,7 +294,27 @@ if(spriteWalking){
   g.imageSmoothingEnabled=true;
   // One calibrated world-space size across all nine animation sequences.
   // Ground contact is locked; only actual anatomy in the source can move.
-  g.drawImage(motionImage,x,y,256*sx,208*sy);
+  // The walking source is not a perfect closed cycle. Blend the last frame
+  // into the first over a short distance-based interval to avoid a hard pop.
+  let seamFrame=null,seamBlend=0;
+  if(motionName==='walk'&&moving){
+   const phase01=((walkFrameTime*walkCycleSpeed)%1+1)%1;
+   const slot=phase01*7;
+   if(slot>=6){
+    seamBlend=Math.max(0,Math.min(1,(slot-6)));
+    seamBlend=seamBlend*seamBlend*(3-2*seamBlend);
+    seamFrame=window.DepthMotions?.get('walk',walkReverse?6:0)||null;
+   }
+  }
+  if(seamFrame&&seamBlend>0){
+   g.globalAlpha=1-seamBlend;
+   g.drawImage(motionImage,x,y,256*sx,208*sy);
+   const sb=seamFrame.bodyBox||{x:0,y:0,w:256,h:208};
+   const sr=seamFrame.motionReference||reference;
+   g.globalAlpha=seamBlend;
+   g.drawImage(seamFrame,-sr.centerX*sx,-(sb.y+sb.h)*sy,256*sx,208*sy);
+   g.globalAlpha=1;
+  }else g.drawImage(motionImage,x,y,256*sx,208*sy);
  }else{
   const frame=Math.floor(walkFrameTime*12)%12;
   g.drawImage(walkSheet,(frame%4)*80,Math.floor(frame/4)*120,80,120,-60,-180,120,180);
