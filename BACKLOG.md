@@ -1,11 +1,12 @@
 # The Depths — Prioritized Development Backlog
 
-**Current playable build:** Prototype 007, `index.html`. Keep the same published URL / entry point for every playtest. This list contains *planned* work, not completed features.
+**Current playable build:** Prototype 009, `index.html`. Keep the same published URL / entry point for every playtest. This list contains *planned* work, not completed features.
 
-## NOW — Prototype 008: 2D miner motion / tactile excavation
+## NOW — Prototype 009: locked posture transitions and close-up inspection
 
 - [ ] **Define and integrate an articulated stick-figure rig.** Head, torso, shoulders, elbows, hands, pelvis, knees, ankles, pickaxe and bag. Rig is separate from gameplay state. Test at close actual-game camera zoom.
 - [ ] **Fix low-crawl anatomy**: knees human, shins angle back behind knees, feet trail; no animal-like forward-bent lower legs.
+- [x] **Initial code pass: movement-locked pose changes (visual playtest pending).** Transitions stop horizontal movement when lowering/standing up; rising begins only after entering taller clearance. Close-up camera toggle added in 009.
 - [ ] **Smooth pose changes** among stand (3 tiles), crouch (2), prone crawl (1); no snapping. Animate locomotion appropriate to each. **Approved seven-pose descent:** upright walk → slight forward bend → knees slightly bent → kneel → lower torso/arms reach beneath shoulders → hands-and-knees/all fours → chest/hips lower to prone with feet trailing behind. Reverse on exiting low clearance; maintain believable ground contacts. Initially try 1.5–2 seconds for the entire descent, then tune.
 - [ ] **Animate excavating a horizontal section over ~4 seconds** with repeated windup → hit → recoil → recover. Progressive visible chips/cracks/dust, not a single pop at the end. Stop/resume behavior should be defined/tested.
 - [ ] **Animate and attach duffle**: heavier movement when full, miner returns to shaft, dumps debris into abyss, returns to face. Preserve the automatic bag loop.
@@ -32,8 +33,18 @@
 - [ ] Vertical/diagonal excavation only after horizontal testing and engineering rules are satisfying.
 - [ ] Water discovery, trommel/wash plant, concrete, waterpower, electricity, bots, optional mystery.
 
+## Prototype 009 QA checklist
+
+- [ ] Hold right into one-tile passage: miner lowers while stationary, then advances prone.
+- [ ] Return to three-tile passage: miner stays stationary during full stand-up before advancing farther.
+- [ ] Test 2-tile crouch transitions in both directions.
+- [ ] Automatic return/dump/resume completes when crossing clearance boundaries.
+- [ ] Both wide and close-up camera toggle work on iPhone Safari.
+- [ ] Reset, mining speed, supports, left/right button releases remain functional.
+
 ## Decision log
 
+- 2026-11-16: On tunnel-height changes, pause horizontal travel to finish raising/lowering posture; close-up animation inspection is a priority.
 - 2026-11-16: Focus on **horizontal-only** excavation for now. No digging downward. Only left/right mobile hold controls; use Explore/Excavate mode buckets.
 - 2026-11-16: Desired slow cuts **around 4 seconds or more per small section**, with visible intermediate strikes.
 - 2026-11-16: Bag automatically collects spoil; when full miner returns to shaft ledge, dumps into the abyss, and resumes. Supports required for standing-height tunnels.
