@@ -1,6 +1,6 @@
 # The Depths — Prioritized Development Backlog
 
-**Current playable build:** Prototype 033, `index.html`. Keep the same published URL / entry point for every playtest. This list contains *planned* work, not completed features.
+**Current playable build:** Prototype 034, `index.html`. Keep the same published URL / entry point for every playtest. This list contains *planned* work, not completed features.
 
 ## NOW — Prototype 021: grounded walking and seamless travel
 
@@ -259,6 +259,18 @@ Audited all nine decoded video-derived animations using the actual silhouette bo
 - [x] Simulated canvas horizontal drag in Explore mode (no mining), horizontal drag into solid rock in Excavate mode, and full old-button 8-strip return/dump/resume—all passed with zero movement lock violations.
 - [ ] iPhone playtest: beam visibility, gesture threshold, target alignment, palm ergonomics, and ability to release/re-aim reliably.
 - [ ] This prototype targets **current or immediately adjacent column only**. Longer-distance world-coordinate targeting and vertical/diagonal miner traversal are future improvements.
+
+## Prototype 034 — diagonal aim takes priority over travel
+
+- [x] Fix long **up-left / up-right** drags being misclassified as horizontal travel, causing the miner to crawl/prone into an existing one-tile tunnel before aiming.
+- [x] Accept shallow diagonals (upward ≥20% of horizontal distance, with at least 24 pixels upward travel); **latch aim** until finger release, with no automatic movement while an aimed tile is selected.
+- [x] Add a short 145 ms horizontal intent window so dragging diagonally does not prematurely move the character while the vertical gesture is still forming. Clear horizontal drags still move and use the proven smooth travel system.
+- [x] While aiming, face the selected adjacent column without stepping into it. The miner's mining animation posture comes from **the cell he occupies**, not the clearance height of the target cell.
+- [x] Tests: from two-tile-high pocket (x12, crouched pose 3) a long diagonal left mined x11 from height 1→2; long diagonal right mined x13 from 1→2; in each case the miner remained x12 and pose 3.
+- [x] Simulated initial horizontal gesture followed quickly by diagonal tilt also correctly switched to aim before any step.
+- [x] Pure horizontal drag still traveled left into a crawl tunnel; no unintended excavation. Existing eight-strip bag return/dump passed with zero movement-lock violations.
+- [ ] iPhone QA: test up-left with strong lateral swipe, up-right, and distinguish from pure LEFT travel. Tune angle and intent window only based on actual touch recordings.
+- [ ] Later: extend targeting beyond the immediate adjacent column, with world-space raycast and per-layer aiming; currently one neighboring rock column per gesture.
 
 ## Decision log
 
