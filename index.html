@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"><meta name="theme-color" content="#080a0c"><title>The Depths — Prototype 019</title>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"><meta name="theme-color" content="#080a0c"><title>The Depths — Prototype 020</title>
 <style>
 *{box-sizing:border-box}html,body{margin:0;background:#080a0c;color:#e9e0d3;font-family:system-ui,-apple-system,Arial,sans-serif;overflow-x:hidden}body{min-height:100dvh;overscroll-behavior:none}main{max-width:920px;margin:auto;padding:12px 12px max(18px,env(safe-area-inset-bottom))}.top{display:flex;align-items:center;justify-content:space-between;gap:8px}h1{margin:3px 0 0;font-size:21px}.eyebrow{font-size:10px;letter-spacing:2px;color:#bda889}.sub{font-size:12px;color:#b3a99a}.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:12px 0}.stat{background:#181b1d;border:1px solid #343537;border-radius:9px;padding:8px 7px}.stat span{font-size:10px;color:#aaa097;display:block}.stat b{font-size:14px;display:block;margin-top:2px}.view{position:relative;border:1px solid #4a443d;border-radius:12px;overflow:hidden;background:#070809;touch-action:none}canvas{width:100%;display:block;aspect-ratio:960/450;touch-action:none}.progress{position:absolute;bottom:0;left:0;height:4px;width:0;background:#e0ae67;transition:width .08s}.modes,.heights,.controls{display:flex;gap:8px;margin-top:10px}.modes button,.heights button{flex:1}.controls button{flex:1;min-height:65px;font-size:19px}button{background:#25282b;color:#f2e7d8;border:1px solid #555048;padding:12px 8px;border-radius:10px;font-size:13px;font-weight:700;touch-action:none;-webkit-user-select:none;user-select:none;cursor:pointer}button.selected{background:#725032;border-color:#d9ac72}button:disabled{opacity:.4}.actions{display:flex;gap:8px;margin-top:10px}.actions button{flex:1}.message{font-size:13px;line-height:1.45;color:#e7d4ba;border:1px solid #49443e;background:#181b1d;border-radius:10px;padding:11px;margin-top:10px;min-height:57px}.help{font-size:12px;line-height:1.55;color:#aaa097;margin:10px 2px}.meter{height:5px;border-radius:9px;background:#353739;overflow:hidden;margin-top:5px}.meter div{height:100%;background:#dfb47d;width:0;transition:width .15s}#phase{font-size:11px;color:#d7b27c;margin:8px 0 0}@media (max-width:500px){main{padding:8px 8px max(10px,env(safe-area-inset-bottom))}.stat{padding:7px 5px}.stat b{font-size:12px}.controls button{min-height:70px;font-size:18px}.modes button,.heights button{padding:11px 3px;font-size:12px}.actions button{font-size:12px}.eyebrow{font-size:9px}h1{font-size:18px}}
 .lab{margin-top:14px;border:1px solid #49443e;background:#171a1c;border-radius:10px;padding:10px}
@@ -9,7 +9,7 @@
 #labCanvas{display:block;width:100%;height:auto;aspect-ratio:600/280;border-radius:9px;background:#0c1012;margin-top:9px}
 #labStatus{font-size:12px;color:#cbb28b;padding-top:7px}
 </style></head><body><main>
-<div class="top"><div><div class="eyebrow">THE DEPTHS / PLAYTEST 019</div><h1>Dig. Haul. Repeat.</h1></div><button id="reset">↻ Restart</button></div>
+<div class="top"><div><div class="eyebrow">THE DEPTHS / PLAYTEST 020</div><h1>Dig. Haul. Repeat.</h1></div><button id="reset">↻ Restart</button></div>
 <div class="stats"><div class="stat"><span>Posture</span><b id="pose">Standing</b></div><div class="stat"><span>Bag</span><b id="bag">0 / 8</b><div class="meter"><div id="bagbar"></div></div></div><div class="stat"><span>Strips mined</span><b id="mined">0</b></div><div class="stat"><span>Dump trips</span><b id="trips">0</b></div></div>
 <div class="view"><canvas id="world" width="960" height="450" aria-label="Playable mining tunnel with automatic spoil bag and horizontal excavation"></canvas><div class="progress" id="progress"></div></div>
 <div id="phase">Prototype 013 • video-derived animation playtest</div>
@@ -57,18 +57,34 @@ function nextDigPose(){
 // trimmed to its visible bounds before fitting to an anatomical height.
 // One physical pixel scale for every frame of an animation. Pose changes
 // happen inside the source artwork instead of stretching every frame.
-function motionBaseHeight(name){
- if(name==='walk'||name==='standMine'||name==='standCrouch'||name==='standProne')return 176;
- if(name==='crouchWalk'||name==='crouchMine'||name==='crouchProne')return 112;
- // The prone source videos used a smaller drawing scale than the standing
- // source. Calibrate against the same physical miner length (not per frame).
- // A subtle boost prevents him looking miniaturized after kneeling.
- // Match the horizontal body length at the last crouch-to-prone frame:
- // transition ~191px; prone crawl/mining were ~175/178px previously.
- // Keep one fixed multiplier per sequence to avoid size pulsing.
- if(name==='proneCrawl')return 55;
- if(name==='proneMine')return 57;
- return 46;
+// Source-derived anatomy calibration (Prototype 020).
+// All 9 animation sets are compared to the SAME miner:
+// upright height 176; crouch height 119; fully prone length 203 / height 65.
+// Dimensions below are measured from the 8-frame decoded source atlas,
+// excluding the damaged crouchWalk frames. Their scale is never recomputed
+// from the active frame, so movement cannot cause body-size pulsing.
+const CHARACTER_SIZE={standH:176,crouchH:119,proneW:203,proneH:65};
+const MOTION_CALIBRATION={
+ // x and y scale are distinct only where source video anatomy changes.
+ walk:{sx:176/169.5,sy:176/169.5},
+ standMine:{sx:176/167,sy:176/167},
+ standCrouch:{sx:176/172,sy:176/172},
+ crouchWalk:{sx:119/102,sy:119/102},
+ crouchMine:{sx:119/102.5,sy:119/102.5},
+ crouchProne:{sx:119/110,sy:119/110},
+ proneCrawl:{sx:203/157.5,sy:65/44},
+ proneMine:{sx:203/100.5,sy:65/30},
+ // Stand-to-prone source ends unusually tall (84px rather than 60px).
+ // Interpolate corrections smoothly across its *transition sequence*;
+ // do not use a frame's changing bounds to compute its scale.
+ standProne:{sx:176/172,sy:176/172,endX:203/182,endY:65/84}
+};
+function motionScale(name,frame){
+ const cal=MOTION_CALIBRATION[name]||MOTION_CALIBRATION.walk;
+ if(name!=='standProne')return {sx:cal.sx,sy:cal.sy};
+ const t=Math.max(0,Math.min(1,frame/7));
+ const smooth=t*t*(3-2*t);
+ return {sx:cal.sx+(cal.endX-cal.sx)*smooth,sy:cal.sy+(cal.endY-cal.sy)*smooth};
 }
 function animationChoice(moving,digging,poseValue){
  if(transitionHold)return poseValue<3?['standCrouch',Math.round(clamp(poseValue/3,0,1)*7)]:['crouchProne',Math.round(clamp((poseValue-3)/3,0,1)*7)];
@@ -248,15 +264,14 @@ if(spriteWalking){
  if(motionImage){
   const b=motionImage.bodyBox||{x:0,y:0,w:256,h:208};
   const reference=motionImage.motionReference||{height:b.h,centerX:b.x+b.w/2};
-  // CONSTANT multiplier for the full sequence, including all eight frames.
-  const scale=motionBaseHeight(motionName)/Math.max(1,reference.height);
-  const x=-reference.centerX*scale;
-  const y=-(b.y+b.h)*scale;
-  spriteDraw={x,y,scale};
+  const {sx,sy}=motionScale(motionName,motionFrame);
+  const x=-reference.centerX*sx;
+  const y=-(b.y+b.h)*sy;
+  spriteDraw={x,y,sx,sy};
   g.imageSmoothingEnabled=true;
-  // Draw the original full frame without recropping/rescaling its moving
-  // limbs. Only the anchor shifts vertically to keep its foot on the floor.
-  g.drawImage(motionImage,x,y,256*scale,208*scale);
+  // One calibrated world-space size across all nine animation sequences.
+  // Ground contact is locked; only actual anatomy in the source can move.
+  g.drawImage(motionImage,x,y,256*sx,208*sy);
  }else{
   const frame=Math.floor(walkFrameTime*12)%12;
   g.drawImage(walkSheet,(frame%4)*80,Math.floor(frame/4)*120,80,120,-60,-180,120,180);
@@ -297,8 +312,8 @@ g.strokeStyle='#a6aba9';g.lineWidth=4;g.beginPath();
 g.arc(head[0],head[1]-2,13,d>0?Math.PI*1.12:Math.PI*1.08,d>0?Math.PI*1.87:Math.PI*1.88);g.stroke();
 }
 const spriteHead=motionImage?.headPoint;
-const headX=spriteHead&&spriteDraw?px+d*(spriteDraw.x+spriteHead.x*spriteDraw.scale):head[0];
-const headY=spriteHead&&spriteDraw?BASE+spriteDraw.y+spriteHead.y*spriteDraw.scale:head[1];
+const headX=spriteHead&&spriteDraw?px+d*(spriteDraw.x+spriteHead.x*spriteDraw.sx):head[0];
+const headY=spriteHead&&spriteDraw?BASE+spriteDraw.y+spriteHead.y*spriteDraw.sy:head[1];
 const lx=headX+d*13,ly=headY-3;
 const beam=g.createLinearGradient(lx,ly,lx+d*225,ly);beam.addColorStop(0,'rgba(255,210,140,.23)');beam.addColorStop(1,'rgba(255,210,140,0)');
 g.fillStyle=beam;g.beginPath();g.moveTo(lx,ly);g.lineTo(lx+d*225,ly-66);g.lineTo(lx+d*225,ly+66);g.closePath();g.fill();
