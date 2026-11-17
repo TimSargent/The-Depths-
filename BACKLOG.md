@@ -1,8 +1,8 @@
 # The Depths — Prioritized Development Backlog
 
-**Current playable build:** Prototype 012, `index.html`. Keep the same published URL / entry point for every playtest. This list contains *planned* work, not completed features.
+**Current playable build:** Prototype 013, `index.html`. Keep the same published URL / entry point for every playtest. This list contains *planned* work, not completed features.
 
-## NOW — Prototype 012: video-derived walk sprite comparison
+## NOW — Prototype 013: eight-state video-derived animation library
 
 - [ ] **Define and integrate an articulated stick-figure rig.** Head, torso, shoulders, elbows, hands, pelvis, knees, ankles, pickaxe and bag. Rig is separate from gameplay state. Test at close actual-game camera zoom.
 - [ ] **Fix low-crawl anatomy**: knees human, shins angle back behind knees, feet trail; no animal-like forward-bent lower legs.
@@ -41,6 +41,18 @@
 - [ ] Automatic return/dump/resume completes when crossing clearance boundaries.
 - [ ] Verify wide and close-up camera toggle on iPhone Safari.
 - [ ] Reset, mining speed, supports, left/right button releases remain functional.
+
+## Prototype 013 — Video animation integration
+
+- [x] **Extract and normalize 8 selected green-screen animations** (12 transparent frames each): upright walk, standing → crouch, crouch walk, crouch → prone, low crawl, and standing/crouch/prone pickaxe strikes.
+- [x] Add `assets/motion-engine.js` to decompress and draw small monochrome sprite frames from `assets/motion-*.txt` on compatible browsers. Keep the previous joint rig as fallback.
+- [x] Connect sprites to existing pose, movement, and mining logic. Reverse the two transitions for rising, and lower into the selected mining posture before starting the 4-second cut.
+- [x] Add **Animation Studio** below the game with clip selection, pause, reverse, and speed controls. Preview does not affect gameplay.
+- [x] Run simulated movement tests: 108 fixed-position frames on lowering and rising, 0 lock violations; 8 sections excavated, auto bag return/dump/resume; standing, crouch, and prone pickaxe selectors tested.
+- [ ] **Real iPhone Safari playtest:** verify all 8 assets report loaded, textures are visible, audio/visual impacts align, and posture changes do not clip the roof.
+- [ ] Review loop seams, baseline alignment, scale, hand/foot sliding, pencil-line detail, headlamp attachment, pickaxe contact, and bag prop overlap.
+- [ ] Replace temporary monochrome silhouettes with higher-quality textured frames after playtesting, without re-generating video if possible. Original selected videos remain the source references.
+- [ ] Test legacy rig fallback if network asset loading fails or the browser lacks `DecompressionStream`.
 
 ## Prototype 012 technical notes
 
