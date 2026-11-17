@@ -71,7 +71,7 @@ function animationChoice(moving,digging,poseValue){
  if(moving){
   const name=poseValue<1?'walk':poseValue<4?'crouchWalk':'proneCrawl';
   const n=Math.floor(walkFrameTime*8*walkCycleSpeed)%8;
-  return [name,walkReverse?7-n:n];
+  return [name,name==='walk'&&walkReverse?7-n:n];
  }
  return poseValue<1?['standCrouch',0]:poseValue<4?['crouchProne',0]:['proneCrawl',0];
 }
