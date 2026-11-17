@@ -65,6 +65,15 @@
 - [ ] **Visual approval pending:** source sprites contain their own stepping poses; holding the last frame removes a pose swap, but may leave a foot lifted when stopping. Confirm planted-foot quality, gait cadence, loop seam and start/stop visually on iPhone. May require choosing a dedicated original planted-foot frame / extra captured artwork instead of just freezing the last frame.
 - [ ] Adjust 1.25 cell cadence based on real phone playback; it is a testable tuning value, not yet proven perfect.
 
+## Prototype 037W3 — Original-source foot contact (November 17, 2026)
+- [x] Player approved **Walk Polish ON** in 037W2 as dramatically better than old walking; keep that cadence as the current baseline.
+- [x] Original animation loader now records each upright source frame's visible lowest foot datum alongside the existing shared median floor datum.
+- [x] New independent **Foot plant ON/OFF** toggle: ON aligns the original full-detail walking frame's boot bottom to the rock floor; OFF retains 037W2's shared datum. This is vertical contact correction, **not** a claimed full left/right foot lock.
+- [x] Original skeleton art untouched; no rig or synthesized pose; base walk cadence, scoop/scoot, dig timing and return loop unchanged.
+- [x] 3,400-frame return/dump/resume with Foot plant ON and OFF: eight mined strips, one dump, seven scoots, zero posture-lock errors. Standing/crouched passage checks also pass.
+- [ ] iPhone side-by-side visual QA: source crop bottoms vary a few pixels, so effect might be subtle; verify boot contact and reject if it introduces unnatural upper-body bob.
+- [ ] True horizontal planted-foot skating and believable transfer of weight remain open. Do not mark walk locked until this is visually approved.
+
 ## Current checkpoint
 - Prototype **037P** is playable and mechanically validated; **no global visual lock**.
 - Open high-priority bug: prone sprite extends beyond aimed rock location.
