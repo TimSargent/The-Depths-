@@ -1,8 +1,8 @@
 # The Depths — Prioritized Development Backlog
 
-**Current playable build:** Prototype 011, `index.html`. Keep the same published URL / entry point for every playtest. This list contains *planned* work, not completed features.
+**Current playable build:** Prototype 012, `index.html`. Keep the same published URL / entry point for every playtest. This list contains *planned* work, not completed features.
 
-## NOW — Prototype 011: natural weight transfer and ground contacts
+## NOW — Prototype 012: video-derived walk sprite comparison
 
 - [ ] **Define and integrate an articulated stick-figure rig.** Head, torso, shoulders, elbows, hands, pelvis, knees, ankles, pickaxe and bag. Rig is separate from gameplay state. Test at close actual-game camera zoom.
 - [ ] **Fix low-crawl anatomy**: knees human, shins angle back behind knees, feet trail; no animal-like forward-bent lower legs.
@@ -41,6 +41,14 @@
 - [ ] Automatic return/dump/resume completes when crossing clearance boundaries.
 - [ ] Verify wide and close-up camera toggle on iPhone Safari.
 - [ ] Reset, mining speed, supports, left/right button releases remain functional.
+
+## Prototype 012 technical notes
+
+- Extracted 12 frames from the uploaded green-screen walk sheet into a **simplified vectorized SVG** (4 columns x 3 rows), in `assets/miner-walk-vector.svg`. The source PNG remains a local experimental asset; SVG preserves silhouettes but **not full pen-line detail**.
+- `index.html` renders that sheet at 12 fps when upright and moving in clear space. All other motions continue to use the articulated rig.
+- Added Sprite walk ON / Rig walk ON comparison button and renderer state debug readout. Sprite gracefully falls back to rig if loading fails.
+- JavaScript syntax and mocked movement regression checks passed; 108 locked frames in both downward/upward transitions, no X-lock violations. **Actual SVG decoding and iPhone Safari visual quality need playtesting.**
+- [ ] Evaluate looping cadence, foot-sliding, frame alignment, camera scaling and lamp/bag overlay; choose whether to keep original PNG art or refine video frames for the next build.
 
 ## Prototype 011 technical notes
 
