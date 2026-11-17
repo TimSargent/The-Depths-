@@ -14,7 +14,7 @@
 <div class="view"><canvas id="world" width="960" height="450" aria-label="Playable mining tunnel with automatic spoil bag and horizontal excavation"></canvas><div class="progress" id="progress"></div></div>
 <div id="phase">Prototype 013 • video-derived animation playtest</div>
 <div id="debug" style="font:12px ui-monospace,SFMono-Regular,monospace;color:#e1b778;background:#14171a;border:1px solid #393a38;padding:7px 10px;border-radius:8px;margin-top:7px">State: IDLE | X: 6 | Pose: 0 | Camera: stable</div>
-<div class="actions"><button id="zoom" class="selected">🔍 Close-up camera ON</button><button id="sprite" class="selected">🎞 Video animations ON</button><button id="walkDirection">🚶 Walk cycle: reversed</button><button id="swingBlend" class="selected">⛏ Smooth swing ON</button></div>
+<div class="actions"><button id="zoom" class="selected">🔍 Close-up camera ON</button><button id="sprite" class="selected">🎞 Video animations ON</button><button id="walkDirection">🚶 Walk cycle: reversed</button><button id="swingBlend" class="selected">⛏ Joint motion ON</button></div>
 <div class="modes"><button id="explore">↗ Explore</button><button id="excavate" class="selected">⛏ Excavate</button></div>
 <div class="heights"><button id="crawl" class="selected">1 tile · Crawl</button><button id="crouch">2 tiles · Crouch</button><button id="stand">3 tiles · Stand</button></div>
 <div class="controls"><button id="left">◀ HOLD LEFT</button><button id="right">HOLD RIGHT ▶</button></div>
@@ -371,6 +371,39 @@ const gaitScale=poseValue>=5?.38:poseValue>=3?.32:1;
 pose.knee[0]+=stride*8*gaitScale;pose.farKnee[0]-=stride*8*gaitScale;
 pose.toe[0]+=stride*9*gaitScale;pose.farToe[0]-=stride*9*gaitScale;
 pose.hand[0]-=stride*5*gaitScale;pose.farHand[0]+=stride*5*gaitScale;
+// Procedural joint motion: genuine continuous in-between positions rather than
+// crossfading whole drawings. All joints interpolate at the render frame rate.
+// Keep the original 2-second swing cycle and impact time.
+if(digging&&smoothSwing){
+ const t=((rigSwing%1)+1)%1;
+ const frames=[
+  [0,0,0],[.36,-1,-1],[.53,-1.14,-1.15],[.675,1,1],
+  [.83,.24,.30],[1,0,0]
+ ];
+ let ux=0,uy=0;
+ for(let i=1;i<frames.length;i++)if(t<=frames[i][0]){
+  const a=frames[i-1],b=frames[i];
+  const k0=(t-a[0])/(b[0]-a[0]);
+  const k=k0*k0*(3-2*k0);
+  ux=a[1]+(b[1]-a[1])*k;
+  uy=a[2]+(b[2]-a[2])*k;
+  break;
+ }
+ const low=poseValue>=5.5,mid=poseValue>=2.5&&!low;
+ const swingX=low?17:mid?27:34;
+ const swingY=low?7:mid?13:25;
+ const lift=low?8:mid?16:25;
+ const back=low?10:mid?18:25;
+ const shiftX=ux>=0?ux*swingX:ux*back;
+ const shiftY=uy>=0?uy*swingY:uy*lift;
+ pose.hand[0]+=shiftX;pose.hand[1]+=shiftY;
+ pose.elbow[0]+=shiftX*.64;pose.elbow[1]+=shiftY*.65;
+ // Standing and crouched miners grip with both hands; prone braces one arm.
+ if(!low){
+  pose.farHand[0]+=shiftX*.72;pose.farHand[1]+=shiftY*.73;
+  pose.farElbow[0]+=shiftX*.43;pose.farElbow[1]+=shiftY*.43;
+ }
+}
 // Face both directions by mirroring the rig about the character's origin.
 const at=k=>[px+d*pose[k][0],foot+pose[k][1]];
 function strokeBone(a,b,width=4,color='#ead2a7'){
@@ -434,7 +467,7 @@ if(spriteWalking){
   }else{
    // Continuous visual blending of adjacent existing mining poses at render FPS.
    // This creates interpolated appearances, not new anatomical 2D rig frames.
-   const interp=digging&&smoothSwing?miningTween(motionName):null;
+   const interp=digging&&!smoothSwing?miningTween(motionName):null;
    const nextImage=interp&&interp.from!==interp.to?
      window.DepthMotions?.get(motionName,interp.to):null;
    if(nextImage&&interp.mix>0){
@@ -511,13 +544,32 @@ const lx=headX+d*13,ly=headY-3;
 const beam=g.createLinearGradient(lx,ly,lx+d*225,ly);beam.addColorStop(0,'rgba(255,210,140,.23)');beam.addColorStop(1,'rgba(255,210,140,0)');
 g.fillStyle=beam;g.beginPath();g.moveTo(lx,ly);g.lineTo(lx+d*225,ly-66);g.lineTo(lx+d*225,ly+66);g.closePath();g.fill();
 g.fillStyle='#ffe3b0';g.shadowColor='#f5cb88';g.shadowBlur=17;g.beginPath();g.arc(lx,ly,5,0,Math.PI*2);g.fill();g.shadowBlur=0;
-// Pickaxe follows a separate animated angle; strike only during actual digging.
-if(mode==='excavate'&&phase==='manual'&&!motionImage){
- const cycle=(rigSwing%1+1)%1;
- const swingAngle=digging?(-1.15+Math.sin(cycle*2*Math.PI)*.9):-.68;
- const cx=hand[0],cy=hand[1],tipx=cx+d*(30*Math.cos(swingAngle)),tipy=cy+30*Math.sin(swingAngle);
- g.strokeStyle='#a77d4c';g.lineWidth=4;g.lineCap='round';g.beginPath();g.moveTo(cx,cy);g.lineTo(tipx,tipy);g.stroke();
- g.strokeStyle='#c4c7c6';g.lineWidth=5;g.beginPath();g.moveTo(tipx-d*11,tipy-10);g.lineTo(tipx+d*12,tipy+10);g.stroke();
+// Draw a single rigid pickaxe tied directly to animated wrist/hand joints.
+// No overlaid pickaxe images, no rapidly flashing video poses.
+if(mode==='excavate'&&phase==='manual'&&(rigOpacity>.001||!motionImage)){
+ const cycle=((rigSwing%1)+1)%1;
+ const low=poseValue>=5.5;
+ const len=low?24:poseValue>=2.5?35:43;
+ let ang=-.72;
+ if(digging){
+  // Slowly raise, accelerate downward and forward to hit, then recover.
+  const keys=[[0,-.70],[.36,-1.82],[.53,-1.94],[.675,-.15],[.83,-.58],[1,-.70]];
+  for(let i=1;i<keys.length;i++)if(cycle<=keys[i][0]){
+   const a=keys[i-1],b=keys[i];
+   let k=(cycle-a[0])/(b[0]-a[0]);k=k*k*(3-2*k);
+   ang=a[1]+(b[1]-a[1])*k;break;
+  }
+ }
+ const cx=hand[0],cy=hand[1],tipx=cx+d*len*Math.cos(ang),tipy=cy+len*Math.sin(ang);
+ g.save();g.globalAlpha=motionImage?rigOpacity:1;
+ g.strokeStyle='#9b7246';g.lineWidth=low?3.4:4.1;g.lineCap='round';
+ g.beginPath();g.moveTo(cx-d*7*Math.cos(ang),cy-7*Math.sin(ang));
+ g.lineTo(tipx,tipy);g.stroke();
+ g.strokeStyle='#b8bebd';g.lineWidth=4.4;g.beginPath();
+ const v=low?8:13;
+ g.moveTo(tipx-d*v*Math.sin(ang),tipy+v*Math.cos(ang));
+ g.lineTo(tipx+d*v*Math.sin(ang),tipy-v*Math.cos(ang));g.stroke();
+ g.restore();
 }
 if(phase==='dump'){
 g.fillStyle='#bca68a';for(let i=0;i<18;i++){const yy=BASE+((t/14+i*31)%160);const xx=EDGE*CW-15+(Math.sin(i*8+t/180)*13);g.fillRect(xx,yy,3+i%3,3+i%4)}
@@ -607,7 +659,7 @@ $('reset').onclick=reset;
 $('zoom').onclick=()=>{zoomed=!zoomed;$('zoom').textContent=zoomed?'🔍 Close-up camera ON':'🔭 Wide camera ON';$('zoom').classList.toggle('selected',zoomed)};
 $('sprite').onclick=()=>{spriteEnabled=!spriteEnabled;$('sprite').textContent=spriteEnabled?'🎞 Video animations ON':'🦴 Rig animations ON';$('sprite').classList.toggle('selected',spriteEnabled)};
 $('walkDirection').onclick=()=>{walkReverse=!walkReverse;walkFrameTime=0;$('walkDirection').textContent=walkReverse?'🚶 Walk cycle: reversed':'🚶 Walk cycle: original'};
-$('swingBlend').onclick=()=>{smoothSwing=!smoothSwing;$('swingBlend').textContent=smoothSwing?'⛏ Smooth swing ON':'⛏ Smooth swing OFF';$('swingBlend').classList.toggle('selected',smoothSwing)};
+$('swingBlend').onclick=()=>{smoothSwing=!smoothSwing;$('swingBlend').textContent=smoothSwing?'⛏ Joint motion ON':'⛏ Video frames ON';$('swingBlend').classList.toggle('selected',smoothSwing)};
 const pressed=new Set();document.addEventListener('keydown',e=>{if(e.target.tagName==='BUTTON'||e.target.tagName==='INPUT')return;let dir=e.key==='ArrowLeft'||e.key==='a'?-1:e.key==='ArrowRight'||e.key==='d'?1:0;if(dir){e.preventDefault();pressed.add(e.key);if(phase==='manual'){moveDir=dir;p.dir=dir}}});document.addEventListener('keyup',e=>{pressed.delete(e.key);if(!pressed.size){moveDir=0;digElapsed=0}});window.addEventListener('blur',()=>{pressed.clear();moveDir=0;digElapsed=0});
 reset();requestAnimationFrame(loop);
 })();
