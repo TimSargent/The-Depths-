@@ -132,6 +132,16 @@
 - [ ] Visually inspect on iPhone, adjust stance-to-swing, hip timing, arm mechanics based on feedback. Then create true matched-style graphite in-between art; only then update gameplay.
 - [ ] Check left/right contact markers and stance anchor against animation footage: geometric contact is distinct from finished visually fixed sole.
  
+## Prototype 040A — Articulated Rig v1 (November 17, 2026)
+- [x] User approved the layered reusable-rig route. Extracted **16 transparent PNG layers** from original `stand_to_crouch_00.png` (245×418) from Animation Library 014, with `rig.json` pivots, masks and source provenance.
+- [x] Ten visible body-part sources: head, neck, torso, pelvis, upper arm, forearm, hand, thigh, shin, foot. Six far-side counterpart layers explicitly labelled **TEMPORARY_DUPLICATE**, not original unseen artwork. Parts are polygon-clipped approximations and require overlap / hidden-anatomy cleanup before release.
+- [x] Saved user-downloadable `The_Depths_Rig_v1_Layers.zip` and added independently playable `rig-studio.html` to repo (ARTICULATED RIG 040A).
+- [x] Browser rig uses the existing source ZIP importer, reconstructs layer masks from approved original frame, renders an articulated layered miner with knee two-bone IK, torso lean, arm counter-swing, stance/swing ankle positions, fatigue compression, pose scrubbing, ankle drag handles, and PNG/JSON export.
+- [x] Verified browser studio JavaScript syntax and simulated 840 animation ticks, resetting, scrubbing and toggling joints with a stubbed source canvas without exceptions.
+- [ ] User visual inspection required: clip boundaries and near/far parts may be visibly cut, ghosted or anatomically incomplete. Validate original source auto-load on iPhone.
+- [ ] Next priority: reconstruct hidden joint art; repair layer seams, verify attachment pivots on original PNG, then polish physically believable gait in this reusable rig. This is not yet a production-ready animation asset.
+- [ ] Existing mining game `index.html` untouched.
+
 ## Current checkpoint
 - Prototype **037P** is playable and mechanically validated; **no global visual lock**.
 - Open high-priority bug: prone sprite extends beyond aimed rock location.
