@@ -1,0 +1,93 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>The Depths — Motion Transfer 056A</title>
+<style>*{box-sizing:border-box}body{margin:0;background:#0e1114;color:#eee1ce;font:14px system-ui,-apple-system,sans-serif}main{max-width:920px;margin:auto;padding:12px}.tag{color:#eab981;letter-spacing:2px;font-size:11px}h1{font-size:24px;margin:8px 0}p{line-height:1.5;color:#bcb3a6}.panes{display:grid;grid-template-columns:1fr 1fr;gap:8px}.pane,.controls{border:1px solid #514b43;background:#191c1e;border-radius:9px;padding:8px}canvas{width:100%;height:auto;aspect-ratio:245/418;background:#06090b;touch-action:none;border-radius:5px}small{display:block;color:#c9b29a}.controls{margin-top:10px;padding:12px}.row{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}button{font:inherit;color:#f9e6ce;background:#54412e;border:1px solid #b08c67;border-radius:6px;padding:9px}input[type=range]{width:100%;accent-color:#d3a06f}.status{color:#f2c997;line-height:1.4}label{font-size:12px;color:#e6ccb0}a{color:#e9bc8a}button.active{background:#947044}</style></head><body><main>
+<div class="tag">THE DEPTHS · MOTION TRANSFER · 056A</div><h1>Match the original sprites to our rig ⛏️</h1>
+<p>Original standing-to-crouching frames on the left; draggable graphite rig on the right. Drag the colored joint markers onto corresponding points in the sprite, frame by frame. Export all eight poses to JSON. This is an alignment tool, not an automatic pose detector.</p>
+<div class="panes"><div class="pane"><b>ORIGINAL · frame <span id="originalNum">0</span>/7</b><canvas id="original" width="245" height="418"></canvas><small>Artist's source sprite</small></div><div class="pane"><b>RIG · per-frame joints</b><canvas id="rig" width="245" height="418"></canvas><small id="caption">Colored circles are draggable</small></div></div>
+<div class="controls"><div class="row"><button id="load">Load animation ZIP</button><input id="zip" type="file" accept=".zip" hidden><button id="prev">◀ Frame</button><button id="next">Frame ▶</button><button id="play">▶ Preview</button><button id="reset">Reset pose</button><button id="export">Export JSON</button></div>
+<label>Source frame: <b id="frameLabel">0 / 7</b><input type="range" id="frame" min="0" max="7" step="1" value="0"></label>
+<label>In-between: <b id="tweenLabel">0%</b><input type="range" id="tween" min="0" max="100" step="1" value="0"></label>
+<label>Reference overlay: <b id="ghostLabel">25%</b><input type="range" id="ghost" min="0" max="100" step="1" value="25"></label>
+<p id="status" class="status">Looking for your saved original Animation Library…</p></div>
+<p>Use <b>Export JSON</b> after aligning all eight frames. The file records joint coordinates without modifying any approved build. <a href="playtest-050f.html">Protected gameplay 050F</a> · <a href="layer-calibration-054a.html">Protected layer reference 054A</a></p>
+<script src="assets/full-detail-037.js?v=056a"></script><script>
+(()=>{
+'use strict';
+const $=id=>document.getElementById(id),src=$('original').getContext('2d'),c=$('rig').getContext('2d');
+const parts={
+ head:{poly:[[130,5],[170,7],[179,32],[178,59],[162,78],[134,70],[122,46],[123,20]],start:[141,67],end:[148,26]},
+ neck:{poly:[[127,63],[147,65],[140,95],[123,98]],start:[133,80],end:[137,70]},
+ torso:{poly:[[114,80],[141,74],[137,117],[127,154],[114,158],[107,130],[109,98]],start:[123,96],end:[114,153]},
+ pelvis:{poly:[[80,177],[104,186],[103,216],[84,225],[72,205]],start:[86,195],end:[90,207]},
+ upper_arm:{poly:[[108,84],[133,90],[127,109],[121,137],[114,162],[97,147],[96,121]],start:[121,94],end:[110,155]},
+ forearm:{poly:[[108,143],[118,148],[118,216],[107,223],[104,179]],start:[110,154],end:[114,220]},
+ hand:{poly:[[109,211],[125,214],[130,244],[122,266],[109,254],[105,226]],start:[114,218],end:[119,246]},
+ thigh:{poly:[[77,186],[98,190],[103,232],[105,292],[93,302],[85,256]],start:[86,200],end:[98,294]},
+ shin:{poly:[[92,285],[107,289],[101,354],[98,381],[85,389],[84,342]],start:[98,294],end:[93,379]},
+ foot:{poly:[[83,374],[100,371],[112,385],[140,389],[141,402],[82,403]],start:[93,379],end:[126,396]}
+};
+
+
+const KEY=['hip','knee','ankle','shoulder','elbow','hand','head'],COL=['#ff806a','#a8e382','#c4a5ff','#7cceff','#64dfcc','#f7d37a','#ffffff'];
+const base={hip:[86,200],knee:[98,294],ankle:[93,379],shoulder:[123,96],elbow:[110,154],hand:[114,218],head:[141,67]};
+const poses=Array.from({length:8},()=>JSON.parse(JSON.stringify(base))),dirty=Array(8).fill(false),layers={};
+let drag=null,playing=false,last=0,clock=0,skin=false;
+function build(){
+ const ref=window.DepthsFullArt?.get('standCrouch',0);if(!ref||!window.DepthsFullArt?.state?.ready)return false;
+ const raw=document.createElement('canvas');raw.width=245;raw.height=418;
+ raw.getContext('2d').drawImage(ref,ref.sourceX||0,ref.sourceY||0);
+ for(const [name,def] of Object.entries(parts)){
+  const layer=document.createElement('canvas');layer.width=245;layer.height=418;
+  const g=layer.getContext('2d');g.beginPath();def.poly.forEach((v,i)=>i?g.lineTo(...v):g.moveTo(...v));
+  g.closePath();g.clip();g.drawImage(raw,0,0);layers[name]=layer;
+ }
+ skin=true;return true;
+}
+const ang=(a,b)=>Math.atan2(b[1]-a[1],b[0]-a[0]);
+function part(name,a,b,alpha=1){
+ const def=parts[name],img=layers[name];if(!img)return;
+ c.save();c.globalAlpha=alpha;c.translate(...a);
+ c.rotate(ang(a,b)-ang(def.start,def.end));c.drawImage(img,-def.start[0],-def.start[1]);c.restore();
+}
+function poseAt(f,t){
+ if(!t||f===7)return poses[f];
+ const A=poses[f],B=poses[f+1],P={};for(const k of KEY)P[k]=[A[k][0]*(1-t)+B[k][0]*t,A[k][1]*(1-t)+B[k][1]*t];return P;
+}
+function render(){
+ if(!skin&&window.DepthsFullArt?.state?.ready)build();
+ const f=+$('frame').value,t=+$('tween').value/100,p=poseAt(f,t),im=window.DepthsFullArt?.get('standCrouch',f);
+ src.clearRect(0,0,245,418);c.clearRect(0,0,245,418);
+ if(im){src.drawImage(im,im.sourceX||0,im.sourceY||0);c.save();c.globalAlpha=+$('ghost').value/100;c.drawImage(im,im.sourceX||0,im.sourceY||0);c.restore();}
+ if(skin){
+  const footEnd=[p.ankle[0]+33,p.ankle[1]+17];
+  part('thigh',p.hip,p.knee);part('shin',p.knee,p.ankle);part('foot',p.ankle,footEnd);
+  // Use native-source orientation and size for each graphite part: no independent limb stretching.
+  part('pelvis',[p.hip[0],p.hip[1]-5],[p.hip[0]+4,p.hip[1]+7]);
+  part('torso',p.shoulder,[p.hip[0]+28,p.hip[1]-47]);
+  part('neck',[p.shoulder[0]+10,p.shoulder[1]-16],[p.head[0]-4,p.head[1]+3]);
+  part('upper_arm',p.shoulder,p.elbow);part('forearm',p.elbow,p.hand);
+  part('hand',p.hand,[p.hand[0]+5,p.hand[1]+28]);
+  part('head',[p.head[0],p.head[1]+10],[p.head[0]+7,p.head[1]-31]);
+ }
+ c.save();c.lineWidth=2;c.strokeStyle='#e4dac58c';
+ for(const [a,b] of [['hip','knee'],['knee','ankle'],['hip','shoulder'],['shoulder','elbow'],['elbow','hand'],['shoulder','head']]){
+  c.beginPath();c.moveTo(...p[a]);c.lineTo(...p[b]);c.stroke();
+ }
+ KEY.forEach((k,i)=>{c.fillStyle=COL[i];c.strokeStyle='#151515';c.beginPath();c.arc(...p[k],6,0,Math.PI*2);c.fill();c.stroke()});c.restore();
+ $('originalNum').textContent=f;$('frameLabel').textContent=f+' / 7'+(dirty[f]?' · edited':' · unmapped');
+ $('tweenLabel').textContent=$('tween').value+'%';$('ghostLabel').textContent=$('ghost').value+'%';
+ $('status').textContent=skin?'Source art loaded. '+dirty.filter(Boolean).length+'/8 frames mapped. Drag joints on the right; export when complete.':'Source art not loaded. Choose your original Animation Library ZIP.';
+}
+function pause(){playing=false;$('play').textContent='▶ Preview';}
+function xy(ev){const r=$('rig').getBoundingClientRect();return [(ev.clientX-r.left)*245/r.width,(ev.clientY-r.top)*418/r.height]}
+$('rig').onpointerdown=ev=>{pause();$('tween').value=0;const p=poses[+$('frame').value],v=xy(ev);let best=null,d=20;for(const k of KEY){const n=Math.hypot(p[k][0]-v[0],p[k][1]-v[1]);if(n<d){d=n;best=k}}if(best){drag=best;$('rig').setPointerCapture(ev.pointerId);p[best]=v;dirty[+$('frame').value]=true;render()}};
+$('rig').onpointermove=ev=>{if(!drag)return;poses[+$('frame').value][drag]=xy(ev);dirty[+$('frame').value]=true;render()};
+$('rig').onpointerup=$('rig').onpointercancel=()=>{drag=null};
+$('prev').onclick=()=>{$('frame').value=Math.max(0,+$('frame').value-1);$('tween').value=0;render()};
+$('next').onclick=()=>{$('frame').value=Math.min(7,+$('frame').value+1);$('tween').value=0;render()};
+for(const id of ['frame','tween','ghost'])$(id).oninput=()=>{if(id==='frame'||id==='tween')pause();render()};
+$('reset').onclick=()=>{pause();let n=+$('frame').value;poses[n]=JSON.parse(JSON.stringify(base));dirty[n]=false;render()};
+$('load').onclick=()=>$('zip').click();$('zip').onchange=async()=>{try{await window.DepthsFullArt.install($('zip').files[0]);skin=false;build();render()}catch(e){$('status').textContent='Import failed: '+e.message}};
+$('play').onclick=()=>{playing=!playing;$('play').textContent=playing?'⏸ Pause':'▶ Preview'};
+$('export').onclick=()=>{const data={version:'056A',sequence:'standCrouch',source:'Original 8-frame Animation Library',mapped:dirty,poses};const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='the-depths-motion-056a.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),3000)};
+function loop(now){let dt=last?Math.min(.05,(now-last)/1000):0;last=now;if(playing){clock=(clock+dt*1.3)%7;let f=Math.floor(clock);$('frame').value=f;$('tween').value=Math.round((clock-f)*100)}try{render()}catch(e){$('status').textContent='Renderer error: '+e.message}requestAnimationFrame(loop)}requestAnimationFrame(loop);
+})();</script></main></body></html>
