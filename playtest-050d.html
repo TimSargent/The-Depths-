@@ -1,0 +1,1157 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"><meta name="theme-color" content="#080a0c"><title>The Depths — Unified Scale 050D</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;background:#080a0c;color:#e9e0d3;font-family:system-ui,-apple-system,Arial,sans-serif;overflow-x:hidden}body{min-height:100dvh;overscroll-behavior:none}main{max-width:920px;margin:auto;padding:12px 12px max(18px,env(safe-area-inset-bottom))}.top{display:flex;align-items:center;justify-content:space-between;gap:8px}h1{margin:3px 0 0;font-size:21px}.eyebrow{font-size:10px;letter-spacing:2px;color:#bda889}.sub{font-size:12px;color:#b3a99a}.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:12px 0}.stat{background:#181b1d;border:1px solid #343537;border-radius:9px;padding:8px 7px}.stat span{font-size:10px;color:#aaa097;display:block}.stat b{font-size:14px;display:block;margin-top:2px}.view{position:relative;border:1px solid #4a443d;border-radius:12px;overflow:hidden;background:#070809;touch-action:none}canvas{width:100%;display:block;aspect-ratio:960/450;touch-action:none}.progress{position:absolute;bottom:0;left:0;height:4px;width:0;background:#e0ae67;transition:width .08s}.modes,.heights,.controls{display:flex;gap:8px;margin-top:10px}.modes button,.heights button{flex:1}.controls button{flex:1;min-height:65px;font-size:19px}button{background:#25282b;color:#f2e7d8;border:1px solid #555048;padding:12px 8px;border-radius:10px;font-size:13px;font-weight:700;touch-action:none;-webkit-user-select:none;user-select:none;cursor:pointer}button.selected{background:#725032;border-color:#d9ac72}button:disabled{opacity:.4}.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;min-width:0}.actions button{flex:1 1 118px;min-width:0;overflow-wrap:break-word}.message{font-size:13px;line-height:1.45;color:#e7d4ba;border:1px solid #49443e;background:#181b1d;border-radius:10px;padding:11px;margin-top:10px;min-height:57px}.help{font-size:12px;line-height:1.55;color:#aaa097;margin:10px 2px}.meter{height:5px;border-radius:9px;background:#353739;overflow:hidden;margin-top:5px}.meter div{height:100%;background:#dfb47d;width:0;transition:width .15s}#phase{font-size:11px;color:#d7b27c;margin:8px 0 0}@media (max-width:500px){main{padding:8px 8px max(10px,env(safe-area-inset-bottom))}.stat{padding:7px 5px}.stat b{font-size:12px}.controls button{min-height:70px;font-size:18px}.modes button,.heights button{padding:11px 3px;font-size:12px}.actions button{font-size:12px}.eyebrow{font-size:9px}h1{font-size:18px}}
+.lab{margin-top:14px;border:1px solid #49443e;background:#171a1c;border-radius:10px;padding:10px}
+.lab summary{cursor:pointer;font-size:14px;font-weight:700;color:#e6c79d;list-style-position:inside}
+.lab-controls{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
+.lab-controls select,.lab-controls button{flex:1;min-width:120px;padding:10px;border-radius:8px;border:1px solid #59544b;background:#25282b;color:#f4e7d3}
+#labCanvas{display:block;width:100%;height:auto;aspect-ratio:600/280;border-radius:9px;background:#0c1012;margin-top:9px}
+#labStatus{font-size:12px;color:#cbb28b;padding-top:7px}
+</style></head><body><main>
+<div class="top"><div><div class="eyebrow">THE DEPTHS / RIG PLAYTEST 050D</div><h1>Dig. Haul. Repeat.</h1></div><button id="reset">↻ Restart</button></div>
+<div class="stats"><div class="stat"><span>Posture</span><b id="pose">Standing</b></div><div class="stat"><span>Bag</span><b id="bag">0 / 8</b><div class="meter"><div id="bagbar"></div></div></div><div class="stat"><span>Strips mined</span><b id="mined">0</b></div><div class="stat"><span>Dump trips</span><b id="trips">0</b></div></div>
+<div class="view"><canvas id="world" width="960" height="450" aria-label="Playable mining tunnel with automatic spoil bag and horizontal excavation"></canvas><div class="progress" id="progress"></div></div>
+<div id="phase">050D • calibrated character scale + slightly faster walking</div>
+<div id="debug" style="font:12px ui-monospace,SFMono-Regular,monospace;color:#e1b778;background:#14171a;border:1px solid #393a38;padding:7px 10px;border-radius:8px;margin-top:7px">State: IDLE | X: 6 | Pose: 0 | Camera: stable</div>
+<div class="actions"><button id="originalArt">💀 Load ORIGINAL artwork ZIP</button><input id="originalFile" type="file" accept=".zip,application/zip" hidden /></div>
+<div id="originalStatus" role="status" style="font:12px system-ui;color:#e4bf8e;margin:6px 0 0">Full-detail source not loaded — compressed fallback active</div>
+<div class="actions"><button id="zoom" class="selected">🔍 Close-up camera ON</button><button id="sprite" class="selected">🎞 Video animations ON</button><button id="walkDirection">🚶 Walk cycle: reversed</button><button id="walkGround" class="selected">🥾 Ground lock ON</button><button id="walkSeam">🔗 Seam blend OFF</button><button id="walkPolish">👣 Fast cadence OFF</button><button id="footPlant" class="selected">🥾 Foot plant ON</button><button id="stanceLock">⚓ Foot lock OFF</button><button id="swingBlend">🧪 Experimental rig OFF</button></div>
+<div class="actions"><button id="gameRigWalk" class="selected">💀 Approved rig walk ON</button><button id="walkCourse" class="selected">🚶 Long walk test ON · 40 cells</button></div>
+<div class="modes"><button id="explore">↗ Explore</button><button id="excavate" class="selected">⛏ Excavate</button></div>
+<div class="heights"><button id="crawl" class="selected">1 tile · Crawl</button><button id="crouch">2 tiles · Crouch</button><button id="stand">3 tiles · Stand</button></div>
+<div class="actions"><button id="widen">⛏ Widen pocket: OFF</button><button id="mineScoot" class="selected">🐾 Mining scoot ON</button></div>
+<div class="controls"><button id="left">◀ HOLD LEFT</button><button id="right">HOLD RIGHT ▶</button></div>
+<div class="actions"><button id="brace">▥ Install support</button><button id="dump">◩ Dump at ledge</button></div>
+<div class="message" id="message">Hold RIGHT in Excavate mode. The miner will chip forward through the wall, collect rubble in his duffle bag, and automatically return to the shaft ledge when the bag is full.</div>
+<div class="help"><b>050D:</b> The approved 049A articulated gait drives upright walking in this playable tunnel. Toggle <b>Approved rig walk</b> OFF to compare the previous walk. 050D speeds the approved walk about 12%, preserving the stride-to-travel ratio. The rig's on-screen size is calibrated to match the original art more closely; the gait poses are unchanged. Use Load ORIGINAL artwork ZIP if source artwork is missing. Digging, crawling, headlamp and movement logic are unchanged. <a href="rig-studio-049a.html">Open Rig Studio 049A</a>.</div><div class="help"><b>NEW:</b> Drag anywhere on the game screen. Drag left/right to move; drag up or diagonally up to cast an aiming beam. The miner targets the first rock tile intersected by that beam. Hold to mine it. A faint beam marks the target. The LEFT/RIGHT buttons still work. Keep holding your aiming direction to automatically mine the next rock section; the miner approaches forward faces where clearance allows. Each thin horizontal section takes <b>4 seconds</b> to mine. Four sections make one full tunnel-length tile. New crawl tunnels need the least excavation; crouch tunnels need twice as much. Standing tunnels require supports. The miner cannot dig downward. Eight aligned video-derived animation clips cover walking, crouch walking, prone crawling, posture transitions, and all three mining stances. The toggle switches between video-derived animation and the original articulated rig. Seven anatomical poses still shift weight from feet to knees to hands before lowering fully prone. World X and camera remain locked throughout standing/crawling transitions; watch the State/X debug readout. Use Close-up camera to inspect the joints. Controls: hold left or right (keyboard A/D or arrow keys on a computer). When the bag fills, he automatically returns to the ledge, empties it, and resumes.</div>
+<details class="lab"><summary>🎬 Animation Studio — preview all 8 motions</summary>
+<div class="lab-controls"><select id="labSelect" aria-label="Choose miner animation"></select>
+<button id="labPause">⏸ Pause</button><button id="labReverse">↩ Reverse OFF</button><input id="labFrame" type="range" min="0" max="6" value="0" step="1" aria-label="Scrub the selected animation frame" style="min-width:130px;flex:1;accent-color:#d4ab73"/>
+<select id="labSpeed" aria-label="Animation playback speed"><option value="0.5">0.5× speed</option><option value="1" selected>1× speed</option><option value="2">2× speed</option></select></div>
+<canvas id="labCanvas" width="600" height="280" aria-label="Video-derived miner animation preview"></canvas>
+<div id="labStatus">Loading animation library…</div>
+<div class="help">Original PNG walk studio: check foot contact and the loop transition. Ground-lock and seam-blend buttons above toggle gameplay for A/B comparison. All other actions retain the existing animation logic.</div>
+</details>
+</main>
+<script src="assets/motion-ink14-data.js"></script>
+<script src="assets/motion-ink14-engine.js"></script>
+<script src="assets/full-detail-037.js?v=037W6"></script>
+<script src="assets/original-skeleton-rig.js?v=029b"></script>
+<script src="assets/miner-walk-rig-050d.js?v=050d"></script>
+<script>
+(()=>{
+const $=id=>document.getElementById(id),canvas=$('world'),g=canvas.getContext('2d');
+const CW=28,TH=72,N=130,BASE=365,START=6,EDGE=2;
+// Video-derived 12-frame transparent vector sheet: 4 columns x 3 rows.
+// Sprite is only used for upright walking. The original joint rig remains
+// responsible for every other state (idle, mining, crawling, transitions).
+const walkSheet=new Image();walkSheet.src='assets/miner-walk-vector.svg';
+let walkSheetReady=false,spriteEnabled=true,gameRigWalkEnabled=true,walkFrameTime=0,walkReverse=true,walkCycleSpeed=1,smoothSwing=false,rigBlend=0,walkGrounded=true,walkSeamBlend=false;
+// Pass 1: original full-detail source sprites, but a walk cycle scaled to
+// actual movement distance instead of the legacy 3-cells-per-cycle pace.
+// Keep the old behavior as an A/B option until phone visual approval.
+let walkPolish=false,footPlant=true,uprightPhase=0,uprightWasMoving=false,uprightStopFrame=null;
+// W6 source-derived stance anchoring is rendered independently of collisions.
+// Never change gameplay/world position to force boot planting.
+let stanceLock=false,stanceOffset=0,stanceAnchor=null,stanceSide=null,stanceDir=null,stanceLastFrame=null,stanceLastTime=0;
+const STANCE_MAX_SHIFT=9;
+function walkingStanceOffset(img,ref,frame,dir,worldX,scale,t){
+ if(!stanceLock||!footPlant||!img?.isOriginalArtwork||!Number.isFinite(ref.contactX)){
+  stanceOffset=0;stanceAnchor=null;stanceSide=null;return 0;
+ }
+ const local=(ref.contactX-ref.centerX)*scale;
+ const contact=worldX+dir*local;
+ const side=ref.contactSide||'unknown';
+ const switched=stanceAnchor===null||stanceDir!==dir||stanceSide!==side||
+   (stanceLastFrame!==null&&Math.abs(frame-stanceLastFrame)>2);
+ if(switched){stanceAnchor=contact+stanceOffset;stanceSide=side;stanceDir=dir;}
+ const wanted=clamp(stanceAnchor-contact,-STANCE_MAX_SHIFT,STANCE_MAX_SHIFT);
+ const elapsed=stanceLastTime?Math.min(80,Math.max(0,t-stanceLastTime)):16;
+ const response=1-Math.exp(-elapsed/45);
+ stanceOffset+=(wanted-stanceOffset)*response;
+ stanceLastTime=t;stanceLastFrame=frame;
+ return stanceOffset;
+}
+// The 049A source rig runs at .6 * .65 = .39 cycles/second.
+// At 1.5 world cells/second, 1 cycle spans ~3.85 cells (108 world px).
+const UPRIGHT_CELLS_PER_CYCLE=1.25;
+const APPROVED_WALK_CELLS_PER_CYCLE=1.5/.39;
+const APPROVED_WALK_CELLS_PER_SECOND=1.68; // 12% faster, same distance per gait cycle
+function uprightFrame(){
+ const n=Math.floor(((uprightPhase%1+1)%1)*7*walkCycleSpeed)%7;
+ return walkReverse?6-n:n;
+}
+// Visual position is continuous; p.x remains integer for excavation and collisions.
+let visualX=START,visualMoving=false;
+// Walk-stop staging uses only approved source walk frames, then the established
+// standCrouch frame 0 idle pose. The body never moves in world space while
+// planting its final foot. The ordinary clip-boundary fade handles settling.
+const WALK_STOP_FRAME_SECONDS=.065;
+let walkStop=null,walkStopCount=0;
+function startWalkStop(frame){
+ const target=frame<=3?0:6; // closest end-of-stride source pose
+ walkStop={from:frame,to:target,elapsed:0,frame,done:false};
+}
+function tickWalkStop(dt){
+ if(!walkStop||walkStop.done)return;
+ walkStop.elapsed+=dt;
+ const steps=Math.min(Math.abs(walkStop.to-walkStop.from),
+   Math.floor(walkStop.elapsed/WALK_STOP_FRAME_SECONDS));
+ walkStop.frame=walkStop.from+Math.sign(walkStop.to-walkStop.from)*steps;
+ if(walkStop.frame===walkStop.to){
+  // Hold the final source contact pose long enough to render at least
+  // one real planted frame before switching to the fixed standing idle.
+  const contactAt=Math.abs(walkStop.to-walkStop.from)*WALK_STOP_FRAME_SECONDS;
+  if(walkStop.elapsed>=contactAt+WALK_STOP_FRAME_SECONDS){
+   walkStop.done=true;walkStopCount++;
+  }
+ }
+}
+// Active excavation is specific to one solid-rock cell. Existing openings
+// are always walkable in any mode, even below the selected cut height.
+let activeExcavationCell=null,activeExcavationDir=0,widenArmed=false;
+// Reposition using the APPROVED locomotion sprites rather than switching
+// directly from one mining pose to another. Only mining-to-mining steps scoot.
+const SCOOT_SECONDS={stand:.44,crouch:.54,prone:.64};
+let scoot=null,pendingScoot=false,scootsCompleted=0,scootEnabled=true;
+// The original approved locomotion/mine PNGs supply every pose.
+// A scoot is brace (stationary), pull (travel), settle (stationary).
+// Movement and animation sample the SAME three-phase clock.
+const SCOOT_BRACE=.18,SCOOT_PULL=.64;
+function scootPhase(){
+ if(!scoot)return null;
+ const t=clamp(scoot.elapsed/scoot.duration,0,1);
+ if(t<SCOOT_BRACE)return {name:'brace',fraction:t/SCOOT_BRACE};
+ if(t<SCOOT_BRACE+SCOOT_PULL)return {name:'pull',fraction:(t-SCOOT_BRACE)/SCOOT_PULL};
+ return {name:'settle',fraction:(t-SCOOT_BRACE-SCOOT_PULL)/(1-SCOOT_BRACE-SCOOT_PULL)};
+}
+function beginMiningScoot(from,to,pose,dir){
+ const kind=pose>=5?'prone':pose>=2?'crouch':'stand';
+ scoot={from,to,pose,dir,kind,elapsed:0,duration:SCOOT_SECONDS[kind]};
+ digElapsed=0;rigSwing=0;
+}
+// One pointer works anywhere on the canvas; gestures are relative to the
+// initial touch so the thumb never needs to reach an on-screen joystick.
+let canvasDrag=null,aimTarget=null;
+// Raycast through the tunnel geometry from the miner toward the dragged direction.
+// The first rock tile intersecting the ray is the target; thumb location does
+// not need to line up with the tile. Existing open cells do not block the ray.
+function aimOrigin(){
+ return {x:(visualX+.5)*CW,
+         y:BASE-(rigPose<1?115:rigPose<4?91:30)};
+}
+function traceAim(dx,dy){
+ const origin=aimOrigin(),length=Math.hypot(dx,dy)||1;
+ const vx=dx/length,vy=dy/length;
+ const reach=7*CW; // ray can traverse multiple open cells
+ const end={x:origin.x+vx*reach,y:origin.y+vy*reach};
+ const startLayer=Math.floor((BASE-origin.y)/TH);
+ let lastColumn=-1,lastLayer=-1;
+ for(let dist=2;dist<=reach;dist+=2){
+  const x=origin.x+vx*dist,y=origin.y+vy*dist;
+  const col=Math.floor(x/CW),layer=Math.floor((BASE-y)/TH);
+  if(col<EDGE||col>=N||y<BASE-3*TH||y>=BASE)break;
+  if(col===lastColumn&&layer===lastLayer)continue;
+  lastColumn=col;lastLayer=layer;
+  if(layer>=0&&layer<3&&layer>=hAt(col)){
+   return {x:col,layer,hitX:x,hitY:y,rayX:origin.x,rayY:origin.y,dir:vx>=0?1:-1};
+  }
+ }
+ return {x:null,layer:null,hitX:end.x,hitY:end.y,rayX:origin.x,rayY:origin.y,dir:vx>=0?1:-1};
+}
+function normalizeForwardAim(hit,dx,dy){
+ // Shallow forward beams follow the chosen tunnel clearance so the miner
+ // cuts the next LOWER strip rather than stalling on rock high above his route.
+ // Steeper diagonal/upward beams keep precise raycast ceiling selection.
+ if(hit.x!==null&&Math.abs(dx)>Math.abs(dy)*2.5&&
+    hAt(hit.x)<target){
+   return {...hit,layer:hAt(hit.x),
+     hitY:BASE-(hAt(hit.x)+.5)*TH};
+ }
+ return hit;
+}
+function heldAimHit(){
+ if(!canvasDrag||canvasDrag.action!=='aim'||mode!=='excavate'||phase!=='manual')return null;
+ const {dx,dy}=canvasDrag;
+ if(Math.hypot(dx,dy)<19)return null;
+ const hit=normalizeForwardAim(traceAim(dx,dy),dx,dy);
+ return {...hit,pose:poseFor(p.x),done:false};
+}
+function retargetHeldAim(){
+ const next=heldAimHit();
+ if(!next)return false;
+ aimTarget=next;
+ digElapsed=0;rigSwing=0;
+ return true;
+}
+function shouldApproachAimedFace(){
+ if(!aimTarget||!canvasDrag||canvasDrag.action!=='aim'||aimTarget.x===null)return false;
+ const {dx,dy}=canvasDrag;
+ // Only a predominantly FORWARD aiming gesture advances the miner.
+ // Upward pocket aiming stays planted and never forces a prone crawl.
+ if(Math.abs(dx)<Math.abs(dy)*2.5||aimTarget.layer!==0)return false;
+ const dir=Math.sign(dx);
+ if(!dir||aimTarget.x*dir<=(p.x+dir)*dir)return false;
+ const next=p.x+dir;
+ if(next<EDGE||next>=N||hAt(next)===0)return false;
+ // Do not enter a passage lower than the present one while overhead mining.
+ if(hAt(next)<hAt(p.x))return false;
+ return true;
+}
+function validAimTile(t){
+ return !!t&&t.x!==null&&t.layer!==null&&
+ t.x>=EDGE&&t.x<N&&t.layer===hAt(t.x)&&
+ t.layer<target&&t.layer<3&&(t.layer!==2||supported(t.x));
+}
+function aimReady(){
+ return phase==='manual'&&mode==='excavate'&&aimTarget&&!aimTarget.done&&
+ !transitionHold&&pendingStepTo===null&&pendingRise===null&&pendingLower===null&&
+ Math.abs(visualX-p.x)<.0001&&poseReady(aimTarget.pose)&&validAimTile(aimTarget);
+}
+// Short crossfades only when the animation STATE changes (never on frame advances).
+let lastDrawnMotion=null,blendFromMotion=null,blendStartMs=0;
+const MOTION_BLEND_MS=145;
+const WALK_CELLS_PER_SECOND=5,WALK_CELLS_PER_CYCLE=3.0;
+// Heavy pickaxe: one deliberate wind-up, contact, and recovery every two seconds.
+const SWING_SECONDS=2.0,SWING_IMPACT_FRAME=5;
+const MINING_FRAME_ORDER={
+ standMine:[4,7,0,1,2,3,4,4],
+ crouchMine:[0,1,3,4,5,6,7,7],
+ proneMine:[1,1,2,0,3,4,7,7]
+};
+// Slow wind-up, rapid impact, and recovery in each two-second heavy swing.
+function swingPhase(t){
+ const p=((t%1)+1)%1;
+ const timeline=[[0,0],[.40,.27],[.55,.40],[.675,.625],[.83,.83],[1,1]];
+ for(let i=1;i<timeline.length;i++){
+  if(p<=timeline[i][0]){
+   const [a,b]=timeline[i-1],[c,d]=timeline[i];
+   let k=(p-a)/(c-a);k=k*k*(3-2*k);
+   return b+(d-b)*k;
+  }
+ }
+ return 1;
+}
+function miningTween(name){
+ const order=MINING_FRAME_ORDER[name]||MINING_FRAME_ORDER.standMine;
+ const pos=swingPhase(rigSwing)*7;
+ const i=Math.min(7,Math.floor(pos)),j=Math.min(7,i+1);
+ const mix=Math.max(0,Math.min(1,pos-i));
+ return {from:order[i],to:order[j],mix:mix*mix*(3-2*mix)};
+}
+// Retain the original video frames in their recorded sequence.
+// Do not scramble poses or superimpose semi-transparent duplicates.
+function miningFrame(name){return Math.min(7,Math.floor(swingPhase(rigSwing)*8));}
+walkSheet.onload=()=>{walkSheetReady=true};walkSheet.onerror=()=>{walkSheetReady=false;$('sprite').textContent='⚠ Sprite unavailable'};
+let heights,braces,p,mode,target,bag,mined,trips,phase,returnX,moveDir=0,holding=false,last=0,digElapsed=0,fx=[],cam=0,showTime=0,notice='',elapsed=0,roofTarget=-1,shake=0,rigPose=0,rigStride=0,rigSwing=0,zoomed=true,transitionGoal=null,transitionHold=false,animState="IDLE",lockedX=null,lockedCam=null,lockViolations=0,pendingStepTo=null,pendingRise=null,pendingLower=null;
+const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
+let activeMotion='RIG';
+function needsExcavation(x,dir){
+ if(phase!=='manual'||mode!=='excavate'||!dir||x<EDGE||x>=N)return false;
+ const open=hAt(x);
+ return open===0||(x===activeExcavationCell&&dir===activeExcavationDir&&open<target)||
+  (widenArmed&&open>0&&open<target);
+}
+function nextDigPose(){
+ if(aimTarget)return null;
+ if(phase!=='manual'||mode!=='excavate'||!moveDir)return null;
+ const x=p.x+moveDir;
+ if(!needsExcavation(x,moveDir))return null;
+ const targetPose=target===1?6:target===2?3:0;
+ return Math.max(poseFor(p.x),targetPose);
+}
+// Every animation is drawn at the SAME character scale. The sprite atlas
+// contains per-frame art at different source pixel sizes, so each frame is
+// trimmed to its visible bounds before fitting to an anatomical height.
+// One physical pixel scale for every frame of an animation. Pose changes
+// happen inside the source artwork instead of stretching every frame.
+// Source-derived anatomy calibration (Prototype 020).
+// All 9 animation sets are compared to the SAME miner:
+// upright height 176; crouch height 119; fully prone length 203 / height 65.
+// Dimensions below are measured from the 8-frame decoded source atlas,
+// excluding the damaged crouchWalk frames. Their scale is never recomputed
+// from the active frame, so movement cannot cause body-size pulsing.
+const CHARACTER_SIZE={standH:176,crouchH:119,proneW:203,proneH:65};
+const MOTION_CALIBRATION={
+ // x and y scale are distinct only where source video anatomy changes.
+ walk:{sx:176/169.5,sy:176/169.5},
+ standMine:{sx:176/167,sy:176/167},
+ standCrouch:{sx:176/172,sy:176/172},
+ crouchWalk:{sx:119/102,sy:119/102},
+ crouchMine:{sx:119/102.5,sy:119/102.5},
+ crouchProne:{sx:119/110,sy:119/110},
+ proneCrawl:{sx:203/157.5,sy:65/44},
+ proneMine:{sx:203/100.5,sy:65/30},
+ // Stand-to-prone source ends unusually tall (84px rather than 60px).
+ // Interpolate corrections smoothly across its *transition sequence*;
+ // do not use a frame's changing bounds to compute its scale.
+ standProne:{sx:176/172,sy:176/172,endX:203/182,endY:65/84}
+};
+function motionScale(name,frame){
+ const cal=MOTION_CALIBRATION[name]||MOTION_CALIBRATION.walk;
+ if(name!=='standProne')return {sx:cal.sx,sy:cal.sy};
+ const t=Math.max(0,Math.min(1,frame/7));
+ const smooth=t*t*(3-2*t);
+ return {sx:cal.sx+(cal.endX-cal.sx)*smooth,sy:cal.sy+(cal.endY-cal.sy)*smooth};
+}
+// The selected excavation clearance determines the mining pose. Never start
+// mining until that pose is fully reached and the previous step is complete.
+function miningReady(){
+ if(scoot)return false;
+ if(aimTarget)return !!aimReady();
+ if(phase!=='manual'||mode!=='excavate'||!moveDir||transitionHold||
+    pendingRise!==null||pendingLower!==null||pendingStepTo!==null||
+    Math.abs(visualX-p.x)>0.0001)return false;
+ const face=p.x+moveDir;
+ if(!needsExcavation(face,moveDir))return false;
+ const required=Math.max(poseFor(p.x),target===1?6:target===2?3:0);
+ return poseReady(required);
+}
+function animationChoice(moving,digging,poseValue){
+ if(transitionHold)return poseValue<3?['standCrouch',Math.round(clamp(poseValue/3,0,1)*7)]:['crouchProne',Math.round(clamp((poseValue-3)/3,0,1)*7)];
+ if(scoot){
+  const phase=scootPhase();
+  const mine=scoot.kind==='prone'?'proneMine':scoot.kind==='crouch'?'crouchMine':'standMine';
+  const travel=scoot.kind==='prone'?'proneCrawl':scoot.kind==='crouch'?'crouchWalk':'walk';
+  // Keep both bookends anchored in the original mining pose.
+  // During the middle, advance only through a short sequence of actual
+  // source travel frames. Never blend ghost images or scale the skeleton.
+  if(phase.name==='brace')return [mine,0];
+  if(phase.name==='settle')return [mine,0];
+  const frame=Math.min(6,1+Math.floor(phase.fraction*6));
+  return [travel,frame];
+ }
+ if(digging){
+  const name=poseValue<1?'standMine':poseValue<4?'crouchMine':'proneMine';
+  return [name,miningFrame(name)];
+ }
+ if(moving){
+  const name=poseValue<1?'walk':poseValue<4?'crouchWalk':'proneCrawl';
+  if(name==='walk'){
+   // An upright stride cycle is driven only by upright distance travelled.
+   // Do not spend walk frames while crawling, scooting, or changing posture.
+   if(walkPolish)return ['walk',uprightFrame()];
+   const n=Math.floor(walkFrameTime*7*walkCycleSpeed)%7;
+   return ['walk',walkReverse?6-n:n];
+  }
+  const n=Math.floor(walkFrameTime*8*walkCycleSpeed)%8;
+  return [name,n];
+ }
+ // Every upright stop resolves to ONE definite, feet-down standing pose.
+ // The approved source standCrouch frame 0 shows both boots grounded;
+ // freezing an arbitrary walk frame left a leg raised indefinitely.
+ // Existing clip-boundary interpolation supplies the short settle.
+ if(poseValue<1&&walkStop&&!walkStop.done)return ['walk',walkStop.frame];
+ if(poseValue<1)return ['standCrouch',0];
+ return poseValue<1?['standCrouch',0]:poseValue<4?['crouchProne',0]:['proneCrawl',0];
+}
+function say(s){notice=s;$('message').textContent=s}
+function hAt(x){return x<0||x>=N?0:heights[x]}
+function supported(x){return [...braces].some(i=>Math.abs(x-i)<=4)}
+function status(){return p.x<=EDGE+1?'At shaft ledge':phase==='return'?'Returning with full bag':phase==='dump'?'Dumping spoil':phase==='resume'?'Returning to excavation':'Excavating'};
+function posture(){let h=hAt(p.x);return h>=3?'Standing':h>=2?'Crouching':'Crawling'}
+const poseFor=x=>hAt(x)>=3?0:hAt(x)===2?3:6;
+function poseReady(goal){return Math.abs(rigPose-goal)<0.0001}
+function holdForPose(goal){
+ if(poseReady(goal))return false;
+ transitionGoal=goal;transitionHold=true;animState="TRANSITION";
+ lockedX=p.x;
+ // Camera follows world between steps, but must not scroll during body movement.
+ // Snap once at the boundary and freeze for the entire posture animation.
+ lockedCam=(p.x+.5)*CW;cam=lockedCam;
+ visualMoving=false;
+ elapsed=0;
+ return true;
+}
+function visibleTransition(){return transitionHold||!poseReady(poseFor(p.x))}
+function transitionName(){return rigPose>transitionGoal?'Getting up':'Lowering down'}
+// The test course is a world preset, not a change to excavation behavior.
+let longWalkCourse=true;
+const WALK_COURSE_LAST=45; // x=6 to 45: 39 open cells, no mining necessary
+function reset(){
+heights=Array(N).fill(0);
+for(let x=EDGE;x<=(longWalkCourse?WALK_COURSE_LAST:9);x++)heights[x]=3;
+braces=new Set([4,8]);p={x:START,dir:1};mode=longWalkCourse?'explore':'excavate';target=longWalkCourse?3:1;bag=0;mined=0;trips=0;phase='manual';returnX=START;moveDir=0;holding=false;last=0;digElapsed=0;fx=[];cam=0;showTime=0;roofTarget=-1;shake=0;rigPose=0;rigStride=0;rigSwing=0;transitionGoal=null;transitionHold=false;animState="IDLE";lockedX=null;lockedCam=null;lockViolations=0;pendingStepTo=null;pendingRise=null;pendingLower=null;pendingScoot=false;scoot=null;scootsCompleted=0;activeExcavationCell=null;activeExcavationDir=0;widenArmed=false;canvasDrag=null;aimTarget=null;walkFrameTime=0;uprightPhase=0;uprightWasMoving=false;uprightStopFrame=null;walkStop=null;walkStopCount=0;stanceOffset=0;stanceAnchor=null;stanceSide=null;stanceDir=null;stanceLastFrame=null;stanceLastTime=0;visualX=START;visualMoving=false;lastDrawnMotion=null;blendFromMotion=null;blendStartMs=0;
+$('progress').style.width='0%';
+$('walkCourse').textContent=longWalkCourse?'🚶 Long walk test ON · 40 cells':'🚶 Long walk test OFF · mining map';
+$('walkCourse').classList.toggle('selected',longWalkCourse);
+say(longWalkCourse?'Long walking course ready! Hold RIGHT to walk 39 open cells without mining. Hold LEFT to return. Toggle Long walk test OFF to restore the mining map.':'Hold RIGHT in Excavate mode to cut a narrow prospecting tunnel. The bag holds 8 strips before the miner must dump at the ledge.');
+update();
+}
+function update(){
+$('pose').textContent=visibleTransition()?(transitionGoal!==null&&rigPose>transitionGoal?'Standing up…':'Lowering down…'):(rigPose>=5.5?'Prone':rigPose>=2.5?'Crouching':'Standing');$('bag').textContent=bag+' / 8';$('mined').textContent=mined;$('trips').textContent=trips;$('bagbar').style.width=(bag/8*100)+'%';
+for(const k of ['explore','excavate'])$(k).classList.toggle('selected',mode===k);
+$('widen').textContent=widenArmed?'⛏ Widen pocket: ARMED':'⛏ Widen pocket: OFF';
+$('widen').classList.toggle('selected',widenArmed);
+for(const [k,n] of [['crawl',1],['crouch',2],['stand',3]])$(k).classList.toggle('selected',target===n);
+$('brace').disabled=hAt(p.x)<2||supported(p.x)||phase!=='manual';
+$('dump').disabled=phase!=='manual'||bag===0;
+$('phase').textContent=transitionHold?(transitionName()+' · position locked'):(status()+' · '+(phase==='manual'&&moveDir&&mode==='excavate'?'Mining '+Math.floor(digElapsed/4*100)+'%':'4 sec per strip'));
+$('debug').textContent='Animation: '+activeMotion+' ('+(window.DepthMotions?.stats().ready||0)+'/9 loaded) | State: '+animState+' | Cell: '+p.x.toFixed(2)+' | Visual X: '+visualX.toFixed(2)+(lockedX!==null?' (lock '+lockedX.toFixed(2)+')':'')+' | Pose: '+rigPose.toFixed(2)+'/6 | Camera: '+(transitionHold?'LOCKED':'FOLLOW')+(lockViolations?' | ⚠ X changed during transition':'');
+}
+// World-space contact point for the next layer of unbroken rock.
+function rockImpactPoint(){
+ const face=aimTarget?.x??p.x+moveDir;
+ const layer=aimTarget?.layer??Math.max(0,hAt(face));
+ return aimTarget?{x:(face+.5)*CW,y:BASE-(layer+.47)*TH}:
+  {x:(moveDir>0?face*CW+4:(face+1)*CW-4),y:BASE-(layer+.47)*TH};
+}
+function emitImpact(strength=1){
+ if(!miningReady())return;
+ const point=rockImpactPoint();
+ const now=performance.now();
+ fx.push({kind:'impact',x:point.x,y:point.y,t:now,strength,dir:moveDir,
+          seed:(mined*17+Math.floor(rigSwing*11))*13});
+ // Small strike feedback; the actual rock break is more pronounced.
+ shake=Math.max(shake,.9);
+}
+function mineAt(x,aimed=false){
+const ceiling=aimed?aimTarget.layer+1:target;
+if(x<EDGE||x>=N||hAt(x)>=ceiling)return false;
+if(ceiling===3&&hAt(x)>=2&&!supported(x)){say('⚠ Standing height needs structural support. Stand in a crouch tunnel and install a brace.');return false}
+if(ceiling===3&&!supported(x)&&hAt(x)===0){ // allow making first two levels; third level will need support
+}
+// Emit the fracture before the layer disappears so debris originates at
+// the impact plane rather than suddenly appearing out of the empty tunnel.
+const breakPoint=rockImpactPoint();
+heights[x]++;bag++;mined++;shake=3.2;digElapsed=0;rigSwing=0;
+if(heights[x]>=ceiling){activeExcavationCell=null;activeExcavationDir=0;}
+fx.push({kind:'break',x:breakPoint.x,y:breakPoint.y,t:performance.now(),
+         strength:1,dir:moveDir,seed:mined*37});
+say('CRACK! A thin horizontal section breaks free. The loose rock goes into the duffle bag ('+bag+'/8).');
+if(bag>=8){returnX=p.x;phase='return';moveDir=0;aimTarget=null;canvasDrag=null;say('Duffel full! The miner packs up, heads back through the tunnel, and dumps the spoil over the shaft ledge.')}
+return true;
+}
+function setMode(v){if(phase!=='manual')return;mode=v;digElapsed=0;moveDir=0;if(v!=='excavate'){activeExcavationCell=null;activeExcavationDir=0;widenArmed=false;aimTarget=null;}say(v==='explore'?'Pickaxe stowed. Hold LEFT or RIGHT to travel through the tunnel.':'Pickaxe ready. Hold a direction and the miner excavates the selected tunnel height.');update()}
+function setTarget(v){target=v;digElapsed=0;aimTarget=null;say(v===1?'Prospecting: one tile tall, four narrow sections per full tunnel-length tile.':v===2?'Working passage: two tiles of height. More excavation, easier travel.':'Standing tunnel: three tiles of height, supports required before widening above two.');update()}
+function step(d,miningScoot=false){
+p.dir=d;const x=p.x+d;if(x<EDGE||x>=N||hAt(x)===0)return false;
+// Lower BEFORE entering a low ceiling. Rise only after entering high space.
+const nextPose=poseFor(x),currentPose=poseFor(p.x);
+if(nextPose>currentPose&&!poseReady(nextPose)){
+ pendingStepTo=x;pendingScoot=miningScoot;
+ // Do not begin kneeling while the previous tile movement is unfinished.
+ if(Math.abs(visualX-p.x)>0.0001){pendingLower=nextPose;return false;}
+ holdForPose(nextPose);return false;
+}
+p.x=x;
+if(miningScoot&&scootEnabled)beginMiningScoot(visualX,x,nextPose,d);
+if(nextPose<currentPose)pendingRise=nextPose;
+return true;
+}
+function action(dt){
+if(scoot)return; // no new cut until the small forward movement is complete
+if(transitionHold){if(p.x!==lockedX){lockViolations++;p.x=lockedX}return;}
+// Finish approaching the boundary before changing posture. This prevents
+// snapping the rendered miner forward when entering taller clearance.
+if(pendingRise!==null||pendingLower!==null){
+ if(Math.abs(visualX-p.x)>0.0001)return;
+ const next=pendingRise!==null?pendingRise:pendingLower;
+ pendingRise=null;pendingLower=null;
+ holdForPose(next);return;
+}
+const prepPose=nextDigPose();
+if(prepPose!==null&&!poseReady(prepPose)){if(Math.abs(visualX-p.x)>0.0001)return;holdForPose(prepPose);digElapsed=0;return;}
+if((phase==='return'||phase==='resume')&&!poseReady(poseFor(p.x))){if(Math.abs(visualX-p.x)>0.0001)return;holdForPose(poseFor(p.x));return;}
+if(phase==='return'||phase==='resume'){
+// On the 050B walking A/B test, let the visible feet catch up before
+// scheduling the next tile, so collision position never outruns the rig.
+const continuousRigTravel=gameRigWalkEnabled&&poseFor(p.x)<1;
+if(continuousRigTravel&&Math.abs(visualX-p.x)>.001)return;
+if(!continuousRigTravel){elapsed+=dt;if(elapsed<0.20)return;elapsed-=0.20;}
+const destination=phase==='return'?EDGE:returnX;
+if(p.x===destination){
+ // Finish the last visible walking step before dumping or ending auto-travel.
+ if(Math.abs(visualX-p.x)>0.0001)return;
+ if(phase==='return'){phase='dump';showTime=1.8;say('The miner reaches the shaft, swings the duffle bag over the ledge, and pours the rubble into the darkness.')}
+ else{phase='manual';say('Back at the mining face. Hold RIGHT to continue excavating.')}
+ return;
+}
+step(destination>p.x?1:-1);
+return;
+}
+if(phase==='dump'){
+showTime-=dt;if(showTime<=0){bag=0;trips++;phase='resume';elapsed=0;say('Spoil dumped into the abyss. Returning to the tunnel face.')}
+return;
+}
+// Aimed cuts use the drag target rather than moveDir. The miner can stand
+// motionless in a pocket and raise one specific ceiling section to the left.
+if(aimTarget){
+ moveDir=0;
+ if(bag>=8){returnX=p.x;aimTarget=null;canvasDrag=null;phase='return';return;}
+ if(aimTarget.done){
+  if(!retargetHeldAim()){digElapsed=0;return;}
+ }
+ if(shouldApproachAimedFace()){
+  // Complete each small step before attempting the next excavation;
+  // preserve the existing smooth walking and posture transition system.
+  if(Math.abs(visualX-p.x)>.0001){digElapsed=0;return;}
+  elapsed+=dt;
+  if(elapsed>=.2){
+   elapsed-=.2;
+   if(step(Math.sign(canvasDrag.dx),
+      Math.abs(aimTarget.x-(p.x+Math.sign(canvasDrag.dx)))===1)) retargetHeldAim();
+  }
+  digElapsed=0;return;
+ }
+ if(!aimReady()){digElapsed=0;return;}
+ digElapsed+=dt;
+ if(digElapsed>=4){
+  const finished=mineAt(aimTarget.x,true);
+  if(finished&&phase==='manual'&&canvasDrag?.action==='aim'){
+   // Keep holding to follow the beam. The next hit is selected automatically.
+   retargetHeldAim();
+   if(aimTarget?.x===null) say('Tunnel clear along this beam. Drag to redirect or release.');
+  }
+ }
+ return;
+}
+if(!moveDir){digElapsed=0;return}
+if(activeExcavationCell!==null&&moveDir!==activeExcavationDir){
+ activeExcavationCell=null;activeExcavationDir=0;digElapsed=0;
+}
+p.dir=moveDir;const x=p.x+moveDir;
+if(mode==='explore'){
+ // For the approved rig, schedule the next open cell as soon as the prior
+ // visual step completes. No 200ms stop-and-restart at every tile boundary.
+ if(gameRigWalkEnabled&&poseFor(p.x)<1){
+  if(Math.abs(visualX-p.x)>.001)return;
+  if(!step(moveDir))say('Rock blocks the path. Switch to Excavate mode.');
+  return;
+ }
+ elapsed+=dt;if(elapsed>=0.20){elapsed-=0.20;if(!step(moveDir))say('Rock blocks the path. Switch to Excavate mode.')}return}
+if(x<EDGE||x>=N)return;
+// Movement is identical in Explore and Excavate on open passages.
+ // Only an actual solid-rock face, or the SAME cell we are already cutting,
+ // triggers excavation. This allows retreat through lower-clearance tunnels.
+if(hAt(x)>0&&!needsExcavation(x,moveDir)){
+ elapsed+=dt;if(elapsed>=0.20){elapsed-=0.20;step(moveDir)}
+ digElapsed=0;return;
+}
+if(bag>=8){returnX=p.x;phase='return';moveDir=0;return}
+if(target===3&&hAt(x)>=2&&!supported(x)){digElapsed=0;say('Support needed before raising the roof to standing height. Install one from a crouch-height passage.');moveDir=0;return}
+if(!miningReady()){digElapsed=0;return;}
+if(activeExcavationCell===null){
+ activeExcavationCell=x;activeExcavationDir=moveDir;
+}
+digElapsed+=dt;
+if(digElapsed>=4){
+ const wasWidening=widenArmed&&hAt(x)>0;
+ const completed=mineAt(x);
+ if(completed&&wasWidening&&hAt(x)>=target){
+  // Make a pocket, not an unwanted step. User must press movement again.
+  widenArmed=false;activeExcavationCell=null;activeExcavationDir=0;
+  moveDir=0;holding=false;digElapsed=0;elapsed=0;
+  if(phase==='manual')say('Pocket widened to '+target+' tiles. Hold a direction to move freely again.');
+ }else if(completed&&phase==='manual'&&hAt(x)>=target)step(moveDir,true);
+}
+}
+function draw(t){
+const w=960,h=450,zoom=zoomed?1.75:1;const targetCam=(visualX+.5)*CW;
+if(transitionHold){cam=lockedCam}else{cam+=(targetCam-cam)*.13}
+g.clearRect(0,0,w,h);g.fillStyle='#050607';g.fillRect(0,0,w,h);
+g.save();g.translate(w*.41,h*.79);g.scale(zoom,zoom);g.translate(-Math.round(cam)+(shake&&!transitionHold?(Math.random()-.5)*shake:0),-BASE);shake*=.82;if(shake<.2)shake=0;
+const viewLeft=cam-w*.41/zoom,viewRight=cam+w*.59/zoom;
+const first=Math.max(0,Math.floor(viewLeft/CW)-2),end=Math.min(N-1,Math.ceil(viewRight/CW)+2);
+for(let x=first;x<=end;x++){
+let xx=x*CW,open=hAt(x),lit=clamp(1-Math.abs(p.x-x)/26,.26,1),v=47+40*lit+(Math.sin(x*13.6)*6|0);
+g.fillStyle='rgb('+Math.round(v+5)+','+Math.round(v+2)+','+Math.round(v)+')';g.fillRect(xx,0,CW,h);
+g.fillStyle='#0f1012';g.fillRect(xx,BASE-open*TH,CW,open*TH);
+g.fillStyle='#4e4a45';g.fillRect(xx,BASE,CW,h-BASE);
+for(let j=0;j<5;j++){const yy=(j*83+x*19)%h;g.strokeStyle='rgba(204,188,159,.10)';g.lineWidth=1;g.beginPath();g.moveTo(xx+3,yy);g.lineTo(xx+14,yy-7);g.lineTo(xx+24,yy-6);g.stroke()}
+g.strokeStyle='rgba(217,190,142,.14)';g.lineWidth=1;g.strokeRect(xx,BASE-open*TH,CW,open*TH);
+if(x===EDGE){g.fillStyle='#171817';g.fillRect(xx-6,BASE-3*TH,9,3*TH);g.strokeStyle='#93816a';g.lineWidth=3;g.beginPath();g.moveTo(xx-5,BASE-3*TH);g.lineTo(xx-5,BASE+65);g.stroke()}
+if(braces.has(x)&&open>=2){
+const top=BASE-open*TH;g.strokeStyle='#9a8469';g.lineWidth=6;
+g.beginPath();g.moveTo(xx+2,BASE);g.lineTo(xx+2,top+5);g.lineTo(xx+CW-2,top+5);g.lineTo(xx+CW-2,BASE);g.stroke();
+g.lineWidth=3;g.beginPath();g.moveTo(xx+2,BASE-8);g.lineTo(xx+CW-2,top+10);g.stroke();
+}
+}
+// Progressive fractures appear INSIDE the currently unbroken rock section.
+// They grow through the four-second excavation interval and fade instantly
+// when the strip breaks away. This effect is independent of sprite artwork.
+if(miningReady()&&digElapsed>0){
+ const face=aimTarget?.x??p.x+moveDir,open=aimTarget?.layer??hAt(face),progress=clamp(digElapsed/4,0,1);
+ const edge=aimTarget?(face+.5)*CW:(moveDir>0?face*CW:(face+1)*CW);
+ const sign=aimTarget?1:moveDir;
+ const rockTop=BASE-(open+1)*TH;
+ g.save();g.beginPath();g.rect(face*CW+1,rockTop+1,CW-2,TH-2);g.clip();
+ g.lineCap='round';
+ const cracks=[
+  [[0,0],[5,-6],[9,-14],[16,-18]],
+  [[0,0],[7,3],[10,10],[19,13]],
+  [[5,-6],[9,-8],[16,-6],[22,-9]],
+  [[7,3],[13,5],[20,2],[26,4]],
+  [[9,-14],[13,-21],[19,-25],[24,-28]]
+ ];
+ const stages=[.12,.28,.47,.64,.80];
+ for(let i=0;i<cracks.length;i++){
+  const grow=clamp((progress-stages[i])/.32,0,1);
+  if(grow<=0)continue;
+  const pts=cracks[i],p0=pts[0],p1=pts[pts.length-1];
+  const px2=p0[0]+(p1[0]-p0[0])*grow;
+  const py2=p0[1]+(p1[1]-p0[1])*grow;
+  g.strokeStyle='rgba(6,7,9,'+(.46+.43*progress)+')';
+  g.lineWidth=1.1+i%2*.35;g.beginPath();
+  g.moveTo(edge+sign*p0[0],BASE-(open+.48)*TH+p0[1]);
+  g.lineTo(edge+sign*px2,BASE-(open+.48)*TH+py2);g.stroke();
+  g.strokeStyle='rgba(193,169,128,'+(.17+.16*progress)+')';
+  g.lineWidth=.75;g.beginPath();
+  g.moveTo(edge+sign*(p0[0]+1),BASE-(open+.48)*TH+p0[1]+1);
+  g.lineTo(edge+sign*(px2+1),BASE-(open+.48)*TH+py2+1);g.stroke();
+ }
+ g.restore();
+}
+
+// Raycast visualization: a thin beam stops at the *first* rock hit.
+if(canvasDrag&&canvasDrag.action!=='waiting'){
+ const origin=aimOrigin();
+ let tx=origin.x+Math.sign(canvasDrag.dx||1)*CW*2.1,ty=origin.y;
+ let valid=true;
+ if(canvasDrag.action==='aim'&&aimTarget){
+  tx=aimTarget.hitX;ty=aimTarget.hitY;
+  valid=validAimTile(aimTarget);
+  if(aimTarget.x!==null){
+   const by=BASE-(aimTarget.layer+1)*TH;
+   g.fillStyle=valid?'rgba(245,190,99,.21)':'rgba(193,85,67,.18)';
+   g.strokeStyle=valid?'rgba(255,207,114,.94)':'rgba(224,106,89,.85)';
+   g.lineWidth=1.6;
+   g.fillRect(aimTarget.x*CW+1,by+1,CW-2,TH-2);
+   g.strokeRect(aimTarget.x*CW+1.5,by+1.5,CW-3,TH-3);
+  }
+ }
+ const color=valid?'rgba(255,196,107,.82)':'rgba(222,102,83,.8)';
+ g.save();g.strokeStyle=color;g.fillStyle=color;g.lineWidth=2;g.setLineDash([7,6]);
+ g.beginPath();g.moveTo(origin.x,origin.y);g.lineTo(tx,ty);g.stroke();g.setLineDash([]);
+ const ang=Math.atan2(ty-origin.y,tx-origin.x);
+ g.beginPath();g.moveTo(tx,ty);
+ g.lineTo(tx-11*Math.cos(ang-.46),ty-11*Math.sin(ang-.46));
+ g.lineTo(tx-11*Math.cos(ang+.46),ty-11*Math.sin(ang+.46));
+ g.closePath();g.fill();g.restore();
+}
+const px=(visualX+.5)*CW,foot=BASE,d=p.dir;
+const moving=!transitionHold&&visualMoving;
+const digging=miningReady();
+const nearFace=(p.x+moveDir>=EDGE&&p.x+moveDir<N);
+// Seven keyframes blend between upright and prone; intermediate states are visible during transitions.
+// Coordinates in screen pixels, anchored at the miner's floor contact.
+// Positive local X means forward. In the prone keyframe, knees sit ahead
+// of the hips while shins extend back behind knees (human low crawl).
+const poses=[
+// 0 — Upright: both feet stable; relaxed arms.
+{hip:[0,-65],shoulder:[0,-139],head:[3,-171],elbow:[16,-111],hand:[16,-88],farElbow:[-14,-113],farHand:[-12,-88],knee:[12,-34],ankle:[12,-6],toe:[24,0],farKnee:[-12,-34],farAnkle:[-12,-6],farToe:[-3,0]},
+// 1 — Lean at hips: feet remain planted; upper-body weight moves forward.
+{hip:[-2,-63],shoulder:[13,-132],head:[22,-164],elbow:[27,-105],hand:[33,-82],farElbow:[0,-108],farHand:[5,-85],knee:[12,-34],ankle:[12,-6],toe:[24,0],farKnee:[-12,-34],farAnkle:[-12,-6],farToe:[-3,0]},
+// 2 — Bend the knees: hips travel backwards/down while heels stay put.
+{hip:[-13,-51],shoulder:[17,-117],head:[28,-149],elbow:[34,-91],hand:[37,-67],farElbow:[5,-94],farHand:[11,-68],knee:[14,-31],ankle:[12,-6],toe:[24,0],farKnee:[-18,-29],farAnkle:[-12,-6],farToe:[-3,0]},
+// 3 — Kneel: knees touch first and take the weight; shins trail back.
+{hip:[-26,-40],shoulder:[16,-86],head:[29,-116],elbow:[36,-62],hand:[44,-36],farElbow:[0,-61],farHand:[16,-32],knee:[14,-7],ankle:[-17,-5],toe:[-29,0],farKnee:[-33,-7],farAnkle:[-62,-5],farToe:[-71,0]},
+// 4 — Reach: torso hinges down, palms approach the floor while knees hold.
+{hip:[-30,-36],shoulder:[21,-64],head:[44,-89],elbow:[37,-33],hand:[52,-3],farElbow:[8,-34],farHand:[24,-3],knee:[11,-6],ankle:[-19,-5],toe:[-31,0],farKnee:[-37,-7],farAnkle:[-64,-5],farToe:[-73,0]},
+// 5 — All fours: palms planted below shoulders; hips over bent knees.
+{hip:[-33,-34],shoulder:[15,-46],head:[43,-65],elbow:[31,-26],hand:[40,-3],farElbow:[1,-25],farHand:[12,-3],knee:[-4,-7],ankle:[-36,-4],toe:[-49,0],farKnee:[-43,-7],farAnkle:[-72,-4],farToe:[-84,0]},
+// 6 — Military low crawl: elbows under shoulders, chest and hips lowered;
+//     thighs angle toward the knees, shins/feet trail BACK behind them.
+{hip:[-38,-17],shoulder:[12,-25],head:[43,-38],elbow:[29,-12],hand:[40,-3],farElbow:[-3,-12],farHand:[9,-3],knee:[-8,-8],ankle:[-52,-4],toe:[-69,0],farKnee:[-43,-8],farAnkle:[-76,-4],farToe:[-89,0]}
+];
+// Visual posture blends continuously, independent of the collision grid.
+const poseValue=clamp(rigPose,0,6),i0=Math.floor(poseValue),i1=Math.min(6,i0+1),alpha=poseValue-i0;
+// Ease between anatomical support poses; planted toes/palms hold their positions
+// in neighboring poses instead of drifting as the torso shifts weight.
+const smooth=alpha*alpha*(3-2*alpha);
+const pose={};
+for(const key of Object.keys(poses[0])){
+ pose[key]=[poses[i0][key][0]+(poses[i1][key][0]-poses[i0][key][0])*smooth,
+            poses[i0][key][1]+(poses[i1][key][1]-poses[i0][key][1])*smooth];
+}
+// Never apply gait offsets while lowering or standing up.
+const stride=Math.sin(rigStride)*(moving?1:0);
+const gaitScale=poseValue>=5?.38:poseValue>=3?.32:1;
+pose.knee[0]+=stride*8*gaitScale;pose.farKnee[0]-=stride*8*gaitScale;
+pose.toe[0]+=stride*9*gaitScale;pose.farToe[0]-=stride*9*gaitScale;
+pose.hand[0]-=stride*5*gaitScale;pose.farHand[0]+=stride*5*gaitScale;
+// Procedural joint motion: genuine continuous in-between positions rather than
+// crossfading whole drawings. All joints interpolate at the render frame rate.
+// Keep the original 2-second swing cycle and impact time.
+if(digging&&smoothSwing){
+ const t=((rigSwing%1)+1)%1;
+ const frames=[
+  [0,0,0],[.36,-1,-1],[.53,-1.14,-1.15],[.675,1,1],
+  [.83,.24,.30],[1,0,0]
+ ];
+ let ux=0,uy=0;
+ for(let i=1;i<frames.length;i++)if(t<=frames[i][0]){
+  const a=frames[i-1],b=frames[i];
+  const k0=(t-a[0])/(b[0]-a[0]);
+  const k=k0*k0*(3-2*k0);
+  ux=a[1]+(b[1]-a[1])*k;
+  uy=a[2]+(b[2]-a[2])*k;
+  break;
+ }
+ const low=poseValue>=5.5,mid=poseValue>=2.5&&!low;
+ const swingX=low?17:mid?27:34;
+ const swingY=low?7:mid?13:25;
+ const lift=low?8:mid?16:25;
+ const back=low?10:mid?18:25;
+ const shiftX=ux>=0?ux*swingX:ux*back;
+ const shiftY=uy>=0?uy*swingY:uy*lift;
+ pose.hand[0]+=shiftX;pose.hand[1]+=shiftY;
+ pose.elbow[0]+=shiftX*.64;pose.elbow[1]+=shiftY*.65;
+ // Standing and crouched miners grip with both hands; prone braces one arm.
+ if(!low){
+  pose.farHand[0]+=shiftX*.72;pose.farHand[1]+=shiftY*.73;
+  pose.farElbow[0]+=shiftX*.43;pose.farElbow[1]+=shiftY*.43;
+ }
+}
+// Face both directions by mirroring the rig about the character's origin.
+const at=k=>[px+d*pose[k][0],foot+pose[k][1]];
+function strokeBone(a,b,width=4,color='#ead2a7'){
+ const A=at(a),B=at(b);g.strokeStyle=color;g.lineWidth=width;g.lineCap='round';g.beginPath();g.moveTo(A[0],A[1]);g.lineTo(B[0],B[1]);g.stroke();
+}
+function node(k,r=3){const A=at(k);g.fillStyle='#dbad72';g.beginPath();g.arc(A[0],A[1],r,0,Math.PI*2);g.fill()}
+const head=at('head'),hand=at('hand'),hip=at('hip'),fhand=at('farHand');
+const [motionName,motionFrame]=animationChoice(moving,digging,poseValue);
+// Only the ORIGINAL PNG artwork is preferred when imported. Never use a
+// reconstructed skeleton as the default character.
+const motionImage=spriteEnabled&&(window.DepthsFullArt?.get(motionName,motionFrame)||
+ window.DepthMotions?.get(motionName,motionFrame));
+// Tweened joint rig is the primary animation for mining and changing posture.
+// Old video sprites remain available as a comparison when Smooth swing is OFF.
+// Original approved character artwork is authoritative by default.
+// The reconstructed joint rig is strictly opt-in and never replaces walking.
+const rigOpacity=smoothSwing&&!moving&&window.OriginalSkeletonRig?.ready()?rigBlend:0;
+// A retained frame provides a visual bridge at walk/idle, crawl/mine, and
+// posture-animation boundaries. The movement system and posture locks do not change.
+if(!smoothSwing&&motionImage&&lastDrawnMotion&&lastDrawnMotion.name!==motionName&&lastDrawnMotion.dir===d){
+ blendFromMotion=lastDrawnMotion;blendStartMs=t;
+}
+if(!motionImage||smoothSwing){blendFromMotion=null;lastDrawnMotion=null;}
+// Keep visual style consistent while the new atlases load: fall back to the joint rig, not 012 vector artwork.
+const legacyWalk=false;
+const useGameRigWalking=gameRigWalkEnabled&&moving&&!scoot&&!transitionHold&&poseValue<.5&&!!window.DepthsGameWalk050?.ready();
+const spriteWalking=!useGameRigWalking&&(!!motionImage||legacyWalk);
+let gameRigHead=null,gameRigHip=null;
+let spriteDraw=null;
+activeMotion=motionImage?motionName:(legacyWalk?'OLD WALK':'RIG');
+if(useGameRigWalking){
+ const geometry=window.DepthsGameWalk050.draw(g,{phase:uprightPhase,x:px,y:BASE,dir:d});
+ if(geometry){gameRigHead=geometry.head;gameRigHip=geometry.hip;activeMotion='APPROVED RIG 049A';}
+ lastDrawnMotion=null;blendFromMotion=null;stanceOffset=0;
+}else if(spriteWalking){
+ let spriteWorldX=px;
+ if(motionImage&&motionName==='walk'&&!scoot){
+  const mr=motionImage.motionReference;
+  if(mr) spriteWorldX+=walkingStanceOffset(motionImage,mr,motionFrame,d,px,(motionImage.fullDetailScale||motionScale(motionName,motionFrame)).sx,t);
+ }else{stanceAnchor=null;stanceSide=null;stanceLastFrame=null;stanceOffset=0;}
+ g.save();g.translate(spriteWorldX,BASE);g.scale(d,1);
+ if(motionImage){
+  const b=motionImage.bodyBox||{x:0,y:0,w:256,h:208};
+  const reference=motionImage.motionReference||{height:b.h,centerX:b.x+b.w/2};
+  const {sx,sy}=motionImage.fullDetailScale||motionScale(motionName,motionFrame);
+  const x=-reference.centerX*sx;
+  // All original walk frames share a floor datum, preventing per-frame bob.
+  // W3: fix the boot baseline from the approved source image itself.
+  // This is a small Y-only correction. We do not shift the torso sideways
+  // or reinterpret body joints, which would risk changing his silhouette.
+  const usePlant=footPlant&&walkGrounded&&motionName==='walk'&&motionImage.isOriginalArtwork;
+  const footOffset=usePlant&&Number.isFinite(reference.plantedFootY)?
+    reference.plantedFootY:
+    (walkGrounded&&motionName==='walk'&&motionImage.isOriginalArtwork&&Number.isFinite(reference.footY))?reference.footY:(b.y+b.h);
+  const y=-footOffset*sy;
+  spriteDraw={x,y,sx,sy};
+  g.imageSmoothingEnabled=true;
+  const rawBlend=blendFromMotion?Math.max(0,Math.min(1,(t-blendStartMs)/MOTION_BLEND_MS)):1;
+  const spriteOpacity=smoothSwing?1-rigOpacity:1;
+  const easeBlend=rawBlend*rawBlend*(3-2*rawBlend);
+  const outgoingWeight=blendFromMotion&&rawBlend<1?1-easeBlend:0;
+  if(rawBlend>=1)blendFromMotion=null;
+  // One calibrated world-space size across all nine animation sequences.
+  // Ground contact is locked; only actual anatomy in the source can move.
+  // The walking source is not a perfect closed cycle. Blend the last frame
+  // into the first over a short distance-based interval to avoid a hard pop.
+  let seamFrame=null,seamBlend=0;
+  if(motionName==='walk'&&moving&&walkSeamBlend){
+   const phaseSource=walkPolish?uprightPhase:walkFrameTime;
+   const phase01=((phaseSource*walkCycleSpeed)%1+1)%1;
+   const slot=phase01*7;
+   if(slot>=6){
+    seamBlend=Math.max(0,Math.min(1,(slot-6)));
+    seamBlend=seamBlend*seamBlend*(3-2*seamBlend);
+    seamFrame=window.DepthsFullArt?.get('walk',walkReverse?6:0)||window.DepthMotions?.get('walk',walkReverse?6:0)||null;
+   }
+  }
+  if(seamFrame&&seamBlend>0){
+   g.globalAlpha=spriteOpacity*(1-outgoingWeight)*(1-seamBlend);
+   g.drawImage(motionImage,x,y,motionImage.width*sx,motionImage.height*sy);
+   const sb=seamFrame.bodyBox||{x:0,y:0,w:256,h:208};
+   const sr=seamFrame.motionReference||reference;
+   g.globalAlpha=spriteOpacity*(1-outgoingWeight)*seamBlend;
+   const seamFoot=(walkGrounded&&seamFrame.isOriginalArtwork&&Number.isFinite(sr.footY))?sr.footY:(sb.y+sb.h);
+   g.drawImage(seamFrame,-sr.centerX*sx,-seamFoot*sy,seamFrame.width*sx,seamFrame.height*sy);
+   g.globalAlpha=1;
+  }else{
+   // Continuous visual blending of adjacent existing mining poses at render FPS.
+   // This creates interpolated appearances, not new anatomical 2D rig frames.
+   // No frame crossfading: it caused double arms and flashing.
+   const interp=null;
+   const nextImage=interp&&interp.from!==interp.to?
+     window.DepthsFullArt?.get(motionName,interp.to)||window.DepthMotions?.get(motionName,interp.to):null;
+   if(nextImage&&interp.mix>0){
+    g.globalAlpha=spriteOpacity*(1-outgoingWeight)*(1-interp.mix);
+    g.drawImage(motionImage,x,y,motionImage.width*sx,motionImage.height*sy);
+    const nb=nextImage.bodyBox||{x:0,y:0,w:256,h:208};
+    const nr=nextImage.motionReference||reference;
+    g.globalAlpha=spriteOpacity*(1-outgoingWeight)*interp.mix;
+    g.drawImage(nextImage,-nr.centerX*sx,-(nb.y+nb.h)*sy,nextImage.width*sx,nextImage.height*sy);
+   }else{
+    g.globalAlpha=spriteOpacity*(1-outgoingWeight);
+    g.drawImage(motionImage,x,y,motionImage.width*sx,motionImage.height*sy);
+   }
+   g.globalAlpha=1;
+  }
+  if(outgoingWeight>0&&blendFromMotion){
+   const previous=blendFromMotion;
+   const prevBox=previous.img.bodyBox||{x:0,y:0,w:256,h:208};
+   const prevRef=previous.img.motionReference||{centerX:prevBox.x+prevBox.w/2};
+   const prevScale=previous.img.fullDetailScale||motionScale(previous.name,previous.frame);
+   g.globalAlpha=spriteOpacity*outgoingWeight;
+   g.drawImage(previous.img,-prevRef.centerX*prevScale.sx,
+     -(prevBox.y+prevBox.h)*prevScale.sy,previous.img.width*prevScale.sx,previous.img.height*prevScale.sy);
+   g.globalAlpha=1;
+  }
+  lastDrawnMotion={name:motionName,frame:motionFrame,img:motionImage,dir:d};
+ }else{
+  const frame=Math.floor(walkFrameTime*12)%12;
+  g.drawImage(walkSheet,(frame%4)*80,Math.floor(frame/4)*120,80,120,-60,-180,120,180);
+ }
+ g.restore();
+}
+// Duffel is attached to the hip; visibly sways and grows with spoil load.
+const bagSway=moving?Math.sin(rigStride-0.8)*4:0;
+const bagHip=gameRigHip?[gameRigHip.x,gameRigHip.y]:hip;
+g.fillStyle='#51483f';g.strokeStyle='#a58e71';g.lineWidth=2;
+g.beginPath();g.ellipse(bagHip[0]-d*(13+bag*.3)+bagSway,bagHip[1]+6,10+bag*.65,11+bag*.65,-d*.17,0,Math.PI*2);g.fill();g.stroke();
+g.strokeStyle='#b3a08a';g.lineWidth=1.7;g.beginPath();
+g.moveTo(bagHip[0]-d*3,bagHip[1]-4);g.lineTo(bagHip[0]-d*13+bagSway,bagHip[1]-8);g.stroke();
+// Detailed articulated graphite character, fitted to the SAME joints as the
+// existing rig. First production test: standing mining only (other states
+// retain their proven sprite playback/temporary rig).
+// Keep the skinned body during the fade into/out of standing mining as well.
+const useOriginalRig=rigOpacity>.001&&!!window.OriginalSkeletonRig;
+if(useOriginalRig){
+ g.save();g.translate(px,BASE);g.scale(d,1);
+ window.OriginalSkeletonRig.draw(g,{...pose,_poseValue:poseValue},1);
+ g.restore();
+}else if((!spriteWalking&&!useGameRigWalking)||rigOpacity>0.001){
+g.save();g.globalAlpha=motionImage?rigOpacity:1;
+strokeBone('hip','farKnee',3,'#8e8b81');strokeBone('farKnee','farAnkle',3,'#8e8b81');strokeBone('farAnkle','farToe',3,'#8e8b81');
+strokeBone('shoulder','farElbow',3,'#8e8b81');strokeBone('farElbow','farHand',3,'#8e8b81');
+strokeBone('hip','shoulder',6);strokeBone('hip','knee',4);strokeBone('knee','ankle',4);strokeBone('ankle','toe',3);
+strokeBone('shoulder','elbow',4);strokeBone('elbow','hand',4);
+for(const k of ['hip','shoulder','knee','ankle','elbow','hand','farKnee','farElbow'])node(k,k==='hip'?3.4:2.7);
+// Subtle floor-contact marks show weight changing from boots to knees to palms.
+// They are attached to the grounded joints rather than sliding with the torso.
+if(transitionHold){
+ const contactKeys=poseValue<2.9?['toe','farToe']:
+                   poseValue<3.9?['knee','farKnee','toe']:
+                   poseValue<5.5?['knee','farKnee','hand','farHand']:
+                   ['elbow','farElbow','toe','farToe'];
+ for(const k of contactKeys){
+  const A=at(k);const cy=BASE;
+  if(Math.abs(A[1]-cy)<15){
+   g.strokeStyle='rgba(226,183,117,.37)';g.lineWidth=2;
+   g.beginPath();g.moveTo(A[0]-7,cy+2);g.lineTo(A[0]+7,cy+2);g.stroke();
+  }
+ }
+}
+g.fillStyle='#202326';g.strokeStyle='#ead2a7';g.lineWidth=3;
+g.beginPath();g.arc(head[0],head[1],11,0,Math.PI*2);g.fill();g.stroke();
+// Helmet shell and headlamp move with the head (independent of torso pose).
+g.strokeStyle='#a6aba9';g.lineWidth=4;g.beginPath();
+g.arc(head[0],head[1]-2,13,d>0?Math.PI*1.12:Math.PI*1.08,d>0?Math.PI*1.87:Math.PI*1.88);g.stroke();
+g.restore();
+}
+const spriteHead=motionImage?.headPoint;
+const spriteHeadX=spriteHead&&spriteDraw?(px+(motionName==='walk'&&!scoot?stanceOffset:0))+d*(spriteDraw.x+spriteHead.x*spriteDraw.sx):head[0];
+const spriteHeadY=spriteHead&&spriteDraw?BASE+spriteDraw.y+spriteHead.y*spriteDraw.sy:head[1];
+const headX=gameRigHead?gameRigHead.x:spriteHeadX+(head[0]-spriteHeadX)*rigOpacity;
+const headY=gameRigHead?gameRigHead.y:spriteHeadY+(head[1]-spriteHeadY)*rigOpacity;
+const lx=headX+d*13,ly=headY-3;
+const beam=g.createLinearGradient(lx,ly,lx+d*225,ly);beam.addColorStop(0,'rgba(255,210,140,.23)');beam.addColorStop(1,'rgba(255,210,140,0)');
+g.fillStyle=beam;g.beginPath();g.moveTo(lx,ly);g.lineTo(lx+d*225,ly-66);g.lineTo(lx+d*225,ly+66);g.closePath();g.fill();
+g.fillStyle='#ffe3b0';g.shadowColor='#f5cb88';g.shadowBlur=17;g.beginPath();g.arc(lx,ly,5,0,Math.PI*2);g.fill();g.shadowBlur=0;
+// Draw a single rigid pickaxe tied directly to animated wrist/hand joints.
+// No overlaid pickaxe images, no rapidly flashing video poses.
+if(mode==='excavate'&&phase==='manual'&&(rigOpacity>.001||!motionImage)){
+ const cycle=((rigSwing%1)+1)%1;
+ const low=poseValue>=5.5;
+ const len=low?24:poseValue>=2.5?35:43;
+ let ang=-.72;
+ if(digging){
+  // Slowly raise, accelerate downward and forward to hit, then recover.
+  const keys=[[0,-.70],[.36,-1.82],[.53,-1.94],[.675,-.15],[.83,-.58],[1,-.70]];
+  for(let i=1;i<keys.length;i++)if(cycle<=keys[i][0]){
+   const a=keys[i-1],b=keys[i];
+   let k=(cycle-a[0])/(b[0]-a[0]);k=k*k*(3-2*k);
+   ang=a[1]+(b[1]-a[1])*k;break;
+  }
+ }
+ const cx=hand[0],cy=hand[1],tipx=cx+d*len*Math.cos(ang),tipy=cy+len*Math.sin(ang);
+ g.save();g.globalAlpha=motionImage?rigOpacity:1;
+ g.strokeStyle='#9b7246';g.lineWidth=low?3.4:4.1;g.lineCap='round';
+ g.beginPath();g.moveTo(cx-d*7*Math.cos(ang),cy-7*Math.sin(ang));
+ g.lineTo(tipx,tipy);g.stroke();
+ g.strokeStyle='#b8bebd';g.lineWidth=4.4;g.beginPath();
+ const v=low?8:13;
+ g.moveTo(tipx-d*v*Math.sin(ang),tipy+v*Math.cos(ang));
+ g.lineTo(tipx+d*v*Math.sin(ang),tipy-v*Math.cos(ang));g.stroke();
+ g.restore();
+}
+if(phase==='dump'){
+g.fillStyle='#bca68a';for(let i=0;i<18;i++){const yy=BASE+((t/14+i*31)%160);const xx=EDGE*CW-15+(Math.sin(i*8+t/180)*13);g.fillRect(xx,yy,3+i%3,3+i%4)}
+}
+for(let i=fx.length-1;i>=0;i--){
+ const f=fx[i],age=(performance.now()-f.t)/1000;
+ const life=f.kind==='break'?.95:.52;
+ if(age>life){fx.splice(i,1);continue}
+ const fade=Math.max(0,1-age/life);
+ const count=f.kind==='break'?17:7;
+ for(let k=0;k<count;k++){
+  // Reproducible chips: varied direction, falling under gravity.
+  const direction=Math.sin((f.seed+k*17.13)*1.71);
+  const height=Math.cos((f.seed+k*5.72)*1.11);
+  const velocity=(f.kind==='break'?65:30);
+  const x=f.x+direction*velocity*age-f.dir*12*age;
+  const y=f.y+height*velocity*.6*age+age*age*130;
+  const size=k%4===0?3:2;
+  g.fillStyle=k%5===0?'rgba(218,186,122,'+fade*.85+')':
+    'rgba(112,104,92,'+fade*.8+')';
+  g.fillRect(x,y,size,size);
+ }
+ if(f.kind==='impact'&&age<.12){
+  const flare=1-age/.12;
+  g.strokeStyle='rgba(245,201,130,'+flare*.75+')';
+  g.lineWidth=1.3;g.beginPath();
+  g.moveTo(f.x-5,f.y);g.lineTo(f.x+5,f.y);
+  g.moveTo(f.x,f.y-5);g.lineTo(f.x,f.y+5);g.stroke();
+ }
+}
+g.restore();
+if(phase==='manual'&&mode==='excavate'&&(aimReady()||(moveDir&&hAt(p.x+moveDir)<target))){
+g.fillStyle='rgba(220,178,103,.10)';g.fillRect(w-165,12,145,22);g.fillStyle='#dec08d';g.font='14px system-ui';g.fillText('Rock '+Math.floor(digElapsed/4*100)+'%',w-152,28)
+}
+}
+function loop(t){const dt=last?Math.min(.06,(t-last)/1000):0;last=t;
+advanceDragIntent();
+const desired=transitionHold?transitionGoal:(pendingRise!==null||pendingLower!==null?rigPose:(aimTarget?aimTarget.pose:(nextDigPose()??poseFor(p.x))));
+const delta=desired-rigPose;
+rigPose+=Math.sign(delta)*Math.min(Math.abs(delta),dt*6/1.8);
+if(transitionHold&&poseReady(transitionGoal)){
+ if(p.x!==lockedX){lockViolations++;p.x=lockedX}
+ transitionHold=false;transitionGoal=null;lockedX=null;lockedCam=null;elapsed=0;
+ // Complete the boundary step only AFTER finishing the lowering animation.
+ if(pendingStepTo!==null){
+  const from=visualX,to=pendingStepTo;
+  p.x=to;pendingStepTo=null;
+  if(pendingScoot&&scootEnabled)beginMiningScoot(from,to,rigPose,p.dir);
+  pendingScoot=false;
+ }
+}
+animState=transitionHold?'TRANSITION':scoot?'SCOOT '+scootPhase().name.toUpperCase():(phase==='dump'?'DUMP':phase==='return'||phase==='resume'?'AUTO TRAVEL':moveDir?'MOVING':'IDLE');
+action(dt);
+// Move the rendered character smoothly towards each gameplay tile center.
+// During posture changes both world position and visual position remain locked.
+let moved=0;
+if(scoot){
+ // Game position and sprite progression share a single easing clock.
+ // This avoids moonwalking or snapping forward before the animation plays.
+ const from=visualX;
+ scoot.elapsed=Math.min(scoot.duration,scoot.elapsed+dt);
+ const stage=scootPhase();
+ // No world translation during brace or settle; only the pull moves.
+ const t=stage.name==='brace'?0:stage.name==='settle'?1:stage.fraction;
+ const eased=t*t*(3-2*t);
+ visualX=scoot.from+(scoot.to-scoot.from)*eased;
+ moved=visualX-from;
+ if(scoot.elapsed>=scoot.duration){visualX=scoot.to;scoot=null;scootsCompleted++;}
+}else if(!transitionHold){
+ const diff=p.x-visualX;
+ const walkTravelSpeed=gameRigWalkEnabled&&rigPose<.5?APPROVED_WALK_CELLS_PER_SECOND:WALK_CELLS_PER_SECOND;
+ moved=Math.sign(diff)*Math.min(Math.abs(diff),walkTravelSpeed*dt);
+ visualX+=moved;
+}else visualX=p.x;
+visualMoving=!transitionHold&&Math.abs(moved)>1e-5;
+// W7: upright idle now resolves to source standCrouch frame 0 rather than
+// freezing arbitrary mid-stride walking artwork. Stride clocks continue to
+// track travel distance, but don't determine the final resting body pose.
+const uprightNow=visualMoving&&!scoot&&rigPose<.5&&!transitionHold;
+if(visualMoving){
+ rigStride+=Math.abs(moved)*2.9;
+ walkFrameTime+=Math.abs(moved)/WALK_CELLS_PER_CYCLE;
+}
+if(uprightNow){
+ uprightPhase+=Math.abs(moved)/(gameRigWalkEnabled?APPROVED_WALK_CELLS_PER_CYCLE:UPRIGHT_CELLS_PER_CYCLE);
+ const legacyFrame=Math.floor(walkFrameTime*7*walkCycleSpeed)%7;
+ uprightStopFrame=walkPolish?uprightFrame():(walkReverse?6-legacyFrame:legacyFrame);
+}
+// When an upright walk ends, roll through up to three actual nearby
+// source poses to an end-of-stride frame, then settle into feet-down idle.
+// Avoid mid-step frozen feet, a teleport, and a new stride during rest.
+if(uprightNow){walkStop=null;}
+else if(uprightWasMoving&&!uprightNow&&!transitionHold&&!scoot&&rigPose<.5){
+ startWalkStop(uprightStopFrame??0);
+}else if(walkStop){
+ if(transitionHold||scoot||rigPose>=.5||miningReady()){walkStop=null;}
+ else tickWalkStop(dt);
+}
+uprightWasMoving=uprightNow;
+if(miningReady()){
+ const before=rigSwing;
+ rigSwing+=dt/SWING_SECONDS;
+ // One impact event per cycle at the accelerated portion of the downstroke.
+ const startCycle=Math.floor(before-.675),endCycle=Math.floor(rigSwing-.675);
+ for(let k=startCycle+1;k<=endCycle;k++)emitImpact();
+}else rigSwing=0;
+// Fade once at state boundaries; no repeatedly overlapping mining sprite poses.
+const wantRig=!!(smoothSwing&&!visualMoving&&
+  (transitionHold||miningReady()));
+const blendTarget=wantRig?1:0;
+rigBlend+=(blendTarget-rigBlend)*Math.min(1,dt*13);
+if(Math.abs(rigBlend-blendTarget)<.001)rigBlend=blendTarget;
+draw(t);update();$('progress').style.width=(phase==='manual'&&mode==='excavate'&&moveDir?clamp(digElapsed/4,0,1)*100:0)+'%';requestAnimationFrame(loop)}
+function bindHold(id,d){
+const b=$(id);
+const end=()=>{holding=false;moveDir=0;digElapsed=0};
+b.addEventListener('pointerdown',e=>{e.preventDefault();if(phase!=='manual')return;b.setPointerCapture(e.pointerId);holding=true;moveDir=d;p.dir=d});
+b.addEventListener('pointerup',end);b.addEventListener('pointercancel',end);b.addEventListener('lostpointercapture',end);
+}
+bindHold('left',-1);bindHold('right',1);
+// Canvas is a full-screen-relative touch surface, not a draggable joystick.
+// Diagonal-up targets the next unbroken ceiling tile in the adjacent column;
+// straight-up targets the miner's own overhead tile.
+const playCanvas=$('world');
+// Drag intent is deliberately separated from player movement. Diagonal
+// drags must never accidentally walk the miner into a low tunnel.
+function setGesture(e){
+ if(!canvasDrag||canvasDrag.id!==e.pointerId||phase!=='manual')return;
+ const dx=e.clientX-canvasDrag.x,dy=e.clientY-canvasDrag.y;
+ const distance=Math.hypot(dx,dy);
+ const min=19;
+ if(distance<min)return;
+ const drag=canvasDrag;
+ drag.dx=dx;drag.dy=dy;
+ // A slightly upward diagonal (including long horizontal reach) means aim.
+ // Earlier builds demanded a steep angle, incorrectly causing LEFT movement.
+ // A shallow upward aim still casts a beam through open rock columns;
+ // keep a minimum vertical commitment to distinguish ordinary LEFT/RIGHT travel.
+ const upward=mode==='excavate'&&dy<-18&&(-dy>=Math.abs(dx)*.12);
+ if(upward||drag.action==='aim'){
+  // Once aim has begun, it is latched until finger release. No movement.
+  moveDir=0;elapsed=0;
+  const hit=normalizeForwardAim(traceAim(dx,dy),dx,dy);
+  // Keep a continuous held mining path, not a one-and-done tile lock.
+  const changed=!aimTarget||aimTarget.x!==hit.x||
+    aimTarget.layer!==hit.layer||drag.action!=='aim';
+  drag.action='aim';
+  if(changed){
+   aimTarget={...hit,pose:poseFor(p.x),done:false};
+   digElapsed=0;rigSwing=0;widenArmed=false;
+  }else Object.assign(aimTarget,{hitX:hit.hitX,hitY:hit.hitY,
+    rayX:hit.rayX,rayY:hit.rayY});
+  p.dir=hit.dir; // face the target, without stepping
+  return;
+ }
+ // Allow a brief intent window for the vertical component of a diagonal
+ // gesture to arrive before the first horizontal gameplay step.
+ if(Math.abs(dx)>=22){
+  const direction=Math.sign(dx);
+  drag.candidate=direction;
+  const elapsedMs=performance.now()-drag.startedAt;
+  const clearlyHorizontal=Math.abs(dx)>=85&&Math.abs(dy)<14;
+  if(elapsedMs<145&&!clearlyHorizontal)return;
+  if(drag.action!=='move'||moveDir!==direction){
+   aimTarget=null;digElapsed=0;rigSwing=0;
+   activeExcavationCell=null;activeExcavationDir=0;
+  }
+  drag.action='move';
+  moveDir=direction;p.dir=direction;
+ }else{
+  moveDir=0;
+ }
+}
+playCanvas.addEventListener('pointerdown',e=>{
+ if(phase!=='manual'||canvasDrag)return;
+ e.preventDefault();
+ playCanvas.setPointerCapture(e.pointerId);
+ canvasDrag={id:e.pointerId,x:e.clientX,y:e.clientY,dx:0,dy:0,action:'waiting',startedAt:performance.now(),candidate:0};
+ moveDir=0;aimTarget=null;digElapsed=0;
+});
+playCanvas.addEventListener('pointermove',e=>{if(canvasDrag){e.preventDefault();setGesture(e)}});
+// The finger may stop moving before the intent window expires; resolve its
+// held drag on each frame rather than requiring another pointermove event.
+function advanceDragIntent(){
+ if(!canvasDrag||canvasDrag.action!=='waiting'||!canvasDrag.candidate)return;
+ if(performance.now()-canvasDrag.startedAt<145)return;
+ const dir=canvasDrag.candidate;
+ canvasDrag.action='move';moveDir=dir;p.dir=dir;
+}
+function endCanvasGesture(e){
+ if(!canvasDrag||canvasDrag.id!==e.pointerId)return;
+ canvasDrag=null;aimTarget=null;moveDir=0;digElapsed=0;rigSwing=0;
+}
+for(const name of ['pointerup','pointercancel','lostpointercapture'])
+ playCanvas.addEventListener(name,endCanvasGesture);
+
+$('widen').onclick=()=>{
+ if(phase!=='manual')return;
+ if(target<2){say('Choose 2-tile crouch or 3-tile standing height before widening a pocket.');return;}
+ if(mode!=='excavate'){mode='excavate';moveDir=0;digElapsed=0;}
+ widenArmed=!widenArmed;
+ activeExcavationCell=null;activeExcavationDir=0;digElapsed=0;
+ say(widenArmed?'Widen ARMED: hold LEFT or RIGHT toward an existing lower tunnel section to raise its roof. Movement remains free when widening is OFF.':'Widening off. Walk freely through open passages in either direction.');
+ update();
+};
+$('explore').onclick=()=>setMode('explore');$('excavate').onclick=()=>setMode('excavate');
+$('crawl').onclick=()=>setTarget(1);$('crouch').onclick=()=>setTarget(2);$('stand').onclick=()=>setTarget(3);
+$('brace').onclick=()=>{if(phase!=='manual')return;if(hAt(p.x)<2){say('Raise the passage to crouching height before installing a support.');return}braces.add(p.x);say('Support placed. It reinforces nearby tunnel sections so you can enlarge them to standing height.');update()};
+$('dump').onclick=()=>{if(phase!=='manual'||bag===0)return;returnX=p.x;phase='return';moveDir=0;say('Carrying the partly filled duffle bag to the ledge for dumping.')};
+$('originalArt').onclick=()=>$('originalFile').click();
+$('originalFile').addEventListener('change',async()=>{
+ const file=$('originalFile').files?.[0];if(!file)return;
+ $('originalArt').disabled=true;
+ try{await window.DepthsFullArt.install(file)}catch(e){say('Original artwork could not load: '+e.message)}
+ finally{$('originalArt').disabled=false;$('originalFile').value=''}
+});
+function refreshOriginalStatus(){
+ const state=window.DepthsFullArt?.state;
+ $('originalStatus').textContent=state?.message||'Original artwork not loaded';
+ $('originalArt').textContent=state?.ready?'💀 Original artwork ACTIVE · Replace ZIP':'💀 Load ORIGINAL artwork ZIP';
+ $('originalArt').classList.toggle('selected',!!state?.ready);
+}
+window.addEventListener('depths-art-status',refreshOriginalStatus);
+refreshOriginalStatus();
+$('reset').onclick=reset;
+$('walkCourse').onclick=()=>{longWalkCourse=!longWalkCourse;reset()};
+$('gameRigWalk').onclick=()=>{gameRigWalkEnabled=!gameRigWalkEnabled;$('gameRigWalk').textContent=gameRigWalkEnabled?'💀 Approved rig walk ON':'🎞 Legacy sprite walk ON';$('gameRigWalk').classList.toggle('selected',gameRigWalkEnabled)};
+$('zoom').onclick=()=>{zoomed=!zoomed;$('zoom').textContent=zoomed?'🔍 Close-up camera ON':'🔭 Wide camera ON';$('zoom').classList.toggle('selected',zoomed)};
+$('sprite').onclick=()=>{spriteEnabled=!spriteEnabled;$('sprite').textContent=spriteEnabled?'🎞 Video animations ON':'🦴 Rig animations ON';$('sprite').classList.toggle('selected',spriteEnabled)};
+$('walkDirection').onclick=()=>{walkReverse=!walkReverse;walkFrameTime=0;$('walkDirection').textContent=walkReverse?'🚶 Walk cycle: reversed':'🚶 Walk cycle: original'};
+$('walkGround').onclick=()=>{walkGrounded=!walkGrounded;$('walkGround').textContent=walkGrounded?'🥾 Ground lock ON':'🥾 Ground lock OFF';$('walkGround').classList.toggle('selected',walkGrounded)};
+$('walkSeam').onclick=()=>{walkSeamBlend=!walkSeamBlend;$('walkSeam').textContent=walkSeamBlend?'🔗 Seam blend ON':'🔗 Seam blend OFF';$('walkSeam').classList.toggle('selected',walkSeamBlend)};
+$('walkPolish').onclick=()=>{walkPolish=!walkPolish;$('walkPolish').textContent=walkPolish?'👣 Fast cadence ON':'👣 Fast cadence OFF';$('walkPolish').classList.toggle('selected',walkPolish);
+ // Switching cadence must not change ground contact, seam setting or idle pose.
+ // Both clocks count full walk cycles; copy the current phase to avoid a
+ // discontinuous frame when changing only the walking cadence.
+ if(walkPolish)uprightPhase=walkFrameTime;
+ else walkFrameTime=uprightPhase;
+ uprightStopFrame=null;};
+$('footPlant').onclick=()=>{footPlant=!footPlant;$('footPlant').textContent=footPlant?'🥾 Foot plant ON':'🥾 Foot plant OFF';$('footPlant').classList.toggle('selected',footPlant);stanceAnchor=null;stanceOffset=0};
+$('stanceLock').onclick=()=>{stanceLock=!stanceLock;$('stanceLock').textContent=stanceLock?'⚓ Foot lock ON':'⚓ Foot lock OFF';$('stanceLock').classList.toggle('selected',stanceLock);stanceAnchor=null;stanceOffset=0};
+$('mineScoot').onclick=()=>{scootEnabled=!scootEnabled;$('mineScoot').textContent=scootEnabled?'🐾 Mining scoot ON':'🐾 Mining scoot OFF';$('mineScoot').classList.toggle('selected',scootEnabled);if(!scootEnabled)scoot=null};
+$('swingBlend').onclick=()=>{smoothSwing=!smoothSwing;$('swingBlend').textContent=smoothSwing?'🧪 Experimental rig ON':'🧪 Experimental rig OFF';$('swingBlend').classList.toggle('selected',smoothSwing)};
+const pressed=new Set();document.addEventListener('keydown',e=>{if(e.target.tagName==='BUTTON'||e.target.tagName==='INPUT')return;let dir=e.key==='ArrowLeft'||e.key==='a'?-1:e.key==='ArrowRight'||e.key==='d'?1:0;if(dir){e.preventDefault();pressed.add(e.key);if(phase==='manual'){moveDir=dir;p.dir=dir}}});document.addEventListener('keyup',e=>{pressed.delete(e.key);if(!pressed.size){moveDir=0;digElapsed=0}});window.addEventListener('blur',()=>{pressed.clear();moveDir=0;digElapsed=0});
+reset();requestAnimationFrame(loop);
+})();
+</script>
+<script src="assets/motion-lab.js"></script></body></html>
