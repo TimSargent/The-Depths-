@@ -1,0 +1,147 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>The Depths — Crouch to Prone 061G</title>
+<style>*{box-sizing:border-box}body{margin:0;background:#0d1214;color:#efe0cc;font:14px system-ui,-apple-system,sans-serif}main{max-width:850px;margin:0 auto;padding:14px}.tag{font-size:11px;color:#e8bd81;letter-spacing:1.6px;font-weight:700}h1{font-size:25px;margin:7px 0}p{color:#bdb1a3;line-height:1.5}.stage{background:#171b1d;border:1px solid #605141;border-radius:10px;padding:10px}canvas{display:block;width:100%;aspect-ratio:600/336;background:#101619;border-radius:6px}.bar{display:flex;flex-wrap:wrap;gap:7px;margin:12px 0}.ctrl{background:#191d1f;border:1px solid #574c40;border-radius:9px;padding:12px;margin-top:9px}button{border:1px solid #b68d5f;background:#5e4630;color:#f8e0bf;font:inherit;padding:9px 11px;border-radius:7px;cursor:pointer}button:disabled{opacity:.45}label{display:block;font-size:12px;color:#e5caa9;margin-top:12px}input[type=range]{width:100%;accent-color:#ddb37d}.status{font-size:12px;color:#eecb96;line-height:1.5;margin:10px 0}small{color:#b9a997}a{color:#e7bd85}</style></head><body><main>
+<div class="tag">THE DEPTHS · 061G · OPTICAL FLOW + INDEPENDENT HEAD TRACK</div><h1>Crouch → Prone · 061G ⛏️</h1>
+<p><b>Locally reviewed motion pass.</b> Optical-flow vectors guide the 49 in-between frames while the head is tracked as a separate graphite component to prevent duplicate heads. There is no directional image wipe, no per-frame resizing, and all eight original artist poses remain unchanged.</p>
+<div class="stage"><canvas id="view" width="600" height="336"></canvas><small id="info">Loading motion reference…</small></div>
+<div class="ctrl"><div class="bar"><button id="play">⏸ Pause</button><button id="restart">↩ Restart</button><button id="back">◀ Frame</button><button id="forward">Frame ▶</button><button id="source">Show original poses</button><button id="import">Load art ZIP</button><input id="zip" type="file" accept=".zip" hidden></div>
+<label>Frame <b id="frameLabel">0 / 56</b><input id="scrub" type="range" min="0" max="56" value="0" step="1"></label><label>Full forward/reverse cycle <b id="speedLabel">4.0 seconds</b><input id="speed" type="range" min="2" max="8" value="4" step=".2"></label>
+<div id="status" class="status">Restoring original artwork and motion fields…</div></div>
+<p><b>Prototype limitations:</b> arms, hands, and other thin pencil contours may still overlap briefly where hand-drawn poses differ. Unlike the old wipe, all parts of the sprite move simultaneously. This is not yet an approved final skin. <a href="motion-mesh-061e.html">061E comparison</a> and <a href="playtest-050f.html">approved gameplay</a> are unchanged.</p>
+<script src="assets/full-detail-037.js?v=061g"></script><script>
+(()=>{'use strict';
+const W=440,H=270,GW=12,GH=8;
+const packed="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";
+const $=id=>document.getElementById(id),display=$('view').getContext('2d'),view=document.createElement('canvas');
+view.width=W;view.height=H;const ctx=view.getContext('2d',{willReadFrequently:true});
+const CROP={x:70,y:100,w:300,h:168};
+let libraryFrames=[],rgba=[],body=[],head=[],frames=[],flows=[],ready=false,working=false,playing=true,showSource=false,last=0,clock=0,position=0,fail='';
+const headCenters=[[244,122],[251,118],[289,130],[298,136],[297,142],[307,157],[310,168],[307,184]];
+const make=()=>{let c=document.createElement('canvas');c.width=W;c.height=H;return c};
+const smooth=t=>t*t*(3-2*t);
+async function decodeFlows(){
+ const zipped=Uint8Array.from(atob(packed),c=>c.charCodeAt(0));
+ if(typeof DecompressionStream!=='function')throw Error('This browser does not support compressed motion data.');
+ const stream=new Blob([zipped]).stream().pipeThrough(new DecompressionStream('deflate'));
+ const raw=new Uint8Array(await new Response(stream).arrayBuffer());
+ if(raw.length!==7*2*GW*GH*2)throw Error('Invalid motion data size '+raw.length);
+ const fieldSize=GW*GH*2;
+ for(let q=0;q<14;q++){
+  const field=new Float32Array(W*H*2),base=q*fieldSize;
+  for(let y=0;y<H;y++){
+   const yy=(y+.5)*GH/H-.5,cy=Math.max(0,Math.min(GH-1,Math.floor(yy))),ny=Math.min(GH-1,cy+1),v=Math.max(0,Math.min(1,yy-cy));
+   for(let x=0;x<W;x++){
+    const xx=(x+.5)*GW/W-.5,cx=Math.max(0,Math.min(GW-1,Math.floor(xx))),nx=Math.min(GW-1,cx+1),u=Math.max(0,Math.min(1,xx-cx)),off=(y*W+x)*2;
+    for(let ch=0;ch<2;ch++){
+     const get=(gx,gy)=>((raw[base+(gy*GW+gx)*2+ch]<<24)>>24)/2;
+     field[off+ch]=(get(cx,cy)*(1-u)+get(nx,cy)*u)*(1-v)+(get(cx,ny)*(1-u)+get(nx,ny)*u)*v;
+    }
+   }
+  }
+  flows.push(field);
+ }
+}
+function grabOriginals(all){
+ const x0=Math.min(...all.map(im=>im.sourceX||0)),y0=Math.min(...all.map(im=>im.sourceY||0));
+ const x1=Math.max(...all.map(im=>(im.sourceX||0)+im.width)),y1=Math.max(...all.map(im=>(im.sourceY||0)+im.height));
+ const scale=Math.min((W-36)/(x1-x0),(H-34)/(y1-y0));
+ const ox=(W-(x1-x0)*scale)/2-x0*scale,oy=H-16-y1*scale;
+ libraryFrames=all.map(im=>{
+  const c=make(),g=c.getContext('2d',{willReadFrequently:true});
+  g.drawImage(im,(im.sourceX||0)*scale+ox,(im.sourceY||0)*scale+oy,im.width*scale,im.height*scale);
+  return c;
+ });
+ rgba=libraryFrames.map(c=>c.getContext('2d',{willReadFrequently:true}).getImageData(0,0,W,H).data);
+ body=[];head=[];
+ for(let i=0;i<8;i++){
+  const b=new Uint8ClampedArray(rgba[i]),h=new Uint8ClampedArray(rgba[i]);
+  const [cx,cy]=headCenters[i];
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+   const p=(y*W+x)*4,d=Math.hypot(x-cx,y-cy);
+   const mask=Math.max(0,Math.min(1,(20-d)/4));
+   b[p+3]=Math.round(b[p+3]*(1-mask));
+   h[p+3]=Math.round(h[p+3]*mask);
+  }
+  body.push(b);head.push(h);
+ }
+}
+function sample(buf,x,y,k){
+ if(x<0||y<0||x>=W-1||y>=H-1)return 0;
+ const ix=Math.floor(x),iy=Math.floor(y),u=x-ix,v=y-iy,p=(iy*W+ix)*4+k;
+ return buf[p]*(1-u)*(1-v)+buf[p+4]*u*(1-v)+buf[p+W*4]*(1-u)*v+buf[p+W*4+4]*u*v;
+}
+function tween(i,t){
+ if(t<=0)return libraryFrames[i];
+ const eased=smooth(t),A=body[i],B=body[i+1],forward=flows[i*2],back=flows[i*2+1];
+ const c=make(),g=c.getContext('2d'),data=g.createImageData(W,H),out=data.data;
+ for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+  const p=(y*W+x)*4,q=(y*W+x)*2;
+  const ax=x-eased*forward[q],ay=y-eased*forward[q+1],bx=x-(1-eased)*back[q],by=y-(1-eased)*back[q+1];
+  for(let k=0;k<4;k++)
+   out[p+k]=Math.round(sample(A,ax,ay,k)*(1-eased)+sample(B,bx,by,k)*eased);
+ }
+ // Animate the graphite head as its own part. Both heads are moved to the
+ // SAME intermediate location before crossfading. No second head silhouette.
+ const x0=headCenters[i][0],y0=headCenters[i][1],x1=headCenters[i+1][0],y1=headCenters[i+1][1];
+ const hx=x0*(1-eased)+x1*eased,hy=y0*(1-eased)+y1*eased;
+ for(let y=Math.max(0,Math.floor(hy-24));y<=Math.min(H-1,Math.ceil(hy+24));y++){
+  for(let x=Math.max(0,Math.floor(hx-24));x<=Math.min(W-1,Math.ceil(hx+24));x++){
+   const q=(y*W+x)*4,sa=[0,0,0,0],sb=[0,0,0,0];
+   for(let k=0;k<4;k++){
+    sa[k]=sample(head[i],x-(hx-x0),y-(hy-y0),k);
+    sb[k]=sample(head[i+1],x-(hx-x1),y-(hy-y1),k);
+   }
+   const headAlpha=(sa[3]*(1-eased)+sb[3]*eased)/255;
+   const bodyAlpha=out[q+3]/255,total=headAlpha+bodyAlpha*(1-headAlpha);
+   if(total<.00001)continue;
+   for(let k=0;k<3;k++){
+    const headColor=sa[k]*(1-eased)+sb[k]*eased;
+    out[q+k]=Math.round((headColor*headAlpha+out[q+k]*bodyAlpha*(1-headAlpha))/total);
+   }
+   out[q+3]=Math.round(total*255);
+  }
+ }
+ g.putImageData(data,0,0);return c;
+}
+async function prepare(){
+ if(working||ready)return;
+ const lib=window.DepthsFullArt;if(!lib?.state?.ready)return;
+ const art=Array.from({length:8},(_,i)=>lib.get('crouchProne',i));
+ if(art.some(x=>!x))return;
+ working=true;fail='';
+ try{
+  if(!flows.length)await decodeFlows();
+  grabOriginals(art);const out=Array(57);
+  for(let i=0;i<7;i++)for(let j=0;j<8;j++){
+   const n=i*8+j;out[n]=j===0?libraryFrames[i]:tween(i,j/8);
+   $('status').textContent='Preparing optical-flow animation '+(n+1)+'/57…';
+   await new Promise(requestAnimationFrame);
+  }
+  out[56]=libraryFrames[7];frames=out;ready=true;
+  $('status').textContent='✅ 57 frames prepared. No directional wipe, head tracked separately. 8 exact source keys + 49 flow-based in-betweens.';
+ }catch(e){fail=e.message;$('status').textContent='⚠ '+fail}finally{working=false}
+}
+function paint(){
+ display.clearRect(0,0,600,336);display.fillStyle='#101619';display.fillRect(0,0,600,336);
+ const n=Math.max(0,Math.min(56,position)),src=libraryFrames[Math.min(7,Math.round(n/8))],im=showSource?src:frames[n];
+ if(im)display.drawImage(im,CROP.x,CROP.y,CROP.w,CROP.h,0,0,600,336);
+ $('frameLabel').textContent=n+' / 56';$('speedLabel').textContent=$('speed').value+' seconds';
+ $('info').textContent=showSource?'Original artist pose '+(Math.round(n/8)+1)+' of 8':'Optical-flow animation frame '+n+' / 56';
+}
+function pause(){playing=false;$('play').textContent='▶ Play'}
+$('play').onclick=()=>{playing=!playing;$('play').textContent=playing?'⏸ Pause':'▶ Play'};
+$('restart').onclick=()=>{position=0;clock=0;playing=true;$('play').textContent='⏸ Pause'};
+function step(delta){pause();position=Math.max(0,Math.min(56,position+delta));$('scrub').value=position;paint()}
+$('back').onclick=()=>step(-1);$('forward').onclick=()=>step(1);
+$('scrub').oninput=()=>{pause();position=Number($('scrub').value);paint()};
+$('speed').oninput=paint;
+$('source').onclick=()=>{showSource=!showSource;$('source').textContent=showSource?'Show 061G motion':'Show original poses';paint()};
+$('import').onclick=()=>$('zip').click();
+$('zip').onchange=async()=>{try{const file=$('zip').files[0];if(!file)return;await window.DepthsFullArt.install(file);ready=false;fail='';frames=[];await prepare()}catch(e){fail=e.message;$('status').textContent='⚠ '+fail}};
+function loop(now){
+ const dt=last?Math.min(.06,(now-last)/1000):0;last=now;
+ if(!ready&&!working&&!fail)prepare();
+ if(ready&&playing){clock=(clock+dt/Number($('speed').value))%2;position=Math.round((clock<=1?clock:2-clock)*56);$('scrub').value=position}
+ paint();requestAnimationFrame(loop);
+}requestAnimationFrame(loop);
+})();
+</script></main></body></html>
