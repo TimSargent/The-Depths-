@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>The Depths — Anatomy Studio 053A</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;background:#0c0e10;color:#ece4d7;font:14px system-ui,-apple-system,Arial,sans-serif}
+main{max-width:1040px;margin:auto;padding:14px}.tag{font-size:11px;color:#d9b47e;letter-spacing:2px;font-weight:700}
+h1{font-size:clamp(23px,5vw,33px);margin:5px 0}p{color:#bcb2a5;line-height:1.5;font-size:13px;margin:7px 0 14px}
+a{color:#e3b87a}.panes{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pane{border:1px solid #564c40;border-radius:12px;background:#171b1e;padding:10px;min-width:0}
+.pane b{font-size:12px;color:#efc28d}canvas{width:100%;aspect-ratio:440/390;display:block;border-radius:8px;background:#0d1113;margin-top:8px}
+.panel{padding:12px;border:1px solid #4c463d;border-radius:10px;margin-top:11px;background:#17191b}
+.buttons{display:flex;flex-wrap:wrap;gap:7px}button,select{border:1px solid #79644a;border-radius:8px;background:#302e2b;color:#f2e4d0;padding:10px;font-size:13px;cursor:pointer}
+button.on{background:#735638;border-color:#d7b184}button{flex:1 1 130px}
+.slider{margin:12px 0}.slider label{font-size:12px;display:flex;justify-content:space-between}.slider input{width:100%;accent-color:#daa66f}
+small{color:#b8ad9d}.footnote{color:#d1b48d;font-size:12px;line-height:1.5}
+@media(max-width:590px){main{padding:9px}.pane{padding:6px}.panes{gap:5px}canvas{aspect-ratio:1/1.15}button{flex:1 1 130px}}
+</style></head><body><main>
+<div class="tag">THE DEPTHS · ANATOMY STUDIO 053A · NON-DESTRUCTIVE</div>
+<h1>💀 Native-Scale Graphite Studio</h1>
+<p>A corrected experimental rig built around the original graphite drawing's dimensions. Source parts keep their native sizes while joints rotate them. The approved walking, crawling, and gameplay animations remain unchanged.</p>
+<div class="panes">
+<section class="pane"><b>ORIGINAL ARTWORK · 8 source frames</b><canvas id="original" width="440" height="390"></canvas><small id="artLabel">Checking saved Animation Library…</small></section>
+<section class="pane"><b>NATIVE GRAPHITE · CONTINUOUS POSES</b><canvas id="joints" width="440" height="390"></canvas><small id="jointLabel">50% pose / game skeleton</small></section>
+</div>
+<section class="panel">
+<div class="buttons"><button id="play" class="on">⏸ Pause</button><button id="reverse">↕ Reverse direction ON</button><button id="marks">◎ Joints OFF</button><button id="overlay">◉ Ghost reference OFF</button><button id="compare">⇄ Legacy joints OFF</button><button id="skin" class="on">💀 Graphite skin ON</button></div>
+<div class="slider"><label>Transition <strong id="transitionText">Standing → Crouching</strong></label><select id="transition" style="width:100%"><option value="standCrouch">Standing → crouching</option><option value="crouchProne">Crouching → prone</option><option value="full">Standing → prone (complete)</option></select></div>
+<div class="slider"><label>Animation progress <strong id="progressText">0%</strong></label><input type="range" id="progress" min="0" max="1000" value="0" step="1"></div>
+<div class="slider"><label>Duration <strong id="durationText">3.0 seconds</strong></label><input id="duration" type="range" min="1.0" max="8.0" step=".25" value="3"></div>
+<div class="buttons"><button id="load">💀 Load original Animation Library ZIP</button><input id="zip" type="file" accept=".zip,application/zip" hidden><button id="export">⬇ Export joint key poses JSON</button></div>
+<div class="footnote"><strong>Prototype:</strong> The right panel attaches the original 049A graphite body crops to the 051C fixed-bone skeleton. The left panel intentionally retains the eight discrete reference frames. Original flattened-arm overlaps and temporary far-side limbs still require cleanup before gameplay integration.</div><div class="footnote" id="metrics">Fixed-length skeleton diagnostics</div><div class="footnote" id="status">Loading original artwork if saved in this browser…</div>
+</section>
+<p><b>Preserved:</b> <a href="playtest-050f.html">Game Playtest 050F</a> · <a href="rig-studio-049a.html">Approved Walk Studio 049A</a>. This studio is deliberately separate. This prototype uses native graphite body-part measurements. It has not yet been approved for gameplay.</p>
+</main>
+<script src="assets/full-detail-037.js?v=051a"></script>
+<script>
+(()=>{
+'use strict';
+const $=id=>document.getElementById(id);
+const original=$('original'),oc=original.getContext('2d');
+const joint=$('joints'),ctx=joint.getContext('2d');
+const floor=337,cx=218,scale=1.39;
+const poses=[
+// 0 — Upright: both feet stable; relaxed arms.
+{hip:[0,-65],shoulder:[0,-139],head:[3,-171],elbow:[16,-111],hand:[16,-88],farElbow:[-14,-113],farHand:[-12,-88],knee:[12,-34],ankle:[12,-6],toe:[24,0],farKnee:[-12,-34],farAnkle:[-12,-6],farToe:[-3,0]},
+// 1 — Lean at hips: feet remain planted; upper-body weight moves forward.
+{hip:[-2,-63],shoulder:[13,-132],head:[22,-164],elbow:[27,-105],hand:[33,-82],farElbow:[0,-108],farHand:[5,-85],knee:[12,-34],ankle:[12,-6],toe:[24,0],farKnee:[-12,-34],farAnkle:[-12,-6],farToe:[-3,0]},
+// 2 — Bend the knees: hips travel backwards/down while heels stay put.
+{hip:[-13,-51],shoulder:[17,-117],head:[28,-149],elbow:[34,-91],hand:[37,-67],farElbow:[5,-94],farHand:[11,-68],knee:[14,-31],ankle:[12,-6],toe:[24,0],farKnee:[-18,-29],farAnkle:[-12,-6],farToe:[-3,0]},
+// 3 — Kneel: knees touch first and take the weight; shins trail back.
+{hip:[-26,-40],shoulder:[16,-86],head:[29,-116],elbow:[36,-62],hand:[44,-36],farElbow:[0,-61],farHand:[16,-32],knee:[14,-7],ankle:[-17,-5],toe:[-29,0],farKnee:[-33,-7],farAnkle:[-62,-5],farToe:[-71,0]},
+// 4 — Reach: torso hinges down, palms approach the floor while knees hold.
+{hip:[-30,-36],shoulder:[21,-64],head:[44,-89],elbow:[37,-33],hand:[52,-3],farElbow:[8,-34],farHand:[24,-3],knee:[11,-6],ankle:[-19,-5],toe:[-31,0],farKnee:[-37,-7],farAnkle:[-64,-5],farToe:[-73,0]},
+// 5 — All fours: palms planted below shoulders; hips over bent knees.
+{hip:[-33,-34],shoulder:[15,-46],head:[43,-65],elbow:[31,-26],hand:[40,-3],farElbow:[1,-25],farHand:[12,-3],knee:[-4,-7],ankle:[-36,-4],toe:[-49,0],farKnee:[-43,-7],farAnkle:[-72,-4],farToe:[-84,0]},
+// 6 — Military low crawl: elbows under shoulders, chest and hips lowered;
+//     thighs angle toward the knees, shins/feet trail BACK behind them.
+{hip:[-38,-17],shoulder:[12,-25],head:[43,-38],elbow:[29,-12],hand:[40,-3],farElbow:[-3,-12],farHand:[9,-3],knee:[-8,-8],ankle:[-52,-4],toe:[-69,0],farKnee:[-43,-8],farAnkle:[-76,-4],farToe:[-89,0]}
+];
+let t=0,playing=true,reverse=true,showJoints=false,ghost=false,legacy=false,showSkin=true,last=0,direction=1;
+const clamp=(n,a,b)=>Math.max(a,Math.min(b,n)),smooth=v=>v*v*(3-2*v);
+const BONES=Object.freeze({torso:74,neck:33,thigh:48,shin:43,upperArm:34,forearm:29,foot:13});
+const V=(x,y)=>[x,y],add=(a,b)=>[a[0]+b[0],a[1]+b[1]],sub=(a,b)=>[a[0]-b[0],a[1]-b[1]],norm=a=>Math.hypot(a[0],a[1]);
+function pointToward(start,target,dist){const d=sub(target,start),l=norm(d)||1;return add(start,[d[0]*dist/l,d[1]*dist/l])}
+// Single C1-continuous cubic path through the authored positions. Unlike
+// 051B's per-pose smoothstep, velocity remains continuous and nonzero at
+// interior keys (unless the authored motion truly changes direction).
+function smoothPath(v){
+ const u=clamp(v,0,6),i=Math.min(5,Math.floor(u)),t=u-i;
+ const p0=poses[Math.max(0,i-1)],p1=poses[i],p2=poses[i+1],p3=poses[Math.min(6,i+2)];
+ const out={},t2=t*t,t3=t2*t;
+ for(const key of Object.keys(p1)){
+  const A=p0[key],B=p1[key],C=p2[key],D=p3[key];
+  out[key]=[0,1].map(k=>{
+   // Catmull-Rom tangent, with endpoints smoothly handled by one-sided tangents.
+   const m1=i===0?(C[k]-B[k]):.5*(C[k]-A[k]);
+   const m2=i===5?(C[k]-B[k]):.5*(D[k]-B[k]);
+   return (2*t3-3*t2+1)*B[k]+(t3-2*t2+t)*m1+
+          (-2*t3+3*t2)*C[k]+(t3-t2)*m2;
+  });
+ }
+ return out;
+}
+function interpolatedPose(v){
+ const u=clamp(v,0,6),i=Math.floor(u),j=Math.min(i+1,6),a=smooth(u-i),out={};
+ for(const key of Object.keys(poses[0]))out[key]=[
+ poses[i][key][0]*(1-a)+poses[j][key][0]*a,
+ poses[i][key][1]*(1-a)+poses[j][key][1]*a];
+ return out;
+}
+// Fixed-length two-bone inverse kinematics. A target beyond reach is
+// projected onto the reachable circle without altering bone lengths.
+function solveChain(root,target,guideBend,upper,lower){
+ const vector=sub(target,root),raw=norm(vector),axis=[vector[0]/(raw||1),vector[1]/(raw||1)];
+ const reach=clamp(raw,Math.abs(upper-lower)+.001,upper+lower-.001);
+ const end=add(root,[axis[0]*reach,axis[1]*reach]);
+ const across=(reach*reach+upper*upper-lower*lower)/(2*reach);
+ const height=Math.sqrt(Math.max(0,upper*upper-across*across)),normal=[-axis[1],axis[0]];
+ const base=add(root,[axis[0]*across,axis[1]*across]);
+ const cand1=add(base,[normal[0]*height,normal[1]*height]);
+ const cand2=add(base,[-normal[0]*height,-normal[1]*height]);
+ const err=p=>(p[0]-guideBend[0])**2+(p[1]-guideBend[1])**2;
+ return {bend:err(cand1)<=err(cand2)?cand1:cand2,end,limited:Math.abs(raw-reach)>.02};
+}
+function rigidPose(v){
+ const guide=smoothPath(v),out={hip:[...guide.hip]},limited=[];
+ out.shoulder=pointToward(out.hip,guide.shoulder,BONES.torso);
+ out.head=pointToward(out.shoulder,guide.head,BONES.neck);
+ for(const [knee,ankle,toe,elbow,hand] of [
+  ['knee','ankle','toe','elbow','hand'],
+  ['farKnee','farAnkle','farToe','farElbow','farHand']
+ ]){
+  const leg=solveChain(out.hip,guide[ankle],guide[knee],BONES.thigh,BONES.shin);
+  out[knee]=leg.bend;out[ankle]=leg.end;
+  if(leg.limited)limited.push(ankle);
+  out[toe]=pointToward(out[ankle],guide[toe],BONES.foot);
+  const arm=solveChain(out.shoulder,guide[hand],guide[elbow],BONES.upperArm,BONES.forearm);
+  out[elbow]=arm.bend;out[hand]=arm.end;
+  if(arm.limited)limited.push(hand);
+ }
+ out.limited=limited;
+ return out;
+}
+function deviation(p){
+ const connections=[
+ ['hip','shoulder',BONES.torso],['shoulder','head',BONES.neck],
+ ['hip','knee',BONES.thigh],['knee','ankle',BONES.shin],
+ ['hip','farKnee',BONES.thigh],['farKnee','farAnkle',BONES.shin],
+ ['shoulder','elbow',BONES.upperArm],['elbow','hand',BONES.forearm],
+ ['shoulder','farElbow',BONES.upperArm],['farElbow','farHand',BONES.forearm],
+ ['ankle','toe',BONES.foot],['farAnkle','farToe',BONES.foot]];
+ return Math.max(...connections.map(([a,b,l])=>Math.abs(norm(sub(p[a],p[b]))-l)));
+}
+function phasePose(){
+ const kind=$('transition').value;
+ return kind==='standCrouch'?3*t:kind==='crouchProne'?3+3*t:6*t;
+}
+function sourceFrame(){
+ const kind=$('transition').value,v=t*7;
+ if(kind==='standCrouch')return {name:'standCrouch',frame:Math.round(v),desired:176+(119-176)*t};
+ if(kind==='crouchProne')return {name:'crouchProne',frame:Math.round(v),desired:119+(65-119)*t};
+ if(t<=.5)return {name:'standCrouch',frame:Math.round(t*14),desired:176+(119-176)*(t*2)};
+ return {name:'crouchProne',frame:Math.round((t-.5)*14),desired:119+(65-119)*(t*2-1)};
+}
+function background(g,label){
+ g.clearRect(0,0,440,390);
+ g.fillStyle='#101416';g.fillRect(0,0,440,390);
+ g.strokeStyle='#4a4942';g.lineWidth=1.5;g.beginPath();g.moveTo(18,floor);g.lineTo(422,floor);g.stroke();
+ g.fillStyle='#bfa17e';g.font='12px ui-monospace,monospace';g.fillText(label,14,21);
+}
+function source(g,opacity=1){
+ const spec=sourceFrame(),im=window.DepthsFullArt?.get(spec.name,spec.frame);
+ if(!im)return false;
+ // Never resize each frame to a different target height.
+ // One constant source scale per sequence preserves the original PNG proportions.
+ const baseline=im.motionReference?.height||im.height;
+ const height=spec.name==='standCrouch'?176:119,k=height/Math.max(1,baseline);
+ const center=im.motionReference?.centerX??im.width/2;
+ g.save();g.globalAlpha=opacity;g.imageSmoothingEnabled=true;
+ g.drawImage(im,cx-center*k,floor-im.height*k,im.width*k,im.height*k);
+ g.restore();return true;
+}
+const parts={
+ head:{poly:[[130,5],[170,7],[179,32],[178,59],[162,78],[134,70],[122,46],[123,20]],start:[141,67],end:[148,26]},
+ neck:{poly:[[127,63],[147,65],[140,95],[123,98]],start:[133,80],end:[137,70]},
+ torso:{poly:[[114,80],[141,74],[137,117],[127,154],[114,158],[107,130],[109,98]],start:[123,96],end:[114,153]},
+ pelvis:{poly:[[80,177],[104,186],[103,216],[84,225],[72,205]],start:[86,195],end:[90,207]},
+ upper_arm:{poly:[[108,84],[133,90],[127,109],[121,137],[114,162],[97,147],[96,121]],start:[121,94],end:[110,155]},
+ forearm:{poly:[[108,143],[118,148],[118,216],[107,223],[104,179]],start:[110,154],end:[114,220]},
+ hand:{poly:[[109,211],[125,214],[130,244],[122,266],[109,254],[105,226]],start:[114,218],end:[119,246]},
+ thigh:{poly:[[77,186],[98,190],[103,232],[105,292],[93,302],[85,256]],start:[86,200],end:[98,294]},
+ shin:{poly:[[92,285],[107,289],[101,354],[98,381],[85,389],[84,342]],start:[98,294],end:[93,379]},
+ foot:{poly:[[83,374],[100,371],[112,385],[140,389],[141,402],[82,403]],start:[93,379],end:[126,396]}
+};
+
+const skinLayers={};let skinReady=false;
+function attachSkin(){
+ const frame=window.DepthsFullArt?.get('standCrouch',0);
+ if(!window.DepthsFullArt?.state?.ready||!frame)return false;
+ for(const [name,def] of Object.entries(parts)){
+  const layer=document.createElement('canvas');layer.width=245;layer.height=418;
+  const brush=layer.getContext('2d');brush.beginPath();
+  def.poly.forEach((pt,i)=>i?brush.lineTo(...pt):brush.moveTo(...pt));
+  brush.closePath();brush.clip();
+  brush.drawImage(frame,frame.sourceX||0,frame.sourceY||0);
+  skinLayers[name]=layer;
+ }
+ skinReady=true;return true;
+}
+// Canonical source anatomy. Do not rescale individual pieces to arbitrary
+// short 050F game-bone lengths (the principal visual error in 052A).
+const LENGTHS={spine:116,thigh:94,shin:85,upper:62,fore:66,foot:38,hand:28,head:42};
+const plus2=(a,b)=>[a[0]+b[0],a[1]+b[1]];
+const minus2=(a,b)=>[a[0]-b[0],a[1]-b[1]];
+const unit2=(a,b)=>{const d=minus2(b,a),m=Math.hypot(...d)||1;return[d[0]/m,d[1]/m]};
+const scale2=(v,k)=>[v[0]*k,v[1]*k];
+const rotate2=(v,r)=>[v[0]*Math.cos(r)-v[1]*Math.sin(r),v[0]*Math.sin(r)+v[1]*Math.cos(r)];
+function twoBone(root,target,hint,L1,L2){
+ const axis=unit2(root,target),dist=Math.hypot(...minus2(target,root));
+ const d=clamp(dist,Math.abs(L1-L2)+.01,L1+L2-.01);
+ const a=(d*d+L1*L1-L2*L2)/(2*d),h=Math.sqrt(Math.max(0,L1*L1-a*a));
+ const base=plus2(root,scale2(axis,a)),normal=[-axis[1],axis[0]];
+ const p=plus2(base,scale2(normal,h)),q=plus2(base,scale2(normal,-h));
+ const score=v=>(v[0]-hint[0])**2+(v[1]-hint[1])**2;
+ return {bend:score(p)<score(q)?p:q,end:plus2(root,scale2(axis,d))};
+}
+function nativePose(v){
+ const guide=smoothPath(v),p={};
+ p.hip=[90+guide.hip[0]*2.3,207+(guide.hip[1]+65)*3.25];
+ p.shoulder=plus2(p.hip,scale2(rotate2(unit2(guide.hip,guide.shoulder),.288),LENGTHS.spine));
+ const headAxis=rotate2(unit2(guide.shoulder,guide.head),-.36);
+ p.headBase=plus2(p.shoulder,scale2(headAxis,34));
+ p.headTip=plus2(p.headBase,scale2(headAxis,LENGTHS.head));
+ for(const far of [false,true]){
+  const n=far?'far':'',k=n+'Knee',a=n+'Ankle',t=n+'Toe',e=n+'Elbow',h=n+'Hand';
+  const restingX=far?73:93,restGuideX=far?-12:12;
+  const aimAnkle=[restingX+(guide[a][0]-restGuideX)*2.3,379+(guide[a][1]+6)*2.2];
+  const guideKnee=plus2(p.hip,scale2(minus2(guide[k],guide.hip),2.3));
+  const leg=twoBone(p.hip,aimAnkle,guideKnee,LENGTHS.thigh,LENGTHS.shin);
+  p[k]=leg.bend;p[a]=leg.end;p[t]=plus2(p[a],scale2(unit2(guide[a],guide[t]),LENGTHS.foot));
+  const restingWrist=far?104:114,restGuideHand=far?-12:16;
+  const wrist=[restingWrist+(guide[h][0]-restGuideHand)*2.25,218+(guide[h][1]+88)*2.25];
+  const guideElbow=plus2(p.shoulder,scale2(minus2(guide[e],guide.shoulder),2.3));
+  const arm=twoBone(p.shoulder,wrist,guideElbow,LENGTHS.upper,LENGTHS.fore);
+  p[e]=arm.bend;p[h]=arm.end;
+  p[far?'farHandTip':'handTip']=plus2(p[h],scale2(unit2(guide[e],guide[h]),LENGTHS.hand));
+ }
+ return p;
+}
+function layerNative(g,name,a,b,alpha=1){
+ const d=parts[name],im=skinLayers[name];if(!d||!im)return;
+ const src=unit2(d.start,d.end),dst=unit2(a,b);
+ g.save();g.globalAlpha=alpha;g.translate(...a);
+ g.rotate(Math.atan2(dst[1],dst[0])-Math.atan2(src[1],src[0]));
+ g.drawImage(im,-d.start[0],-d.start[1]);g.restore();
+}
+function cleanArm(g,a,b,alpha=1){
+ g.save();g.globalAlpha=alpha;g.strokeStyle='#e5dccc';g.lineWidth=6;g.lineCap='round';
+ g.beginPath();g.moveTo(...a);g.lineTo(...b);g.stroke();g.restore();
+}
+function drawSkin(v){
+ const p=nativePose(v),g=ctx;
+ g.save();g.translate(cx,floor);g.scale(.64,.64);
+ // Fixed scene scale; camera offsets only, no body-scale animation.
+ g.translate(-105,-404);
+ const part=(name,a,b,alpha=1)=>layerNative(g,name,p[a],p[b],alpha);
+ part('thigh','hip','farKnee',.45);part('shin','farKnee','farAnkle',.45);
+ part('foot','farAnkle','farToe',.45);
+ cleanArm(g,p.shoulder,p.farElbow,.45);
+ part('forearm','farElbow','farHand',.45);part('hand','farHand','farHandTip',.45);
+ const trunk=unit2(p.hip,p.shoulder);
+ layerNative(g,'pelvis',plus2(p.hip,scale2(trunk,12)),plus2(p.hip,scale2(trunk,-4)));
+ layerNative(g,'torso',p.shoulder,plus2(p.shoulder,scale2(trunk,-57)));
+ layerNative(g,'neck',p.shoulder,p.headBase);
+ part('thigh','hip','knee');part('shin','knee','ankle');part('foot','ankle','toe');
+ cleanArm(g,p.shoulder,p.elbow);part('forearm','elbow','hand');part('hand','hand','handTip');
+ layerNative(g,'head',p.headBase,p.headTip);
+ g.restore();
+}
+function drawSkeleton(){
+ const p=legacy?interpolatedPose(phasePose()):rigidPose(phasePose());
+ const at=k=>[cx+p[k][0]*scale,floor+p[k][1]*scale];
+ function bone(a,b,w,color){
+  const A=at(a),B=at(b);
+  ctx.strokeStyle=color;ctx.lineWidth=w;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(...A);ctx.lineTo(...B);ctx.stroke();
+ }
+ function dot(k,r=3){const pt=at(k);ctx.fillStyle='#eac38a';ctx.beginPath();ctx.arc(...pt,r,0,Math.PI*2);ctx.fill()}
+ background(ctx,(legacy?'LEGACY':'LOCKED LENGTHS')+' · '+phasePose().toFixed(2)+' / 6');
+ if(ghost)source(ctx,.20);
+ if(showSkin&&skinReady)drawSkin(phasePose());
+ bone('hip','farKnee',3,'#6e7777');bone('farKnee','farAnkle',2.6,'#6e7777');bone('farAnkle','farToe',2.2,'#6e7777');
+ bone('shoulder','farElbow',2.8,'#6e7777');bone('farElbow','farHand',2.3,'#6e7777');
+ bone('hip','shoulder',6,'#e2d3bd');
+ bone('hip','knee',4,'#e2d3bd');bone('knee','ankle',3.8,'#e2d3bd');bone('ankle','toe',2.8,'#e2d3bd');
+ bone('shoulder','elbow',3.8,'#e2d3bd');bone('elbow','hand',3.5,'#e2d3bd');
+ const H=at('head');ctx.strokeStyle='#e2d3bd';ctx.lineWidth=3;ctx.beginPath();ctx.arc(H[0],H[1],11,0,Math.PI*2);ctx.stroke();
+ ctx.beginPath();ctx.moveTo(...at('shoulder'));ctx.lineTo(H[0],H[1]+8);ctx.stroke();
+ if(showJoints)for(const k of ['hip','shoulder','head','knee','ankle','toe','elbow','hand','farKnee','farAnkle','farElbow','farHand'])dot(k,k==='hip'?4:2.6);
+ $('metrics').textContent=legacy?'Legacy pose: segment lengths change throughout transition.':'Fixed lengths · torso '+BONES.torso+' · thigh '+BONES.thigh+' · shin '+BONES.shin+' · arms '+BONES.upperArm+'/'+BONES.forearm+' · maximum deviation '+deviation(p).toFixed(4)+' · limited targets '+p.limited.length;
+}
+function draw(){
+ const spec=sourceFrame();
+ background(oc,'ORIGINAL '+spec.name.toUpperCase()+' FRAME '+spec.frame+'/7');
+ const ok=source(oc);
+ $('artLabel').textContent=ok?'Original source '+spec.name+' / frame '+spec.frame:'Original art not loaded — select the Animation Library ZIP';
+ $('jointLabel').textContent=(skinReady&&showSkin?'Continuous graphite skin':skinReady?'Skeleton preview':'Awaiting original graphite ZIP')+' · '+phasePose().toFixed(2)+' / 6';
+ if(!skinReady&&window.DepthsFullArt?.state?.ready)attachSkin();
+ drawSkeleton();
+ $('progressText').textContent=Math.round(t*100)+'%';
+ $('transitionText').textContent=$('transition').selectedOptions[0].textContent;
+ $('durationText').textContent=Number($('duration').value).toFixed(2)+' seconds';
+ $('status').textContent=skinReady?'✅ Original graphite clipped and attached to continuous IK · no gameplay changed':'Load the original Animation Library ZIP to activate the skinned preview; fixed-bone skeleton remains available.';
+}
+function frame(now){
+ const dt=Math.min(.06,last?(now-last)/1000:0);last=now;
+ if(playing){t+=direction*dt/Number($('duration').value);if(t>=1){t=1;if(reverse)direction=-1;else t=0}if(t<=0){t=0;direction=1}}
+ $('progress').value=Math.round(t*1000);draw();requestAnimationFrame(frame);
+}
+$('play').onclick=()=>{playing=!playing;$('play').textContent=playing?'⏸ Pause':'▶ Play';$('play').classList.toggle('on',playing)};
+$('reverse').onclick=()=>{reverse=!reverse;$('reverse').textContent='↕ Reverse direction '+(reverse?'ON':'OFF')};
+$('marks').onclick=()=>{showJoints=!showJoints;$('marks').textContent='◎ Joints '+(showJoints?'ON':'OFF')};
+$('overlay').onclick=()=>{ghost=!ghost;$('overlay').textContent='◉ Ghost reference '+(ghost?'ON':'OFF')};
+$('compare').onclick=()=>{legacy=!legacy;$('compare').textContent='⇄ Legacy joints '+(legacy?'ON':'OFF')};
+$('skin').onclick=()=>{showSkin=!showSkin;$('skin').textContent='💀 Graphite skin '+(showSkin?'ON':'OFF');$('skin').classList.toggle('on',showSkin)};
+$('progress').oninput=()=>{t=Number($('progress').value)/1000;playing=false;$('play').textContent='▶ Play';$('play').classList.remove('on')};
+$('transition').onchange=()=>{t=0;direction=1};
+$('load').onclick=()=>$('zip').click();
+$('zip').onchange=async()=>{
+ const file=$('zip').files?.[0];if(!file)return;
+ try{await window.DepthsFullArt.install(file);skinReady=false;attachSkin();draw()}catch(e){$('status').textContent='ZIP import error: '+e.message}
+};
+$('export').onclick=()=>{
+ const payload={version:'053A native graphite study',source:'playtest-050f.html',poseKeys:poses,fixedBoneLengths:BONES,notes:'Original poses remain as guides; two-bone IK uses fixed segments. No prior animations overwritten.'};
+ const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+ const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='The_Depths_Skin_Keys_053A.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+};
+window.addEventListener('depths-art-status',draw);
+requestAnimationFrame(frame);
+})();
+</script></body></html>
