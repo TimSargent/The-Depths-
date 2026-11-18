@@ -93,6 +93,16 @@
 - [ ] User visual A/B: keep **Foot plant ON** and **Seam blend OFF** fixed, compare Fast cadence ON/OFF along same corridor. Then test Foot Plant independently at the preferred cadence.
 - [ ] Source-derived exact stance-foot positions and horizontal foot locking remain unimplemented; do not confuse vertical boot baseline with true planted-foot world locking.
 
+## Prototype 037W6 — Experimental stance-foot anchoring (November 17, 2026)
+- [x] Implemented user-requested Walking Pass 3 in the playable game using the **original upright source artwork**.
+- [x] Each imported original upright walking frame now measures the boot contact horizontally from the bottommost opaque source pixels; retain existing original ground-contact Y data. No new skeleton, rigged feet or source artwork replacements.
+- [x] New independent **⚓ Foot lock ON/OFF** toggle, default ON. Lock state persists across source frames sharing a stance side; render-only horizontal offset approaches source boot's previous world location with a ±9px clamp and smooth response. **Never move the miner's collision/hitbox or actual gameplay X.**
+- [x] Defaults for controlled comparisons: **Fast cadence OFF, Seam blend OFF, Foot plant ON, Foot lock ON**. Foot lock can be disabled without altering cadence or existing vertical ground calibration.
+- [x] Headlamp position follows the small sprite offset. Existing 40-cell corridor remains default with usual normal-mining map toggle.
+- [x] Simulation: 39-cell corridor reaches x45 with no mining; Foot lock ON had small bounded correction (≤9px), OFF was 0px; idle retains last upright source walking frame. Dig/haul/return loop still completes 8 mined sections + 1 bag dump with zero posture lock violations.
+- [ ] **Visual approval pending:** because original walk source art has inconsistent support-foot poses, this limited root-offset correction is only experimental stance anchoring, not proof of completely stationary boots or natural weight transfer. Inspect ON/OFF footage for foot skating, torso wobble, camera/headlamp detachment, and popping at stance changes. A more faithful result may require correcting/retiming the underlying source frames.
+- [ ] Verify left-facing walk at full-detail in browser, and that original ZIP is loaded (otherwise foot-contact metadata may be absent).
+
 ## Current checkpoint
 - Prototype **037P** is playable and mechanically validated; **no global visual lock**.
 - Open high-priority bug: prone sprite extends beyond aimed rock location.
