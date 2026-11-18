@@ -1,0 +1,64 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>The Depths — Heavy Walk Lab 038A</title><style>
+*{box-sizing:border-box}body{margin:0;background:#0d0f11;color:#eee4d7;font:14px system-ui}main{max-width:960px;margin:auto;padding:16px 10px}h1{margin:6px 0}.hint{font-size:12px;color:#b8a999;line-height:1.5}.muted{font-size:12px;color:#d3b68b}a{color:#d8aa74}.panes{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0}.pane{padding:8px;border:1px solid #534b3f;background:#171a1c;border-radius:12px;min-width:0}.pane b{font-size:12px}.pane canvas{display:block;width:100%;aspect-ratio:430/310;margin-top:8px;border-radius:7px;background:#090c0d}.controls{display:grid;grid-template-columns:1fr 1fr;gap:10px}.card{padding:12px;border:1px solid #50463d;border-radius:10px;background:#191b1d}.card h2{font-size:14px;margin:0 0 12px}.actions{display:flex;flex-wrap:wrap;gap:7px}button{background:#3b3229;border:1px solid #846a4e;border-radius:8px;color:#f8e9d2;font-weight:700;padding:11px 9px;flex:1 1 98px;cursor:pointer}button.active{background:#815f34}.setting{margin:12px 0}.setting label{display:flex;justify-content:space-between;font-size:12px}.setting input{width:100%;accent-color:#d6a76c}#status{margin:10px 0;color:#dab98b;font-size:12px}.foot{font:12px ui-monospace,monospace;color:#d4b282;padding:7px 0}.note{font-size:12px;color:#c9b9a8;line-height:1.6;border:1px solid #403c35;border-radius:8px;padding:12px;margin-top:14px}@media(max-width:650px){.controls{grid-template-columns:1fr}.pane{padding:5px}.pane b{font-size:11px}.pane canvas{aspect-ratio:310/305}}</style></head><body><main>
+<div class="muted">THE DEPTHS / ANIMATION STUDIO 038A</div><h1>⛏️ Heavy Walk Lab</h1><p class="hint">Compare the original skeleton walk with a heavier, tired retiming of the same approved graphite PNG frames. No gameplay or artwork changes.</p><p><a href="index.html?build=037W8">← Back to mining game</a></p>
+<div id="status">Checking for your saved original source artwork…</div><div class="actions"><button id="load">💀 Load original 014 ZIP</button><input type="file" id="file" accept=".zip,application/zip" hidden></div>
+<div class="panes"><div class="pane"><b>ORIGINAL WALK</b><canvas id="raw" width="430" height="310"></canvas></div><div class="pane"><b>HEAVY WALK · EXPERIMENT</b><canvas id="heavy" width="430" height="310"></canvas></div></div>
+<div class="foot" id="debug">Source frame — · Heavy frame —</div>
+<div class="controls"><div class="card"><h2>🎞 Playback</h2><div class="actions"><button id="play" class="active">⏸ Pause</button><button id="step">⏭ Step</button><button id="stop">🧍 Plant & stop</button><button id="restart">↻ Restart</button><button id="direction">→ Face right</button><button id="lane">🚶 Scroll ground ON</button></div>
+<div class="setting"><label for="scrub">Frame scrub <b id="scrubv">0</b></label><input id="scrub" type="range" min="0" max="7" step="1" value="0"></div></div>
+<div class="card"><h2>⚒️ Fatigue / weight</h2>
+<div class="setting"><label for="pace">Walking pace <b id="pacev"></b></label><input id="pace" type="range" min=".4" max="1.6" value=".9" step=".05"></div>
+<div class="setting"><label for="weight">Heavy step emphasis <b id="weightv"></b></label><input id="weight" type="range" min="0" max="100" value="75" step="5"></div>
+<div class="setting"><label for="hold">Boot contact dwell <b id="holdv"></b></label><input id="hold" type="range" min="0" max="100" value="50" step="5"></div>
+<div class="setting"><label for="dip">Weight drop <b id="dipv"></b></label><input id="dip" type="range" min="0" max="6" value="3" step="1"></div></div></div>
+<div class="note"><b>First visual experiment, not a finished walk:</b> The weighted version changes dwell time at contact, quickens recovery, adds a restrained body weight drop, and gives you frame-by-frame control. It still uses only eight original drawings. For truly fluid movement and proper weight transfer we'll need new in-between poses after this timing test.</div>
+</main><script src="assets/full-detail-037.js?v=038a"></script><script>
+(()=>{
+'use strict';
+const $=id=>document.getElementById(id),original=$('raw').getContext('2d'),heavy=$('heavy').getContext('2d'),lib=()=>window.DepthsFullArt;
+let playing=true,stopping=false,settled=false,stopElapsed=0,stopStart=0,phase=0,last=0,dir=1,scroll=true,distance=0;
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const source=(name,frame)=>lib()?.get(name,frame);
+function indexFor(phase,weighted){
+ const frac=((phase%1)+1)%1;
+ if(!weighted)return Math.floor(frac*8)%8;
+ const w=Number($('weight').value)/100,h=Number($('hold').value)/100;
+ const durations=Array.from({length:8},(_,i)=>i===0||i===4?1+1.8*w*h:i===2||i===6?1-.2*w:1-.12*w);
+ let x=frac*durations.reduce((a,b)=>a+b,0);
+ for(let i=0;i<8;i++){x-=durations[i];if(x<0)return i}return 7;
+}
+function render(ctx,weighted){
+ const w=430,h=310,floor=250;ctx.clearRect(0,0,w,h);ctx.fillStyle='#0d1012';ctx.fillRect(0,0,w,h);
+ ctx.fillStyle='#252526';ctx.fillRect(0,floor,w,h-floor);ctx.strokeStyle='#514a3e';ctx.lineWidth=1;
+ const shift=scroll?distance*28%42:0;for(let x=-42;x<w+42;x+=42){ctx.beginPath();ctx.moveTo(x-shift,floor);ctx.lineTo(x-shift,h);ctx.stroke()}
+ ctx.strokeStyle='#bd9567';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,floor);ctx.lineTo(w,floor);ctx.stroke();
+ let frame=indexFor(phase,weighted),img=source('walk',frame);
+ if(stopping){const progress=clamp(stopElapsed/.28,0,1);let endpoint=stopStart<4?0:7;frame=clamp(Math.round(stopStart+(endpoint-stopStart)*progress),0,7);img=source('walk',frame)}
+ if(settled){img=source('standCrouch',0)}
+ ctx.fillStyle='#d7b58b';ctx.font='12px monospace';ctx.fillText(settled?'RESTING':'FRAME '+frame+'/7',12,22);
+ if(!img){ctx.font='12px system-ui';ctx.fillText('Load original 014 ZIP to display miner',38,120);return frame}
+ const ref=img.motionReference||{centerX:img.width/2,footY:img.height},scale=img.fullDetailScale||{sx:176/img.height,sy:176/img.height};
+ const weight=Number($('weight').value)/100,impact=Math.pow(Math.max(0,Math.cos(phase*Math.PI*4)),6);
+ const y=weighted&&!settled&&!stopping?Number($('dip').value)*weight*impact:0;
+ const baseline=Number.isFinite(ref.plantedFootY)?ref.plantedFootY:ref.footY;
+ ctx.save();ctx.translate(w/2,floor+y);ctx.scale(dir,1);ctx.drawImage(img,-ref.centerX*scale.sx,-baseline*scale.sy,img.width*scale.sx,img.height*scale.sy);ctx.restore();
+ return frame;
+}
+function update(){for(const key of ['pace','weight','hold','dip'])$(key+'v').textContent=$ (key).value+(key==='weight'||key==='hold'?'%':key==='dip'?'px':'×');$('play').textContent=playing?'⏸ Pause':'▶ Play';$('direction').textContent=dir===1?'→ Face right':'← Face left';$('lane').textContent=scroll?'🚶 Scroll ground ON':'🧍 Scroll ground OFF'}
+function status(){const s=lib()?.state;$('status').textContent=s?.ready?'✅ All 72 original graphite frames loaded':s?.message||'Load the original ZIP';}
+function tick(time){if(!last)last=time;const dt=clamp((time-last)/1000,0,.05);last=time;
+ if(playing){if(stopping){stopElapsed+=dt;if(stopElapsed>=.28){stopping=false;settled=true;playing=false;update()}}else if(!settled){const speed=Number($('pace').value);phase=(phase+dt*speed*1.05)%1;distance+=dt*speed}}
+ const r=render(original,false),h=render(heavy,true);$('debug').textContent='Original frame '+r+'  ·  Heavy frame '+h+'  ·  '+(settled?'STANDING':stopping?'SETTLING':playing?'WALKING':'PAUSED');
+ if(playing&&!stopping){$('scrub').value=h;$('scrubv').textContent=h}requestAnimationFrame(tick)}
+$('load').onclick=()=>$('file').click();$('file').onchange=async()=>{const file=$('file').files?.[0];if(file)try{await lib().install(file);status()}catch(e){$('status').textContent='ZIP error: '+e.message}};
+window.addEventListener('depths-art-status',status);
+$('play').onclick=()=>{if(settled){settled=false;stopping=false}playing=!playing;update()};
+$('restart').onclick=()=>{phase=0;distance=0;settled=false;stopping=false;playing=true;update()};
+$('stop').onclick=()=>{stopStart=indexFor(phase,true);stopElapsed=0;stopping=true;settled=false;playing=true;update()};
+$('step').onclick=()=>{phase=((Math.floor(phase*8)+1)%8)/8;playing=false;stopping=false;settled=false;update()};
+$('direction').onclick=()=>{dir*=-1;update()};$('lane').onclick=()=>{scroll=!scroll;update()};
+$('scrub').oninput=()=>{phase=Number($('scrub').value)/8;playing=false;stopping=false;settled=false;$('scrubv').textContent=$('scrub').value;update()};
+for(const id of ['pace','weight','hold','dip'])$(id).oninput=update;
+update();status();requestAnimationFrame(tick);
+})();
+</script></body></html>
