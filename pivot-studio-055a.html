@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>The Depths · Pivot Studio 055A</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#0c1012;color:#e9dfcf;font:14px system-ui,-apple-system,sans-serif}main{max-width:920px;margin:auto;padding:12px}
+h1{margin:7px 0;font-size:25px}.tag{letter-spacing:2px;font-size:11px;font-weight:700;color:#edbd7f}
+p{color:#bcb1a2;line-height:1.45;margin:8px 0 14px}.panels{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pane{border:1px solid #54514a;border-radius:10px;background:#191c1e;padding:8px;min-width:0}.pane b{color:#e3bf8f;font-size:12px}
+canvas{display:block;width:100%;height:auto;aspect-ratio:245 / 418;background:#070a0c;border-radius:7px;margin:6px 0}
+small{color:#b3aba1;line-height:1.4;display:block}
+.control{border:1px solid #575048;background:#1a1c1e;border-radius:10px;padding:12px;margin-top:12px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.slider{margin:10px 0}
+.slider label{display:flex;justify-content:space-between;gap:10px;font-size:12px;color:#e8d7c0}.slider input{width:100%;accent-color:#ddaa70}
+button{border:1px solid #a38662;border-radius:8px;padding:10px;color:#f8e6cb;background:#43392e;font:inherit;cursor:pointer}
+button.on{background:#805a35;border-color:#deaf72}.status{color:#ebc393;font-size:12px;margin:10px 0 0}
+a{color:#e4bd86}.check{font-size:12px;color:#cdbfaf}.check input{accent-color:#ddaa70}
+@media(max-width:550px){main{padding:8px}.pane{padding:5px}.panels{gap:5px}h1{font-size:22px}.grid{gap:5px}button{font-size:12px}}
+</style></head><body><main>
+<div class="tag">THE DEPTHS · PIVOT STUDIO 055A · NON-DESTRUCTIVE</div>
+<h1>Find the Hip Pivot ⛏️</h1>
+<p>First motion-only calibration: the <b>original source-sized upper-body layers</b> rotate together around one adjustable hip pivot. Legs and pelvis stay completely stationary. No separate resizing, no new artwork, and no changes to approved animation.</p>
+<div class="panels">
+<div class="pane"><b>ORIGINAL · unchanged standing</b><canvas id="original" width="245" height="418"></canvas><small>Original graphite source, no transforms</small></div>
+<div class="pane"><b>PIVOT TEST · upper body only</b><canvas id="test" width="245" height="418"></canvas><small id="poseInfo">Load original art to preview</small></div>
+</div>
+<div class="control">
+<div class="grid"><button id="play" class="on">⏸ Pause motion</button><button id="zero">↩ Set angle to zero</button>
+<button id="load">💀 Load original art ZIP</button><button id="save">⬇ Export pivot settings</button></div>
+<input id="zip" type="file" accept=".zip,application/zip" hidden>
+<div class="slider"><label for="angle">Forward bend <strong id="angleOut">0°</strong></label><input id="angle" type="range" min="-10" max="65" step="1" value="0"></div>
+<div class="slider"><label for="hipx">Hip pivot X <strong id="hipxOut">90</strong></label><input id="hipx" type="range" min="65" max="140" step="1" value="90"></div>
+<div class="slider"><label for="hipy">Hip pivot Y <strong id="hipyOut">198</strong></label><input id="hipy" type="range" min="150" max="245" step="1" value="198"></div>
+<div class="slider"><label for="range">Automatic bend maximum <strong id="rangeOut">32°</strong></label><input id="range" type="range" min="5" max="65" step="1" value="32"></div>
+<div class="grid">
+<label class="check"><input id="markers" type="checkbox" checked> Show hip / shoulder markers</label>
+<label class="check"><input id="ghost" type="checkbox"> Ghost original on test</label>
+<label class="check"><input id="upperarm" type="checkbox" checked> Include source arm layers</label>
+<label class="check"><input id="legs" type="checkbox" checked> Show planted legs/pelvis</label>
+</div>
+<div id="status" class="status">Checking the saved Animation Library…</div>
+</div>
+<p>We are deliberately testing only <b>one rigid upper-body hinge</b>. The elbow, shoulder and neck will need their own calibrated pivots later; this test should show whether we can bend the assembled graphite without pieces changing size or drifting apart.</p>
+<p>Protected builds: <a href="layer-calibration-054a.html">054A source alignment</a> · <a href="rig-studio-049a.html">049A approved walk</a> · <a href="playtest-050f.html">050F gameplay</a></p>
+</main>
+<script src="assets/full-detail-037.js?v=055a"></script>
+<script>
+(()=>{'use strict';
+const $=id=>document.getElementById(id),rawCtx=$('original').getContext('2d'),ctx=$('test').getContext('2d');
+const parts={
+ head:{poly:[[130,5],[170,7],[179,32],[178,59],[162,78],[134,70],[122,46],[123,20]],start:[141,67],end:[148,26]},
+ neck:{poly:[[127,63],[147,65],[140,95],[123,98]],start:[133,80],end:[137,70]},
+ torso:{poly:[[114,80],[141,74],[137,117],[127,154],[114,158],[107,130],[109,98]],start:[123,96],end:[114,153]},
+ pelvis:{poly:[[80,177],[104,186],[103,216],[84,225],[72,205]],start:[86,195],end:[90,207]},
+ upper_arm:{poly:[[108,84],[133,90],[127,109],[121,137],[114,162],[97,147],[96,121]],start:[121,94],end:[110,155]},
+ forearm:{poly:[[108,143],[118,148],[118,216],[107,223],[104,179]],start:[110,154],end:[114,220]},
+ hand:{poly:[[109,211],[125,214],[130,244],[122,266],[109,254],[105,226]],start:[114,218],end:[119,246]},
+ thigh:{poly:[[77,186],[98,190],[103,232],[105,292],[93,302],[85,256]],start:[86,200],end:[98,294]},
+ shin:{poly:[[92,285],[107,289],[101,354],[98,381],[85,389],[84,342]],start:[98,294],end:[93,379]},
+ foot:{poly:[[83,374],[100,371],[112,385],[140,389],[141,402],[82,403]],start:[93,379],end:[126,396]}
+};
+
+
+const back=['shin','thigh','foot','pelvis'];
+const upper=['torso','neck','upper_arm','forearm','hand','head'];
+const layers={};let raw=null,loaded=false,playing=true,cycle=0,last=0,manualAngle=0;
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+function attach(){
+ const lib=window.DepthsFullArt,frame=lib?.get('standCrouch',0);
+ if(!lib?.state?.ready||!frame)return false;
+ raw=document.createElement('canvas');raw.width=245;raw.height=418;
+ raw.getContext('2d').drawImage(frame,frame.sourceX||0,frame.sourceY||0);
+ for(const [name,part] of Object.entries(parts)){
+  const canvas=document.createElement('canvas');canvas.width=245;canvas.height=418;
+  const g=canvas.getContext('2d');g.beginPath();
+  part.poly.forEach((point,i)=>i?g.lineTo(...point):g.moveTo(...point));
+  g.closePath();g.clip();g.drawImage(raw,0,0);layers[name]=canvas;
+ }
+ loaded=true;return true;
+}
+function paintMarker(g,x,y,label,color){
+ g.save();g.strokeStyle=color;g.lineWidth=1;g.beginPath();g.moveTo(x-7,y);g.lineTo(x+7,y);
+ g.moveTo(x,y-7);g.lineTo(x,y+7);g.stroke();
+ g.fillStyle=color;g.font='10px system-ui';g.fillText(label,Math.min(190,x+8),y-8);g.restore();
+}
+function draw(angle){
+ rawCtx.clearRect(0,0,245,418);ctx.clearRect(0,0,245,418);
+ if(!loaded){$('status').textContent='Load the original Animation Library ZIP to see the miner.';return}
+ rawCtx.drawImage(raw,0,0);
+ if($('ghost').checked){ctx.save();ctx.globalAlpha=.18;ctx.drawImage(raw,0,0);ctx.restore()}
+ if($('legs').checked)for(const key of back)ctx.drawImage(layers[key],0,0);
+ const x=Number($('hipx').value),y=Number($('hipy').value),rotation=angle*Math.PI/180;
+ ctx.save();ctx.translate(x,y);ctx.rotate(rotation);ctx.translate(-x,-y);
+ for(const key of upper){
+  if(!$('upperarm').checked&&['upper_arm','forearm','hand'].includes(key))continue;
+  ctx.drawImage(layers[key],0,0);
+ }
+ ctx.restore();
+ if($('markers').checked){
+  paintMarker(ctx,x,y,'HIP','#ffb359');
+  const sx=121,sy=94,dx=sx-x,dy=sy-y;
+  paintMarker(ctx,x+dx*Math.cos(rotation)-dy*Math.sin(rotation),y+dx*Math.sin(rotation)+dy*Math.cos(rotation),'SHOULDER','#79d1db');
+ }
+ $('poseInfo').textContent='Rigid-body hinge: '+angle.toFixed(1)+'° · all layer dimensions fixed';
+ $('angleOut').textContent=Math.round(angle)+'°';
+ $('hipxOut').textContent=x;
+ $('hipyOut').textContent=y;
+ $('rangeOut').textContent=$('range').value+'°';
+ $('status').textContent='✅ Original source layers loaded · zero-angle alignment preserved · upper body rotates as one rigid group';
+}
+function frame(now){
+ const dt=last?Math.min(.06,(now-last)/1000):0;last=now;
+ if(!loaded&&window.DepthsFullArt?.state?.ready)attach();
+ if(playing){
+  cycle+=dt/3.4;
+  // Continuous bend and recover, including gentle stops only at the ends.
+  manualAngle=Number($('range').value)*(.5-.5*Math.cos(cycle*2*Math.PI));
+  $('angle').value=Math.round(manualAngle);
+ }else manualAngle=Number($('angle').value);
+ try{draw(manualAngle)}catch(e){$('status').textContent='⚠ Render error: '+e.message}
+ requestAnimationFrame(frame);
+}
+$('play').onclick=()=>{playing=!playing;$('play').textContent=playing?'⏸ Pause motion':'▶ Animate bend';$('play').classList.toggle('on',playing)};
+$('zero').onclick=()=>{playing=false;manualAngle=0;$('angle').value='0';$('play').textContent='▶ Animate bend';$('play').classList.remove('on')};
+$('angle').oninput=()=>{playing=false;manualAngle=Number($('angle').value);$('play').textContent='▶ Animate bend';$('play').classList.remove('on')};
+$('load').onclick=()=>$('zip').click();
+$('zip').onchange=async()=>{const file=$('zip').files?.[0];if(!file)return;
+ try{await window.DepthsFullArt.install(file);loaded=false;attach()}catch(e){$('status').textContent='Import error: '+e.message}};
+$('save').onclick=()=>{
+ const data={studio:'055A',source:'standCrouch frame 0',hip:{x:Number($('hipx').value),y:Number($('hipy').value)},maxBendDegrees:Number($('range').value),note:'Diagnostic only. No approved animation changed.'};
+ const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');
+ a.href=url;a.download='the-depths-hip-pivot-055a.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),2000);
+};
+requestAnimationFrame(frame);
+})();
+</script></body></html>
