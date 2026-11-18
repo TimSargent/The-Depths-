@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"><meta name="theme-color" content="#080a0c"><title>The Depths — Prototype 037W3</title>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"><meta name="theme-color" content="#080a0c"><title>The Depths — Prototype 037W4</title>
 <style>
 *{box-sizing:border-box}html,body{margin:0;background:#080a0c;color:#e9e0d3;font-family:system-ui,-apple-system,Arial,sans-serif;overflow-x:hidden}body{min-height:100dvh;overscroll-behavior:none}main{max-width:920px;margin:auto;padding:12px 12px max(18px,env(safe-area-inset-bottom))}.top{display:flex;align-items:center;justify-content:space-between;gap:8px}h1{margin:3px 0 0;font-size:21px}.eyebrow{font-size:10px;letter-spacing:2px;color:#bda889}.sub{font-size:12px;color:#b3a99a}.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:12px 0}.stat{background:#181b1d;border:1px solid #343537;border-radius:9px;padding:8px 7px}.stat span{font-size:10px;color:#aaa097;display:block}.stat b{font-size:14px;display:block;margin-top:2px}.view{position:relative;border:1px solid #4a443d;border-radius:12px;overflow:hidden;background:#070809;touch-action:none}canvas{width:100%;display:block;aspect-ratio:960/450;touch-action:none}.progress{position:absolute;bottom:0;left:0;height:4px;width:0;background:#e0ae67;transition:width .08s}.modes,.heights,.controls{display:flex;gap:8px;margin-top:10px}.modes button,.heights button{flex:1}.controls button{flex:1;min-height:65px;font-size:19px}button{background:#25282b;color:#f2e7d8;border:1px solid #555048;padding:12px 8px;border-radius:10px;font-size:13px;font-weight:700;touch-action:none;-webkit-user-select:none;user-select:none;cursor:pointer}button.selected{background:#725032;border-color:#d9ac72}button:disabled{opacity:.4}.actions{display:flex;gap:8px;margin-top:10px}.actions button{flex:1}.message{font-size:13px;line-height:1.45;color:#e7d4ba;border:1px solid #49443e;background:#181b1d;border-radius:10px;padding:11px;margin-top:10px;min-height:57px}.help{font-size:12px;line-height:1.55;color:#aaa097;margin:10px 2px}.meter{height:5px;border-radius:9px;background:#353739;overflow:hidden;margin-top:5px}.meter div{height:100%;background:#dfb47d;width:0;transition:width .15s}#phase{font-size:11px;color:#d7b27c;margin:8px 0 0}@media (max-width:500px){main{padding:8px 8px max(10px,env(safe-area-inset-bottom))}.stat{padding:7px 5px}.stat b{font-size:12px}.controls button{min-height:70px;font-size:18px}.modes button,.heights button{padding:11px 3px;font-size:12px}.actions button{font-size:12px}.eyebrow{font-size:9px}h1{font-size:18px}}
 .lab{margin-top:14px;border:1px solid #49443e;background:#171a1c;border-radius:10px;padding:10px}
@@ -9,7 +9,7 @@
 #labCanvas{display:block;width:100%;height:auto;aspect-ratio:600/280;border-radius:9px;background:#0c1012;margin-top:9px}
 #labStatus{font-size:12px;color:#cbb28b;padding-top:7px}
 </style></head><body><main>
-<div class="top"><div><div class="eyebrow">THE DEPTHS / PLAYTEST 037W3</div><h1>Dig. Haul. Repeat.</h1></div><button id="reset">↻ Restart</button></div>
+<div class="top"><div><div class="eyebrow">THE DEPTHS / PLAYTEST 037W4</div><h1>Dig. Haul. Repeat.</h1></div><button id="reset">↻ Restart</button></div>
 <div class="stats"><div class="stat"><span>Posture</span><b id="pose">Standing</b></div><div class="stat"><span>Bag</span><b id="bag">0 / 8</b><div class="meter"><div id="bagbar"></div></div></div><div class="stat"><span>Strips mined</span><b id="mined">0</b></div><div class="stat"><span>Dump trips</span><b id="trips">0</b></div></div>
 <div class="view"><canvas id="world" width="960" height="450" aria-label="Playable mining tunnel with automatic spoil bag and horizontal excavation"></canvas><div class="progress" id="progress"></div></div>
 <div id="phase">Prototype 013 • video-derived animation playtest</div>
@@ -17,6 +17,7 @@
 <div class="actions"><button id="originalArt">💀 Load ORIGINAL artwork ZIP</button><input id="originalFile" type="file" accept=".zip,application/zip" hidden /></div>
 <div id="originalStatus" role="status" style="font:12px system-ui;color:#e4bf8e;margin:6px 0 0">Full-detail source not loaded — compressed fallback active</div>
 <div class="actions"><button id="zoom" class="selected">🔍 Close-up camera ON</button><button id="sprite" class="selected">🎞 Video animations ON</button><button id="walkDirection">🚶 Walk cycle: reversed</button><button id="walkGround" class="selected">🥾 Ground lock ON</button><button id="walkSeam" class="selected">🔗 Seam blend ON</button><button id="walkPolish" class="selected">👣 Walk polish ON</button><button id="footPlant" class="selected">🥾 Foot plant ON</button><button id="swingBlend">🧪 Experimental rig OFF</button></div>
+<div class="actions"><button id="walkCourse" class="selected">🚶 Long walk test ON · 40 cells</button></div>
 <div class="modes"><button id="explore">↗ Explore</button><button id="excavate" class="selected">⛏ Excavate</button></div>
 <div class="heights"><button id="crawl" class="selected">1 tile · Crawl</button><button id="crouch">2 tiles · Crouch</button><button id="stand">3 tiles · Stand</button></div>
 <div class="actions"><button id="widen">⛏ Widen pocket: OFF</button><button id="mineScoot" class="selected">🐾 Mining scoot ON</button></div>
@@ -312,10 +313,18 @@ function holdForPose(goal){
 }
 function visibleTransition(){return transitionHold||!poseReady(poseFor(p.x))}
 function transitionName(){return rigPose>transitionGoal?'Getting up':'Lowering down'}
+// The test course is a world preset, not a change to excavation behavior.
+let longWalkCourse=true;
+const WALK_COURSE_LAST=45; // x=6 to 45: 39 open cells, no mining necessary
 function reset(){
-heights=Array(N).fill(0);for(let x=EDGE;x<=9;x++)heights[x]=3;
-braces=new Set([4,8]);p={x:START,dir:1};mode='excavate';target=1;bag=0;mined=0;trips=0;phase='manual';returnX=START;moveDir=0;holding=false;last=0;digElapsed=0;fx=[];cam=0;showTime=0;roofTarget=-1;shake=0;rigPose=0;rigStride=0;rigSwing=0;transitionGoal=null;transitionHold=false;animState="IDLE";lockedX=null;lockedCam=null;lockViolations=0;pendingStepTo=null;pendingRise=null;pendingLower=null;pendingScoot=false;scoot=null;scootsCompleted=0;activeExcavationCell=null;activeExcavationDir=0;widenArmed=false;canvasDrag=null;aimTarget=null;walkFrameTime=0;uprightPhase=0;uprightWasMoving=false;uprightStopFrame=null;visualX=START;visualMoving=false;lastDrawnMotion=null;blendFromMotion=null;blendStartMs=0;
-$('progress').style.width='0%';say('Hold RIGHT in Excavate mode to cut a narrow prospecting tunnel. The bag holds 8 strips before the miner must dump at the ledge.');update();
+heights=Array(N).fill(0);
+for(let x=EDGE;x<=(longWalkCourse?WALK_COURSE_LAST:9);x++)heights[x]=3;
+braces=new Set([4,8]);p={x:START,dir:1};mode=longWalkCourse?'explore':'excavate';target=longWalkCourse?3:1;bag=0;mined=0;trips=0;phase='manual';returnX=START;moveDir=0;holding=false;last=0;digElapsed=0;fx=[];cam=0;showTime=0;roofTarget=-1;shake=0;rigPose=0;rigStride=0;rigSwing=0;transitionGoal=null;transitionHold=false;animState="IDLE";lockedX=null;lockedCam=null;lockViolations=0;pendingStepTo=null;pendingRise=null;pendingLower=null;pendingScoot=false;scoot=null;scootsCompleted=0;activeExcavationCell=null;activeExcavationDir=0;widenArmed=false;canvasDrag=null;aimTarget=null;walkFrameTime=0;uprightPhase=0;uprightWasMoving=false;uprightStopFrame=null;visualX=START;visualMoving=false;lastDrawnMotion=null;blendFromMotion=null;blendStartMs=0;
+$('progress').style.width='0%';
+$('walkCourse').textContent=longWalkCourse?'🚶 Long walk test ON · 40 cells':'🚶 Long walk test OFF · mining map';
+$('walkCourse').classList.toggle('selected',longWalkCourse);
+say(longWalkCourse?'Long walking course ready! Hold RIGHT to walk 39 open cells without mining. Hold LEFT to return. Toggle Long walk test OFF to restore the mining map.':'Hold RIGHT in Excavate mode to cut a narrow prospecting tunnel. The bag holds 8 strips before the miner must dump at the ledge.');
+update();
 }
 function update(){
 $('pose').textContent=visibleTransition()?(transitionGoal!==null&&rigPose>transitionGoal?'Standing up…':'Lowering down…'):(rigPose>=5.5?'Prone':rigPose>=2.5?'Crouching':'Standing');$('bag').textContent=bag+' / 8';$('mined').textContent=mined;$('trips').textContent=trips;$('bagbar').style.width=(bag/8*100)+'%';
@@ -1033,6 +1042,7 @@ function refreshOriginalStatus(){
 window.addEventListener('depths-art-status',refreshOriginalStatus);
 refreshOriginalStatus();
 $('reset').onclick=reset;
+$('walkCourse').onclick=()=>{longWalkCourse=!longWalkCourse;reset()};
 $('zoom').onclick=()=>{zoomed=!zoomed;$('zoom').textContent=zoomed?'🔍 Close-up camera ON':'🔭 Wide camera ON';$('zoom').classList.toggle('selected',zoomed)};
 $('sprite').onclick=()=>{spriteEnabled=!spriteEnabled;$('sprite').textContent=spriteEnabled?'🎞 Video animations ON':'🦴 Rig animations ON';$('sprite').classList.toggle('selected',spriteEnabled)};
 $('walkDirection').onclick=()=>{walkReverse=!walkReverse;walkFrameTime=0;$('walkDirection').textContent=walkReverse?'🚶 Walk cycle: reversed':'🚶 Walk cycle: original'};
