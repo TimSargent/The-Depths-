@@ -1,0 +1,70 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>The Depths · Layer Calibration 054A</title><style>
+*{box-sizing:border-box}body{margin:0;background:#0d1012;color:#e9dec9;font:14px system-ui,sans-serif}main{max-width:920px;margin:auto;padding:14px}h1{font-size:25px;margin:7px 0}.tag{font-size:11px;letter-spacing:2px;color:#dfb985;font-weight:700}p{line-height:1.5;color:#b7ae9f}.panels{display:grid;grid-template-columns:1fr 1fr;gap:9px}.pane{padding:8px;background:#171a1d;border:1px solid #494a47;border-radius:9px}.pane b{display:block;font-size:12px;color:#ddb787;margin-bottom:5px}canvas{width:100%;height:auto;display:block;background:#080a0b;border-radius:5px;aspect-ratio:245/418}small{color:#9ca5a4}.controls{margin:12px 0;border:1px solid #52504d;background:#181b1d;padding:12px;border-radius:9px;display:grid;gap:10px}button{font:inherit;background:#735638;color:#fff1da;border:1px solid #aa8960;border-radius:7px;padding:10px}input[type=range]{width:100%;accent-color:#deb07c}.checks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.checks label{font-size:12px;display:flex;align-items:center;gap:6px}.notice{font-size:12px;color:#e6c390;line-height:1.45}@media(max-width:560px){main{padding:9px}.pane{padding:5px}.panels{gap:5px}h1{font-size:22px}}
+</style></head><body><main>
+<div class="tag">THE DEPTHS · 054A · SOURCE ALIGNMENT TEST</div><h1>Graphite Layer Calibration</h1>
+<p>Stop animating for a moment. First prove the original character can be rebuilt from its separated layers at <b>exactly the source scale</b>. Left is the untouched original. Right is the same original, separated into individual clipped parts and reassembled without rotation, resizing or moving any pieces.</p>
+<div class="panels"><div class="pane"><b>ORIGINAL · standing source</b><canvas id="source" width="245" height="418"></canvas><small>Unmodified source artwork</small></div><div class="pane"><b>REASSEMBLED · zero movement</b><canvas id="assembled" width="245" height="418"></canvas><small>Original-sized clips; identical coordinates</small></div></div>
+<div class="controls"><button id="load">Load original Animation Library ZIP</button><input type="file" id="zip" accept=".zip,application/zip" hidden>
+<label>Original overlay on reconstructed image: <b id="opacityVal">0%</b><input id="opacity" type="range" min="0" max="100" step="1" value="0"></label>
+<div class="checks" id="checks"></div>
+<div class="notice" id="status">Checking saved art library…</div>
+<div class="notice">This is a <b>non-destructive asset-integrity test</b>, not a new animation. Any missing/duplicated shapes you see here are source mask problems; if the source looks correct here but fails while moving, the problem is in joint placement and rotations.</div></div>
+<p><a style="color:#ddb787" href="playtest-050f.html">Preserved gameplay 050F</a> · <a style="color:#ddb787" href="rig-studio-049a.html">Approved walking 049A</a> · <a style="color:#ddb787" href="anatomy-studio-053b.html">Previous diagnostic 053B</a></p>
+</main><script src="assets/full-detail-037.js?v=054a"></script><script>
+(()=>{'use strict';
+const $=id=>document.getElementById(id),c=$('source').getContext('2d'),r=$('assembled').getContext('2d');
+const parts={
+ head:{poly:[[130,5],[170,7],[179,32],[178,59],[162,78],[134,70],[122,46],[123,20]],start:[141,67],end:[148,26]},
+ neck:{poly:[[127,63],[147,65],[140,95],[123,98]],start:[133,80],end:[137,70]},
+ torso:{poly:[[114,80],[141,74],[137,117],[127,154],[114,158],[107,130],[109,98]],start:[123,96],end:[114,153]},
+ pelvis:{poly:[[80,177],[104,186],[103,216],[84,225],[72,205]],start:[86,195],end:[90,207]},
+ upper_arm:{poly:[[108,84],[133,90],[127,109],[121,137],[114,162],[97,147],[96,121]],start:[121,94],end:[110,155]},
+ forearm:{poly:[[108,143],[118,148],[118,216],[107,223],[104,179]],start:[110,154],end:[114,220]},
+ hand:{poly:[[109,211],[125,214],[130,244],[122,266],[109,254],[105,226]],start:[114,218],end:[119,246]},
+ thigh:{poly:[[77,186],[98,190],[103,232],[105,292],[93,302],[85,256]],start:[86,200],end:[98,294]},
+ shin:{poly:[[92,285],[107,289],[101,354],[98,381],[85,389],[84,342]],start:[98,294],end:[93,379]},
+ foot:{poly:[[83,374],[100,371],[112,385],[140,389],[141,402],[82,403]],start:[93,379],end:[126,396]}
+};
+
+const layerOrder=['shin','thigh','foot','pelvis','torso','neck','upper_arm','forearm','hand','head'];
+const active=Object.fromEntries(layerOrder.map(k=>[k,true]));
+const layers={};let attached=false,raw=null;
+for(const key of layerOrder){
+ const label=document.createElement('label'),input=document.createElement('input');
+ input.type='checkbox';input.checked=true;input.onchange=()=>{active[key]=input.checked;draw()};
+ label.append(input,document.createTextNode(key.replace('_',' ')));$('checks').append(label);
+}
+function attach(){
+ const library=window.DepthsFullArt,frame=library?.get('standCrouch',0);
+ if(!library?.state?.ready||!frame)return false;
+ raw=document.createElement('canvas');raw.width=245;raw.height=418;
+ raw.getContext('2d').drawImage(frame,frame.sourceX||0,frame.sourceY||0);
+ for(const [name,def] of Object.entries(parts)){
+ const layer=document.createElement('canvas');layer.width=245;layer.height=418;
+ const g=layer.getContext('2d');g.beginPath();
+ def.poly.forEach((p,i)=>i?g.lineTo(...p):g.moveTo(...p));
+ g.closePath();g.clip();g.drawImage(raw,0,0);
+ layers[name]=layer;
+ }
+ attached=true;return true;
+}
+function draw(){
+ c.clearRect(0,0,245,418);r.clearRect(0,0,245,418);
+ if(!attached){$('status').textContent='Original source art not yet loaded. Select your Animation Library ZIP.';return;}
+ c.drawImage(raw,0,0);
+ for(const key of layerOrder)if(active[key])r.drawImage(layers[key],0,0);
+ const alpha=Number($('opacity').value)/100;
+ if(alpha){r.globalAlpha=alpha;r.drawImage(raw,0,0);r.globalAlpha=1}
+ $('opacityVal').textContent=Math.round(alpha*100)+'%';
+ $('status').textContent='✅ Source frame loaded · '+layerOrder.filter(k=>active[k]).length+' independent graphite masks displayed. Source positions, angles and scales unchanged.';
+}
+$('opacity').oninput=draw;
+$('load').onclick=()=>$('zip').click();
+$('zip').onchange=async()=>{
+ const file=$('zip').files?.[0];if(!file)return;
+ try{await window.DepthsFullArt.install(file);attached=false;attach();draw()}
+ catch(err){$('status').textContent='Import failed: '+err.message}
+};
+function tick(){if(!attached&&window.DepthsFullArt?.state?.ready){attach();draw()}requestAnimationFrame(tick)}
+draw();requestAnimationFrame(tick);
+})();</script></body></html>
