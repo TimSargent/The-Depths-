@@ -1,0 +1,103 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>The Depths — 060C Geometry-Safe Crouch→Prone</title>
+<style>*{box-sizing:border-box}body{margin:0;background:#0e1214;color:#f1e2cb;font:14px system-ui,-apple-system,sans-serif}main{max-width:900px;margin:auto;padding:13px}
+.tag{font-size:11px;font-weight:700;letter-spacing:1.6px;color:#e4b981}h1{font-size:24px;margin:7px 0}
+p{color:#c2b7a7;line-height:1.5}.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.card{background:#1b1f21;border:1px solid #544b3f;border-radius:9px;padding:6px;min-width:0}
+.card b{font-size:12px;color:#ead0a5}.view{display:block;width:100%;aspect-ratio:440/270;background:#101416;border-radius:5px}
+small{color:#baac9a;font-size:11px}.controls{margin-top:10px;background:#1a1d1f;border:1px solid #554b3e;padding:12px;border-radius:9px}
+.buttons{display:flex;gap:7px;flex-wrap:wrap}button{border:1px solid #bc8c5b;background:#5c452f;color:#ffe5c0;border-radius:7px;padding:10px;font:inherit;cursor:pointer}button:disabled{opacity:.4}
+label{display:block;margin:11px 0;color:#e0c8ab;font-size:12px}input[type=range]{width:100%;accent-color:#e2b27c}
+.status{color:#f0cd9b;line-height:1.5;font-size:12px;padding:8px 0}a{color:#e7b982}
+</style></head><body><main>
+<div class="tag">THE DEPTHS · 060C · REJECTED DEFORMATION REPLACEMENT</div>
+<h1>Crouch → Prone: geometry-safe baseline ⛏️</h1>
+<p>The source alignment is rebuilt from the <b>original image coordinates</b>. All eight poses now share a single locked scale, shared floor and a fixed world-space canvas. This deliberately <b>disables the unverified mesh deformation</b> from 060A/060B rather than passing off distorted art as smooth motion.</p>
+<div class="grid"><div class="card"><b>ORIGINAL · 8 poses</b><canvas id="ref" class="view" width="440" height="270"></canvas><small>Full original sprite</small></div>
+<div class="card"><b>060C · locked geometry</b><canvas id="preview" class="view" width="440" height="270"></canvas><small id="note">Same character, consistent positioning</small></div></div>
+<div class="controls">
+<div class="buttons"><button id="play">⏸ Pause</button><button id="restart">↩ Restart</button><button id="export">⬇ Export 8 original frames</button><button id="load">Load artwork ZIP</button><input hidden type="file" id="zip" accept=".zip"></div>
+<label>Pose <strong id="pose">1 / 8</strong><input id="slider" type="range" min="0" max="7" step="1" value="0"></label>
+<label>Forward-backward cycle <strong id="speedLabel">3.2 sec</strong><input id="speed" type="range" min="1.5" max="7" step=".1" value="3.2"></label>
+<div id="status" class="status">Checking for the previously imported Animation Library…</div></div>
+<p>This is a <b>verified-reference stage, not a finished rigged animation</b>. To create clean original-style in-betweens, we need the eight crouch-to-prone frames and joint positions traced specifically for this sequence. The export button produces a single PNG sheet (no manual editing).</p>
+<p><a href="motion-mesh-059a.html">059A standing-crouch prototype</a> and <a href="playtest-050f.html">approved gameplay</a> are unchanged.</p>
+<script src="assets/full-detail-037.js?v=060c"></script>
+<script>
+(()=>{'use strict';
+const $=s=>document.getElementById(s),W=440,H=270,panels=[$('ref'),$('preview')],ctxs=panels.map(c=>c.getContext('2d'));
+let art=[],world=[],playing=true,position=0,last=0,clock=0,error='';
+const meta={scale:1,bounds:null,offsetX:0,offsetY:0};
+const img=()=>{let a=window.DepthsFullArt;return a?.state?.ready?Array.from({length:8},(_,i)=>a.get('crouchProne',i)):null};
+function initialize(){
+ if(art.length)return true;
+ let list=img();if(!list||list.some(v=>!v))return false;
+ art=list;
+ // All source PNGs use a common world-space reference; retain their
+ // sourceX/sourceY and never normalize a pose to its own silhouette.
+ const x0=Math.min(...art.map(im=>im.sourceX||0)),y0=Math.min(...art.map(im=>im.sourceY||0));
+ const x1=Math.max(...art.map(im=>(im.sourceX||0)+im.width));
+ const y1=Math.max(...art.map(im=>(im.sourceY||0)+im.height));
+ const spanX=Math.max(1,x1-x0),spanY=Math.max(1,y1-y0);
+ const scale=Math.min((W-36)/spanX,(H-34)/spanY);
+ meta.scale=scale;meta.bounds={x0,y0,x1,y1,spanX,spanY};
+ meta.offsetX=(W-spanX*scale)/2-x0*scale;
+ meta.offsetY=(H-16)-y1*scale;
+ world=art.map(im=>{
+  const canvas=document.createElement('canvas');canvas.width=W;canvas.height=H;
+  const c=canvas.getContext('2d');
+  c.drawImage(im,(im.sourceX||0)*scale+meta.offsetX,(im.sourceY||0)*scale+meta.offsetY,im.width*scale,im.height*scale);
+  return canvas;
+ });
+ // Safety: each source key must occupy the same world-space coordinates
+ // in both panels. Never apply a per-key bounding-box fitting transform.
+ const allValid=world.every(c=>{
+  const d=c.getContext('2d',{willReadFrequently:true}).getImageData(0,0,W,H).data;
+  let visible=0;for(let i=3;i<d.length;i+=4)if(d[i]>90)visible++;
+  return visible>20;
+ });
+ error=allValid?'':'One or more source images contain no visible graphite.';
+ $('status').textContent=allValid?
+  '✅ All eight original frames loaded; one shared world origin and one scale. No mesh transforms or size jumps.':
+  '⚠ '+error;
+ return true;
+}
+function draw(){
+ if(!art.length){ctxs.forEach(c=>{c.clearRect(0,0,W,H);c.fillStyle='#151a1c';c.fillRect(0,0,W,H)});return}
+ const index=Math.max(0,Math.min(7,Math.round(position)));
+ for(const c of ctxs){
+  c.clearRect(0,0,W,H);c.fillStyle='#101416';c.fillRect(0,0,W,H);
+  // Both draw EXACTLY the same cached source frame at the same size.
+  c.drawImage(world[index],0,0);
+ }
+ $('pose').textContent=(index+1)+' / 8';$('note').textContent='Pose '+(index+1)+' — fixed source geometry';
+}
+$('play').onclick=()=>{playing=!playing;$('play').textContent=playing?'⏸ Pause':'▶ Play'};
+$('restart').onclick=()=>{playing=true;position=0;clock=0;$('play').textContent='⏸ Pause'};
+$('slider').oninput=()=>{playing=false;position=Number($('slider').value);$('play').textContent='▶ Play';draw()};
+$('speed').oninput=()=>$('speedLabel').textContent=$('speed').value+' sec';
+$('load').onclick=()=>$('zip').click();
+$('zip').onchange=async()=>{try{await window.DepthsFullArt.install($('zip').files[0]);art=[];world=[];initialize();draw()}catch(e){error=e.message;$('status').textContent='⚠ '+error}};
+$('export').onclick=()=>{
+ if(!art.length){$('status').textContent='Load original Animation Library first.';return}
+ // Export the actual source frames, not compressed video/screen captures.
+ const pad=20,tileW=440,tileH=270,sheet=document.createElement('canvas');
+ sheet.width=4*tileW;sheet.height=2*tileH;const g=sheet.getContext('2d');
+ for(let i=0;i<8;i++){
+  const x=(i%4)*tileW,y=Math.floor(i/4)*tileH;
+  g.fillStyle='#111719';g.fillRect(x,y,tileW,tileH);
+  g.drawImage(world[i],x,y);
+  g.fillStyle='#f4c48e';g.font='16px system-ui';g.fillText('Crouch → prone · '+i,x+pad,y+24);
+ }
+ sheet.toBlob(blob=>{if(!blob)return;const url=URL.createObjectURL(blob),a=document.createElement('a');
+ a.href=url;a.download='the-depths-crouch-to-prone-source-frames.png';a.click();
+ setTimeout(()=>URL.revokeObjectURL(url),10000)},'image/png');
+};
+function tick(now){
+ const dt=last?Math.min(.05,(now-last)/1000):0;last=now;
+ if(!art.length)initialize();
+ if(playing&&art.length){clock=(clock+dt/Number($('speed').value))%2;position=(clock<=1?clock:2-clock)*7;$('slider').value=Math.round(position)}
+ draw();requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+})();
+</script></main></body></html>
