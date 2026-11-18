@@ -1,0 +1,426 @@
+{
+  "version": "058B",
+  "sequence": "standCrouch",
+  "canvas": [
+    245,
+    418
+  ],
+  "source": "Original eight-frame image supplied by user",
+  "mapping": "Assistant visually traced landmark centers; approximate pixel coordinates",
+  "landmarks": [
+    "hip",
+    "knee",
+    "ankle",
+    "toe",
+    "farKnee",
+    "farAnkle",
+    "farToe",
+    "shoulder",
+    "elbow",
+    "wrist",
+    "neck",
+    "headCenter"
+  ],
+  "frames": [
+    {
+      "hip": [
+        86,
+        200
+      ],
+      "knee": [
+        98,
+        294
+      ],
+      "ankle": [
+        93,
+        379
+      ],
+      "toe": [
+        126,
+        396
+      ],
+      "farKnee": [
+        84,
+        292
+      ],
+      "farAnkle": [
+        83,
+        375
+      ],
+      "farToe": [
+        102,
+        395
+      ],
+      "shoulder": [
+        121,
+        94
+      ],
+      "elbow": [
+        110,
+        155
+      ],
+      "wrist": [
+        114,
+        220
+      ],
+      "neck": [
+        141,
+        67
+      ],
+      "headCenter": [
+        148,
+        42
+      ]
+    },
+    {
+      "hip": [
+        54,
+        167
+      ],
+      "knee": [
+        82,
+        256
+      ],
+      "ankle": [
+        83,
+        342
+      ],
+      "toe": [
+        121,
+        360
+      ],
+      "farKnee": [
+        70,
+        248
+      ],
+      "farAnkle": [
+        75,
+        341
+      ],
+      "farToe": [
+        98,
+        355
+      ],
+      "shoulder": [
+        135,
+        79
+      ],
+      "elbow": [
+        113,
+        139
+      ],
+      "wrist": [
+        111,
+        206
+      ],
+      "neck": [
+        164,
+        67
+      ],
+      "headCenter": [
+        174,
+        40
+      ]
+    },
+    {
+      "hip": [
+        45,
+        154
+      ],
+      "knee": [
+        112,
+        221
+      ],
+      "ankle": [
+        81,
+        305
+      ],
+      "toe": [
+        115,
+        322
+      ],
+      "farKnee": [
+        98,
+        225
+      ],
+      "farAnkle": [
+        85,
+        304
+      ],
+      "farToe": [
+        102,
+        321
+      ],
+      "shoulder": [
+        141,
+        75
+      ],
+      "elbow": [
+        123,
+        140
+      ],
+      "wrist": [
+        154,
+        210
+      ],
+      "neck": [
+        174,
+        68
+      ],
+      "headCenter": [
+        187,
+        42
+      ]
+    },
+    {
+      "hip": [
+        48,
+        167
+      ],
+      "knee": [
+        142,
+        196
+      ],
+      "ankle": [
+        98,
+        274
+      ],
+      "toe": [
+        130,
+        292
+      ],
+      "farKnee": [
+        101,
+        211
+      ],
+      "farAnkle": [
+        77,
+        284
+      ],
+      "farToe": [
+        99,
+        298
+      ],
+      "shoulder": [
+        137,
+        88
+      ],
+      "elbow": [
+        127,
+        151
+      ],
+      "wrist": [
+        167,
+        198
+      ],
+      "neck": [
+        164,
+        84
+      ],
+      "headCenter": [
+        177,
+        51
+      ]
+    },
+    {
+      "hip": [
+        32,
+        186
+      ],
+      "knee": [
+        135,
+        192
+      ],
+      "ankle": [
+        121,
+        276
+      ],
+      "toe": [
+        158,
+        290
+      ],
+      "farKnee": [
+        115,
+        217
+      ],
+      "farAnkle": [
+        46,
+        279
+      ],
+      "farToe": [
+        69,
+        291
+      ],
+      "shoulder": [
+        115,
+        94
+      ],
+      "elbow": [
+        118,
+        157
+      ],
+      "wrist": [
+        179,
+        174
+      ],
+      "neck": [
+        136,
+        86
+      ],
+      "headCenter": [
+        148,
+        52
+      ]
+    },
+    {
+      "hip": [
+        29,
+        190
+      ],
+      "knee": [
+        130,
+        185
+      ],
+      "ankle": [
+        108,
+        272
+      ],
+      "toe": [
+        153,
+        284
+      ],
+      "farKnee": [
+        113,
+        227
+      ],
+      "farAnkle": [
+        37,
+        268
+      ],
+      "farToe": [
+        53,
+        283
+      ],
+      "shoulder": [
+        100,
+        95
+      ],
+      "elbow": [
+        119,
+        162
+      ],
+      "wrist": [
+        186,
+        162
+      ],
+      "neck": [
+        119,
+        86
+      ],
+      "headCenter": [
+        132,
+        53
+      ]
+    },
+    {
+      "hip": [
+        32,
+        197
+      ],
+      "knee": [
+        138,
+        185
+      ],
+      "ankle": [
+        115,
+        265
+      ],
+      "toe": [
+        149,
+        280
+      ],
+      "farKnee": [
+        114,
+        237
+      ],
+      "farAnkle": [
+        34,
+        277
+      ],
+      "farToe": [
+        52,
+        290
+      ],
+      "shoulder": [
+        98,
+        97
+      ],
+      "elbow": [
+        129,
+        164
+      ],
+      "wrist": [
+        197,
+        122
+      ],
+      "neck": [
+        115,
+        84
+      ],
+      "headCenter": [
+        126,
+        52
+      ]
+    },
+    {
+      "hip": [
+        32,
+        197
+      ],
+      "knee": [
+        137,
+        185
+      ],
+      "ankle": [
+        115,
+        270
+      ],
+      "toe": [
+        145,
+        280
+      ],
+      "farKnee": [
+        114,
+        237
+      ],
+      "farAnkle": [
+        35,
+        274
+      ],
+      "farToe": [
+        54,
+        291
+      ],
+      "shoulder": [
+        97,
+        102
+      ],
+      "elbow": [
+        133,
+        161
+      ],
+      "wrist": [
+        194,
+        123
+      ],
+      "neck": [
+        113,
+        85
+      ],
+      "headCenter": [
+        125,
+        52
+      ]
+    }
+  ]
+}
