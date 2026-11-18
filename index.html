@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"><meta name="theme-color" content="#080a0c"><title>The Depths — Prototype 037W7</title>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"><meta name="theme-color" content="#080a0c"><title>The Depths — Prototype 037W8</title>
 <style>
 *{box-sizing:border-box}html,body{margin:0;background:#080a0c;color:#e9e0d3;font-family:system-ui,-apple-system,Arial,sans-serif;overflow-x:hidden}body{min-height:100dvh;overscroll-behavior:none}main{max-width:920px;margin:auto;padding:12px 12px max(18px,env(safe-area-inset-bottom))}.top{display:flex;align-items:center;justify-content:space-between;gap:8px}h1{margin:3px 0 0;font-size:21px}.eyebrow{font-size:10px;letter-spacing:2px;color:#bda889}.sub{font-size:12px;color:#b3a99a}.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:12px 0}.stat{background:#181b1d;border:1px solid #343537;border-radius:9px;padding:8px 7px}.stat span{font-size:10px;color:#aaa097;display:block}.stat b{font-size:14px;display:block;margin-top:2px}.view{position:relative;border:1px solid #4a443d;border-radius:12px;overflow:hidden;background:#070809;touch-action:none}canvas{width:100%;display:block;aspect-ratio:960/450;touch-action:none}.progress{position:absolute;bottom:0;left:0;height:4px;width:0;background:#e0ae67;transition:width .08s}.modes,.heights,.controls{display:flex;gap:8px;margin-top:10px}.modes button,.heights button{flex:1}.controls button{flex:1;min-height:65px;font-size:19px}button{background:#25282b;color:#f2e7d8;border:1px solid #555048;padding:12px 8px;border-radius:10px;font-size:13px;font-weight:700;touch-action:none;-webkit-user-select:none;user-select:none;cursor:pointer}button.selected{background:#725032;border-color:#d9ac72}button:disabled{opacity:.4}.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;min-width:0}.actions button{flex:1 1 118px;min-width:0;overflow-wrap:break-word}.message{font-size:13px;line-height:1.45;color:#e7d4ba;border:1px solid #49443e;background:#181b1d;border-radius:10px;padding:11px;margin-top:10px;min-height:57px}.help{font-size:12px;line-height:1.55;color:#aaa097;margin:10px 2px}.meter{height:5px;border-radius:9px;background:#353739;overflow:hidden;margin-top:5px}.meter div{height:100%;background:#dfb47d;width:0;transition:width .15s}#phase{font-size:11px;color:#d7b27c;margin:8px 0 0}@media (max-width:500px){main{padding:8px 8px max(10px,env(safe-area-inset-bottom))}.stat{padding:7px 5px}.stat b{font-size:12px}.controls button{min-height:70px;font-size:18px}.modes button,.heights button{padding:11px 3px;font-size:12px}.actions button{font-size:12px}.eyebrow{font-size:9px}h1{font-size:18px}}
 .lab{margin-top:14px;border:1px solid #49443e;background:#171a1c;border-radius:10px;padding:10px}
@@ -9,7 +9,7 @@
 #labCanvas{display:block;width:100%;height:auto;aspect-ratio:600/280;border-radius:9px;background:#0c1012;margin-top:9px}
 #labStatus{font-size:12px;color:#cbb28b;padding-top:7px}
 </style></head><body><main>
-<div class="top"><div><div class="eyebrow">THE DEPTHS / PLAYTEST 037W7</div><h1>Dig. Haul. Repeat.</h1></div><button id="reset">↻ Restart</button></div>
+<div class="top"><div><div class="eyebrow">THE DEPTHS / PLAYTEST 037W8</div><h1>Dig. Haul. Repeat.</h1></div><button id="reset">↻ Restart</button></div>
 <div class="stats"><div class="stat"><span>Posture</span><b id="pose">Standing</b></div><div class="stat"><span>Bag</span><b id="bag">0 / 8</b><div class="meter"><div id="bagbar"></div></div></div><div class="stat"><span>Strips mined</span><b id="mined">0</b></div><div class="stat"><span>Dump trips</span><b id="trips">0</b></div></div>
 <div class="view"><canvas id="world" width="960" height="450" aria-label="Playable mining tunnel with automatic spoil bag and horizontal excavation"></canvas><div class="progress" id="progress"></div></div>
 <div id="phase">Prototype 013 • video-derived animation playtest</div>
@@ -79,6 +79,25 @@ function uprightFrame(){
 }
 // Visual position is continuous; p.x remains integer for excavation and collisions.
 let visualX=START,visualMoving=false;
+// Walk-stop staging uses only approved source walk frames, then the established
+// standCrouch frame 0 idle pose. The body never moves in world space while
+// planting its final foot. The ordinary clip-boundary fade handles settling.
+const WALK_STOP_FRAME_SECONDS=.065;
+let walkStop=null,walkStopCount=0;
+function startWalkStop(frame){
+ const target=frame<=3?0:6; // closest end-of-stride source pose
+ walkStop={from:frame,to:target,elapsed:0,frame,done:false};
+}
+function tickWalkStop(dt){
+ if(!walkStop||walkStop.done)return;
+ walkStop.elapsed+=dt;
+ const steps=Math.min(Math.abs(walkStop.to-walkStop.from),
+   Math.floor(walkStop.elapsed/WALK_STOP_FRAME_SECONDS));
+ walkStop.frame=walkStop.from+Math.sign(walkStop.to-walkStop.from)*steps;
+ if(walkStop.frame===walkStop.to){
+  walkStop.done=true;walkStopCount++;
+ }
+}
 // Active excavation is specific to one solid-rock cell. Existing openings
 // are always walkable in any mode, even below the selected cut height.
 let activeExcavationCell=null,activeExcavationDir=0,widenArmed=false;
@@ -313,6 +332,7 @@ function animationChoice(moving,digging,poseValue){
  // The approved source standCrouch frame 0 shows both boots grounded;
  // freezing an arbitrary walk frame left a leg raised indefinitely.
  // Existing clip-boundary interpolation supplies the short settle.
+ if(poseValue<1&&walkStop&&!walkStop.done)return ['walk',walkStop.frame];
  if(poseValue<1)return ['standCrouch',0];
  return poseValue<1?['standCrouch',0]:poseValue<4?['crouchProne',0]:['proneCrawl',0];
 }
@@ -342,7 +362,7 @@ const WALK_COURSE_LAST=45; // x=6 to 45: 39 open cells, no mining necessary
 function reset(){
 heights=Array(N).fill(0);
 for(let x=EDGE;x<=(longWalkCourse?WALK_COURSE_LAST:9);x++)heights[x]=3;
-braces=new Set([4,8]);p={x:START,dir:1};mode=longWalkCourse?'explore':'excavate';target=longWalkCourse?3:1;bag=0;mined=0;trips=0;phase='manual';returnX=START;moveDir=0;holding=false;last=0;digElapsed=0;fx=[];cam=0;showTime=0;roofTarget=-1;shake=0;rigPose=0;rigStride=0;rigSwing=0;transitionGoal=null;transitionHold=false;animState="IDLE";lockedX=null;lockedCam=null;lockViolations=0;pendingStepTo=null;pendingRise=null;pendingLower=null;pendingScoot=false;scoot=null;scootsCompleted=0;activeExcavationCell=null;activeExcavationDir=0;widenArmed=false;canvasDrag=null;aimTarget=null;walkFrameTime=0;uprightPhase=0;uprightWasMoving=false;uprightStopFrame=null;stanceOffset=0;stanceAnchor=null;stanceSide=null;stanceDir=null;stanceLastFrame=null;stanceLastTime=0;visualX=START;visualMoving=false;lastDrawnMotion=null;blendFromMotion=null;blendStartMs=0;
+braces=new Set([4,8]);p={x:START,dir:1};mode=longWalkCourse?'explore':'excavate';target=longWalkCourse?3:1;bag=0;mined=0;trips=0;phase='manual';returnX=START;moveDir=0;holding=false;last=0;digElapsed=0;fx=[];cam=0;showTime=0;roofTarget=-1;shake=0;rigPose=0;rigStride=0;rigSwing=0;transitionGoal=null;transitionHold=false;animState="IDLE";lockedX=null;lockedCam=null;lockViolations=0;pendingStepTo=null;pendingRise=null;pendingLower=null;pendingScoot=false;scoot=null;scootsCompleted=0;activeExcavationCell=null;activeExcavationDir=0;widenArmed=false;canvasDrag=null;aimTarget=null;walkFrameTime=0;uprightPhase=0;uprightWasMoving=false;uprightStopFrame=null;walkStop=null;walkStopCount=0;stanceOffset=0;stanceAnchor=null;stanceSide=null;stanceDir=null;stanceLastFrame=null;stanceLastTime=0;visualX=START;visualMoving=false;lastDrawnMotion=null;blendFromMotion=null;blendStartMs=0;
 $('progress').style.width='0%';
 $('walkCourse').textContent=longWalkCourse?'🚶 Long walk test ON · 40 cells':'🚶 Long walk test OFF · mining map';
 $('walkCourse').classList.toggle('selected',longWalkCourse);
@@ -945,6 +965,16 @@ if(uprightNow){
  uprightPhase+=Math.abs(moved)/UPRIGHT_CELLS_PER_CYCLE;
  const legacyFrame=Math.floor(walkFrameTime*7*walkCycleSpeed)%7;
  uprightStopFrame=walkPolish?uprightFrame():(walkReverse?6-legacyFrame:legacyFrame);
+}
+// When an upright walk ends, roll through up to three actual nearby
+// source poses to an end-of-stride frame, then settle into feet-down idle.
+// Avoid mid-step frozen feet, a teleport, and a new stride during rest.
+if(uprightNow){walkStop=null;}
+else if(uprightWasMoving&&!uprightNow&&!transitionHold&&!scoot&&rigPose<.5){
+ startWalkStop(uprightStopFrame??0);
+}else if(walkStop){
+ if(transitionHold||scoot||rigPose>=.5||miningReady()){walkStop=null;}
+ else tickWalkStop(dt);
 }
 uprightWasMoving=uprightNow;
 if(miningReady()){
