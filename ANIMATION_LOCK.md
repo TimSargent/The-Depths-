@@ -103,6 +103,16 @@
 - [ ] **Visual approval pending:** because original walk source art has inconsistent support-foot poses, this limited root-offset correction is only experimental stance anchoring, not proof of completely stationary boots or natural weight transfer. Inspect ON/OFF footage for foot skating, torso wobble, camera/headlamp detachment, and popping at stance changes. A more faithful result may require correcting/retiming the underlying source frames.
 - [ ] Verify left-facing walk at full-detail in browser, and that original ZIP is loaded (otherwise foot-contact metadata may be absent).
 
+## Prototype 037W7 — Deterministic grounded stop pose (November 17, 2026)
+- [x] Reviewed the player's November 17 18:01 screen recording: the miner can stop with one leg raised because 037W2–W6 preserved the last arbitrary walking frame as idle.
+- [x] Restored **one designated, approved-source upright idle pose: `standCrouch` frame 0**, with feet together on the ground, regardless of the phase of the walking cycle. Do not pause mid-stride.
+- [x] Retained the existing 145ms animation-state crossfade from walking to idle; no new skeleton artwork, procedural joint deformation or change to gameplay position.
+- [x] Experimental horizontal Foot Lock defaults OFF because it has not shown a convincing visual benefit, but remains toggleable. Foot Plant ON, Fast Cadence OFF and Seam Blend OFF remain the baseline.
+- [x] Simulated multiple stop points with differing stride phases (72, 85, 98 and 113 walking frames) and a reverse-walk stop: all ended on `standCrouch` frame 0; zero lock violations.
+- [x] Normal eight-strip excavation and return/dump/resume regression still passes.
+- [ ] Visual review on phone: verify stop looks planted and the crossfade from varying leg poses does not produce ghosting/popping. Dedicated settle animation may be needed for truly natural weight transfer.
+- [ ] Do not declare the entire walking loop LOCKED: the source clips still need leg contact / natural stride refinement.
+
 ## Current checkpoint
 - Prototype **037P** is playable and mechanically validated; **no global visual lock**.
 - Open high-priority bug: prone sprite extends beyond aimed rock location.
