@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0a0c0d"><title>The Depths — Heavy Gait Study 039</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;background:#0b0d0f;color:#efe6d9;font:14px system-ui,-apple-system,sans-serif}main{max-width:920px;margin:auto;padding:14px 10px 40px}h1{margin:5px 0;font-size:28px}.eyebrow{font-size:11px;letter-spacing:2px;color:#d6af7c;font-weight:700}p{line-height:1.5}.muted{color:#b7a99b;font-size:12px}a{color:#e1b17c}.panes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:14px 0}.pane{background:#17191b;border:1px solid #544b40;border-radius:12px;padding:8px;min-width:0}.pane b{font-size:12px}.pane span{display:block;font-size:11px;color:#b4a18d}.pane canvas{width:100%;display:block;aspect-ratio:430/320;margin-top:8px;background:#101214;border-radius:7px}.controls{border:1px solid #524a41;border-radius:12px;padding:12px;background:#171a1c}.buttons{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}button{background:#34302b;border:1px solid #847158;border-radius:8px;color:#f2e4cf;padding:10px 11px;font-weight:700;flex:1 1 95px;cursor:pointer}button.on{background:#765635}.sliders{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.slider label{display:flex;justify-content:space-between;font-size:12px;margin-top:14px}.slider input{width:100%;accent-color:#d8af74}.status{color:#d3b58d;font-size:12px;margin-top:12px;min-height:17px}.note{font-size:12px;border:1px solid #453c33;border-radius:9px;padding:12px;color:#c9b9a8;line-height:1.6;margin-top:14px}#frame{font:12px ui-monospace,monospace;color:#d8b37d}@media(max-width:580px){.pane{padding:5px}.pane canvas{aspect-ratio:295/310}.panes{gap:5px}.sliders{grid-template-columns:1fr}.pane b{font-size:11px}}
+</style></head><body><main><div class="eyebrow">THE DEPTHS / MOTION STUDY 039A</div><h1>💀 Rebuilding the Walk</h1><p class="muted">Left: approved original graphite walk. Right: NEW 24-sample physical gait study with alternating planted feet, knee flexion, opposing arm movement, and tired weight transfer. The right side is a <b>motion skeleton study</b>, not replacement final artwork.</p>
+<p><a href="walk-lab.html?build=038B">← Previous Walk Lab</a> · <a href="index.html?build=037W8">Mining game</a></p>
+<div id="status" class="status">Loading original walk reference from the browser…</div><div class="buttons"><button id="import">💀 Load original ZIP if missing</button><input type="file" id="zip" accept=".zip,application/zip" hidden></div>
+<div class="panes"><div class="pane"><b>ORIGINAL 8 FRAMES</b><span>Our actual source PNG sequence</span><canvas id="original" width="430" height="320"></canvas></div><div class="pane"><b>NEW WEIGHTED GAIT</b><span>24 substeps · physical foot contacts</span><canvas id="study" width="430" height="320"></canvas></div></div>
+<div id="frame">Cycle — / 24</div>
+<div class="controls"><div class="buttons"><button id="play" class="on">⏸ Pause</button><button id="direction">→ Face right</button><button id="contacts" class="on">👣 Contact markers ON</button><button id="restart">↻ Restart</button></div>
+<div class="sliders"><div class="slider"><label for="rate">Cadence <b id="rateout">0.75×</b></label><input id="rate" type="range" min=".35" max="1.50" step=".05" value=".75"></div>
+<div class="slider"><label for="stride">Stride length <b id="strideout">28</b></label><input id="stride" type="range" min="16" max="36" step="1" value="28"></div>
+<div class="slider"><label for="tired">Fatigue / shoulder slump <b id="tiredout">70%</b></label><input id="tired" type="range" min="0" max="100" step="5" value="70"></div>
+<div class="slider"><label for="drop">Weight drop per step <b id="dropout">5 px</b></label><input id="drop" type="range" min="0" max="9" step="1" value="5"></div></div>
+<div class="slider"><label for="scrub">Frame-by-frame 24-step scrub <b id="scrubout">0/23</b></label><input id="scrub" type="range" min="0" max="23" step="1" value="0"></div>
+</div>
+<div class="note"><b>This is the first body-mechanics rebuild.</b> The planted foot is held in world space during stance, the other swings through, knees respond to each foot's location, and arms counter-swing. It's deliberately separate from gameplay and does not claim to have finished graphite in-betweens. Once the gait itself looks right, we can transfer it into art matching the original skeleton instead of continuing to retime broken source poses.</div>
+<script src="assets/full-detail-037.js?v=039a"></script>
+<script>
+(()=>{
+'use strict';
+const $=id=>document.getElementById(id),a=$('original').getContext('2d'),b=$('study').getContext('2d');
+let playing=true,phase=0,last=0,dir=1,contacts=true;
+const clamp=(x,l,h)=>Math.max(l,Math.min(h,x)),lerp=(a,b,t)=>a+(b-a)*t;
+const ease=t=>t*t*(3-2*t);
+const v=(x,y)=>({x,y});
+function showSource(){const status=window.DepthsFullArt?.state;$('status').textContent=status?.ready?'✅ Original 014 source ready (all 72 frames)':'Original artwork not found in this browser — import your ZIP below';}
+window.addEventListener('depths-art-status',showSource);
+$('import').onclick=()=>$('zip').click();
+$('zip').onchange=async()=>{const f=$('zip').files?.[0];if(f)try{await window.DepthsFullArt.install(f);showSource()}catch(e){$('status').textContent='ZIP error: '+e.message}};
+function floorScene(ctx,camera){
+ const w=430,h=320,floor=270;ctx.clearRect(0,0,w,h);ctx.fillStyle='#101214';ctx.fillRect(0,0,w,h);
+ ctx.fillStyle='#292927';ctx.fillRect(0,floor,w,h-floor);ctx.strokeStyle='#6f6556';ctx.lineWidth=1.3;
+ for(let x=-45;x<w+45;x+=42){const at=x-(camera%42);ctx.beginPath();ctx.moveTo(at,floor);ctx.lineTo(at,h);ctx.stroke()}
+ ctx.strokeStyle='#b3a080';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(0,floor);ctx.lineTo(w,floor);ctx.stroke();return floor;
+}
+function drawOriginal(){
+ const floor=floorScene(a,phase*2*Number($('stride').value));
+ const frame=Math.floor((phase%1)*8)%8,img=window.DepthsFullArt?.get('walk',frame);
+ a.fillStyle='#d9b98d';a.font='12px monospace';a.fillText('SOURCE '+frame+'/7',11,21);
+ if(!img){a.fillStyle='#d7bda0';a.font='12px system-ui';a.fillText('Load original 014 ZIP to view',20,140);return;}
+ const ref=img.motionReference||{centerX:img.width/2,plantedFootY:img.height},scale=img.fullDetailScale||{sx:176/img.height,sy:176/img.height};
+ const foot=ref.plantedFootY??ref.footY??img.height;
+ a.save();a.translate(215,floor);a.scale(dir,1);a.drawImage(img,-ref.centerX*scale.sx,-foot*scale.sy,img.width*scale.sx,img.height*scale.sy);a.restore();
+}
+function footAt(fullPhase,offset,stride){
+ // Two alternating strike phases (left at 0, right at .5). Each foot's
+ // stance point is stationary in world space. Lift exists only in swing.
+ const contactPhase=Math.floor(fullPhase+offset)-offset;
+ const u=fullPhase-contactPhase;
+ const bodyX=2*stride*fullPhase,anchorX=2*stride*contactPhase+stride*.6;
+ if(u<.62)return {x:anchorX-bodyX,y:0,planted:true,u};
+ const q=ease((u-.62)/.38),nextX=anchorX+2*stride;
+ return{x:lerp(anchorX,nextX,q)-bodyX,y:-Math.sin(Math.PI*q)*22,planted:false,u};
+}
+function knee(hip,ankle,front){
+ // Two-link inverse kinematics. Knee bends toward walking direction and
+ // remains a fixed bone length, unlike vertically stretching source frames.
+ const len1=53,len2=50,dx=ankle.x-hip.x,dy=ankle.y-hip.y;
+ const length=clamp(Math.hypot(dx,dy),.001,len1+len2-.5),unitX=dx/Math.max(.001,Math.hypot(dx,dy)),unitY=dy/Math.max(.001,Math.hypot(dx,dy));
+ const along=(len1*len1-len2*len2+length*length)/(2*length),out=Math.sqrt(Math.max(0,len1*len1-along*along));
+ return v(hip.x+unitX*along+front*unitY*out,hip.y+unitY*along-front*unitX*out);
+}
+function stroke(ctx,pts,width=2,opacity=1){
+ ctx.lineWidth=width;ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle='rgba(215,218,209,'+opacity+')';ctx.beginPath();ctx.moveTo(pts[0].x,pts[0].y);
+ for(let i=1;i<pts.length;i++)ctx.lineTo(pts[i].x,pts[i].y);ctx.stroke();
+ ctx.strokeStyle='rgba(127,144,131,'+(opacity*.36)+')';ctx.lineWidth=.65;ctx.beginPath();ctx.moveTo(pts[0].x+.8,pts[0].y-.6);
+ for(let i=1;i<pts.length;i++)ctx.lineTo(pts[i].x+.8,pts[i].y-.6);ctx.stroke();
+}
+function joint(ctx,p,r=2.7){ctx.fillStyle='#131719';ctx.strokeStyle='#d8dacb';ctx.lineWidth=1.3;ctx.beginPath();ctx.arc(p.x,p.y,r,0,Math.PI*2);ctx.fill();ctx.stroke()}
+function drawRig(){
+ const stride=Number($('stride').value),tired=Number($('tired').value)/100,drop=Number($('drop').value);
+ const floor=floorScene(b,phase*2*stride);
+ const l=footAt(phase,0,stride),r=footAt(phase,.5,stride);
+ const landed=Math.min(l.u,r.u),compression=Math.exp(-Math.pow((landed-.11)/.14,2))*drop;
+ const breath=Math.sin(phase*2*Math.PI)*.75,hip=v(0,174+compression+breath);
+ const slump=7*tired,shoulder=v(-slump,105+compression+3*tired+breath),neck=v(shoulder.x+1,91+compression+3*tired+breath),skull=v(neck.x-1-2*tired,70+compression+3*tired+breath);
+ const nearHip=v(-3,hip.y),farHip=v(3,hip.y),nearFoot=v(l.x,floor+l.y),farFoot=v(r.x,floor+r.y);
+ const leftKnee=knee(v(nearHip.x,nearHip.y),v(nearFoot.x,nearFoot.y),1);
+ const rightKnee=knee(v(farHip.x,farHip.y),v(farFoot.x,farFoot.y),1);
+ // Arms oppose the respective moving leg, with damped loose follow-through.
+ const armPhase=Math.sin(phase*2*Math.PI),lagPhase=Math.sin(phase*2*Math.PI-.45);
+ const armL=v(shoulder.x-8-armPhase*9,shoulder.y+33);
+ const handL=v(armL.x-5-lagPhase*7,armL.y+30+2*tired);
+ const armR=v(shoulder.x+8+armPhase*9,shoulder.y+32);
+ const handR=v(armR.x+4+lagPhase*7,armR.y+30+2*tired);
+ b.save();b.translate(215,0);b.scale(dir,1);
+ // Far leg and arm first so overlap feels dimensional without anatomical stretching.
+ stroke(b,[farHip,rightKnee,farFoot],2.4,.53);
+ stroke(b,[v(shoulder.x+3,shoulder.y+5),armR,handR],2.1,.48);
+ stroke(b,[v(shoulder.x,shoulder.y),v(shoulder.x+1,shoulder.y+24),v(hip.x,hip.y)],3.1,.93);
+ // Thin curved rib cage echoing the established hand-drawn skeleton identity.
+ for(let i=0;i<5;i++){
+  const yy=shoulder.y+12+i*5.2,sh=(1-i*.12)*7;
+  stroke(b,[v(shoulder.x-4,yy),v(shoulder.x-sh-2,yy+2),v(shoulder.x+3,yy+5)],.85,.73)
+ }
+ stroke(b,[neck,shoulder],2.2,.9);
+ stroke(b,[nearHip,leftKnee,nearFoot],2.65,1);
+ stroke(b,[v(shoulder.x-2,shoulder.y+3),armL,handL],2.45,.96);
+ for(const [p,front] of [[nearFoot,1],[farFoot,.52]]){
+  stroke(b,[p,v(p.x+12,p.y)],2.6,front);
+ }
+ for(const p of [hip,leftKnee,rightKnee,nearHip,farHip,armL,handL,armR,handR,shoulder])joint(b,p,2.4);
+ // Textured graphite skull — not yet final illustrated artwork.
+ b.fillStyle='#16191a';b.strokeStyle='#d7d8ce';b.lineWidth=1.7;b.beginPath();b.ellipse(skull.x,skull.y,8.5,12,0,0,Math.PI*2);b.fill();b.stroke();
+ for(let i=-5;i<=5;i+=2){stroke(b,[v(skull.x+i,skull.y-7),v(skull.x+i+3,skull.y+8)],.55,.4)}
+ // Headlamp glow tracks the slightly lagged head position.
+ b.fillStyle='#f8d99c';b.shadowColor='#eabb6f';b.shadowBlur=10;b.beginPath();b.arc(skull.x+8,skull.y-4,2.8,0,Math.PI*2);b.fill();b.shadowBlur=0;
+ if(contacts){
+  for(const [f,color] of [[l,'#e1b477'],[r,'#95b7af']]){
+   b.strokeStyle=color;b.lineWidth=1.3;b.beginPath();b.arc(f.x+6,floor+f.y,5.5,0,Math.PI*2);b.stroke();
+   if(f.planted){b.fillStyle=color;b.beginPath();b.arc(f.x+6,floor+f.y,2,0,Math.PI*2);b.fill()}
+  }
+ }
+ b.restore();
+ b.fillStyle='#d9b98d';b.font='12px monospace';b.fillText('GAIT '+String(Math.floor((phase%1)*24)%24).padStart(2,'0')+'/23',11,21);
+ b.font='11px monospace';b.fillText('PLANTED '+(l.planted?'L ':'')+(r.planted?'R':''),11,39);
+}
+function update(){
+ $('play').textContent=playing?'⏸ Pause':'▶ Play';$('play').classList.toggle('on',playing);
+ $('direction').textContent=dir===1?'→ Face right':'← Face left';
+ $('contacts').textContent=contacts?'👣 Contacts ON':'👣 Contacts OFF';$('contacts').classList.toggle('on',contacts);
+ for(const key of ['rate','stride','tired','drop'])$(key+'out').textContent=$(key).value+({rate:'×',stride:'',tired:'%',drop:' px'}[key]);
+ $('scrubout').textContent=Math.floor((phase%1)*24)%24+'/23';
+}
+function tick(t){if(!last)last=t;let dt=clamp((t-last)/1000,0,.05);last=t;
+ if(playing)phase+=dt*Number($('rate').value)*.72;
+ drawOriginal();drawRig();$('frame').textContent='Source '+Math.floor((phase%1)*8)%8+'/7   ·   New gait '+Math.floor((phase%1)*24)%24+'/23';
+ if(playing)$('scrub').value=Math.floor((phase%1)*24)%24;
+ update();requestAnimationFrame(tick)}
+$('play').onclick=()=>{playing=!playing;update()};
+$('direction').onclick=()=>{dir*=-1;update()};
+$('contacts').onclick=()=>{contacts=!contacts;update()};
+$('restart').onclick=()=>{phase=0;playing=true;update()};
+$('scrub').oninput=()=>{const n=Math.floor(phase);phase=n+Number($('scrub').value)/24;playing=false;update()};
+for(const id of ['rate','stride','tired','drop'])$(id).oninput=update;
+showSource();update();requestAnimationFrame(tick);
+})();
+</script></main></body></html>
