@@ -95,7 +95,12 @@ function tickWalkStop(dt){
    Math.floor(walkStop.elapsed/WALK_STOP_FRAME_SECONDS));
  walkStop.frame=walkStop.from+Math.sign(walkStop.to-walkStop.from)*steps;
  if(walkStop.frame===walkStop.to){
-  walkStop.done=true;walkStopCount++;
+  // Hold the final source contact pose long enough to render at least
+  // one real planted frame before switching to the fixed standing idle.
+  const contactAt=Math.abs(walkStop.to-walkStop.from)*WALK_STOP_FRAME_SECONDS;
+  if(walkStop.elapsed>=contactAt+WALK_STOP_FRAME_SECONDS){
+   walkStop.done=true;walkStopCount++;
+  }
  }
 }
 // Active excavation is specific to one solid-rock cell. Existing openings
