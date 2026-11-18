@@ -1052,9 +1052,10 @@ $('walkGround').onclick=()=>{walkGrounded=!walkGrounded;$('walkGround').textCont
 $('walkSeam').onclick=()=>{walkSeamBlend=!walkSeamBlend;$('walkSeam').textContent=walkSeamBlend?'🔗 Seam blend ON':'🔗 Seam blend OFF';$('walkSeam').classList.toggle('selected',walkSeamBlend)};
 $('walkPolish').onclick=()=>{walkPolish=!walkPolish;$('walkPolish').textContent=walkPolish?'👣 Fast cadence ON':'👣 Fast cadence OFF';$('walkPolish').classList.toggle('selected',walkPolish);
  // Switching cadence must not change ground contact, seam setting or idle pose.
- const previousPhase=walkPolish?walkFrameTime:uprightPhase;
- if(walkPolish)uprightPhase=previousPhase*WALK_CELLS_PER_CYCLE/UPRIGHT_CELLS_PER_CYCLE;
- else walkFrameTime=previousPhase*UPRIGHT_CELLS_PER_CYCLE/WALK_CELLS_PER_CYCLE;
+ // Both clocks count full walk cycles; copy the current phase to avoid a
+ // discontinuous frame when changing only the walking cadence.
+ if(walkPolish)uprightPhase=walkFrameTime;
+ else walkFrameTime=uprightPhase;
  uprightStopFrame=null;};
 $('footPlant').onclick=()=>{footPlant=!footPlant;$('footPlant').textContent=footPlant?'🥾 Foot plant ON':'🥾 Foot plant OFF';$('footPlant').classList.toggle('selected',footPlant)};
 $('mineScoot').onclick=()=>{scootEnabled=!scootEnabled;$('mineScoot').textContent=scootEnabled?'🐾 Mining scoot ON':'🐾 Mining scoot OFF';$('mineScoot').classList.toggle('selected',scootEnabled);if(!scootEnabled)scoot=null};
