@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>The Depths · Pivot Studio 055B</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#0c1012;color:#e9dfcf;font:14px system-ui,-apple-system,sans-serif}main{max-width:920px;margin:auto;padding:12px}
+h1{margin:7px 0;font-size:25px}.tag{letter-spacing:2px;font-size:11px;font-weight:700;color:#edbd7f}
+p{color:#bcb1a2;line-height:1.45;margin:8px 0 14px}.panels{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pane{border:1px solid #54514a;border-radius:10px;background:#191c1e;padding:8px;min-width:0}.pane b{color:#e3bf8f;font-size:12px}
+canvas{display:block;width:100%;height:auto;aspect-ratio:245 / 418;background:#070a0c;border-radius:7px;margin:6px 0}
+small{color:#b3aba1;line-height:1.4;display:block}
+.control{border:1px solid #575048;background:#1a1c1e;border-radius:10px;padding:12px;margin-top:12px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.slider{margin:10px 0}
+.slider label{display:flex;justify-content:space-between;gap:10px;font-size:12px;color:#e8d7c0}.slider input{width:100%;accent-color:#ddaa70}
+button{border:1px solid #a38662;border-radius:8px;padding:10px;color:#f8e6cb;background:#43392e;font:inherit;cursor:pointer}
+button.on{background:#805a35;border-color:#deaf72}.status{color:#ebc393;font-size:12px;margin:10px 0 0}
+a{color:#e4bd86}.check{font-size:12px;color:#cdbfaf}.check input{accent-color:#ddaa70}
+@media(max-width:550px){main{padding:8px}.pane{padding:5px}.panels{gap:5px}h1{font-size:22px}.grid{gap:5px}button{font-size:12px}}
+</style></head><body><main>
+<div class="tag">THE DEPTHS · PIVOT STUDIO 055B · NON-DESTRUCTIVE</div>
+<h1>Crouch Mechanics ⛏️</h1>
+<p>Now the original graphite thigh and shin rotate around a knee that is solved from fixed bone lengths, while the hips lower and the upper body bends. Feet stay planted; all source clips retain their original size. This is an isolated test, not a replacement for gameplay or approved animations.</p>
+<div class="panels">
+<div class="pane"><b>ORIGINAL · unchanged standing</b><canvas id="original" width="245" height="418"></canvas><small>Original graphite source, no transforms</small></div>
+<div class="pane"><b>CROUCH TEST · hip + knee</b><canvas id="test" width="245" height="418"></canvas><small id="poseInfo">Load original art to preview</small></div>
+</div>
+<div class="control">
+<div class="grid"><button id="play" class="on">⏸ Pause motion</button><button id="zero">↩ Set angle to zero</button>
+<button id="load">💀 Load original art ZIP</button><button id="save">⬇ Export pivot settings</button></div>
+<input id="zip" type="file" accept=".zip,application/zip" hidden>
+<div class="slider"><label for="crouch">Crouch depth <strong id="crouchOut">0%</strong></label><input id="crouch" type="range" min="0" max="100" step="1" value="0"></div>
+<div class="slider"><label for="angle">Forward bend at full crouch <strong id="angleOut">32°</strong></label><input id="angle" type="range" min="0" max="65" step="1" value="32"></div>
+<div class="slider"><label for="drop">Maximum hip drop <strong id="dropOut">43 px</strong></label><input id="drop" type="range" min="10" max="75" step="1" value="43"></div>
+<div class="slider"><label for="back">Hip shift backward <strong id="backOut">30 px</strong></label><input id="back" type="range" min="0" max="65" step="1" value="30"></div>
+<div class="slider"><label for="hipx">Hip pivot X <strong id="hipxOut">90</strong></label><input id="hipx" type="range" min="65" max="140" step="1" value="96"></div>
+<div class="slider"><label for="hipy">Hip pivot Y <strong id="hipyOut">198</strong></label><input id="hipy" type="range" min="150" max="245" step="1" value="180"></div>
+<div class="slider"><label for="range">Animation cycle duration <strong id="rangeOut">4.2 sec</strong></label><input id="range" type="range" min="2" max="8" step=".2" value="4.2"></div>
+<div class="grid">
+<label class="check"><input id="markers" type="checkbox" checked> Show hip / knee / ankle markers</label>
+<label class="check"><input id="ghost" type="checkbox"> Ghost original on test</label>
+<label class="check"><input id="upperarm" type="checkbox" checked> Include source arm layers</label>
+<label class="check"><input id="legs" type="checkbox" checked> Show planted legs/pelvis</label>
+</div>
+<div id="status" class="status">Checking the saved Animation Library…</div>
+</div>
+<p>We are testing a <b>two-bone IK leg and torso hinge</b>, not the final crouch. The leg pieces rotate around their original source anchors without changing scale. The original foot stays planted; no animation frames have been overwritten.</p>
+<p>Protected builds: <a href="layer-calibration-054a.html">054A source alignment</a> · <a href="rig-studio-049a.html">049A approved walk</a> · <a href="playtest-050f.html">050F gameplay</a></p>
+</main>
+<script src="assets/full-detail-037.js?v=055a"></script>
+<script>
+(()=>{'use strict';
+const $=id=>document.getElementById(id),rawCtx=$('original').getContext('2d'),ctx=$('test').getContext('2d');
+const parts={
+ head:{poly:[[130,5],[170,7],[179,32],[178,59],[162,78],[134,70],[122,46],[123,20]],start:[141,67],end:[148,26]},
+ neck:{poly:[[127,63],[147,65],[140,95],[123,98]],start:[133,80],end:[137,70]},
+ torso:{poly:[[114,80],[141,74],[137,117],[127,154],[114,158],[107,130],[109,98]],start:[123,96],end:[114,153]},
+ pelvis:{poly:[[80,177],[104,186],[103,216],[84,225],[72,205]],start:[86,195],end:[90,207]},
+ upper_arm:{poly:[[108,84],[133,90],[127,109],[121,137],[114,162],[97,147],[96,121]],start:[121,94],end:[110,155]},
+ forearm:{poly:[[108,143],[118,148],[118,216],[107,223],[104,179]],start:[110,154],end:[114,220]},
+ hand:{poly:[[109,211],[125,214],[130,244],[122,266],[109,254],[105,226]],start:[114,218],end:[119,246]},
+ thigh:{poly:[[77,186],[98,190],[103,232],[105,292],[93,302],[85,256]],start:[86,200],end:[98,294]},
+ shin:{poly:[[92,285],[107,289],[101,354],[98,381],[85,389],[84,342]],start:[98,294],end:[93,379]},
+ foot:{poly:[[83,374],[100,371],[112,385],[140,389],[141,402],[82,403]],start:[93,379],end:[126,396]}
+};
+
+
+const back=['shin','thigh','foot','pelvis'];
+const upper=['torso','neck','upper_arm','forearm','hand','head'];
+const layers={};let raw=null,loaded=false,playing=true,cycle=0,last=0,manualDepth=0;
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+function attach(){
+ const lib=window.DepthsFullArt,frame=lib?.get('standCrouch',0);
+ if(!lib?.state?.ready||!frame)return false;
+ raw=document.createElement('canvas');raw.width=245;raw.height=418;
+ raw.getContext('2d').drawImage(frame,frame.sourceX||0,frame.sourceY||0);
+ for(const [name,part] of Object.entries(parts)){
+  const canvas=document.createElement('canvas');canvas.width=245;canvas.height=418;
+  const g=canvas.getContext('2d');g.beginPath();
+  part.poly.forEach((point,i)=>i?g.lineTo(...point):g.moveTo(...point));
+  g.closePath();g.clip();g.drawImage(raw,0,0);layers[name]=canvas;
+ }
+ loaded=true;return true;
+}
+function paintMarker(g,x,y,label,color){
+ g.save();g.strokeStyle=color;g.lineWidth=1;g.beginPath();g.moveTo(x-7,y);g.lineTo(x+7,y);
+ g.moveTo(x,y-7);g.lineTo(x,y+7);g.stroke();
+ g.fillStyle=color;g.font='10px system-ui';g.fillText(label,Math.min(190,x+8),y-8);g.restore();
+}
+const HIP=[86,200],KNEE=[98,294],ANKLE=[93,379];
+const distance=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
+const L1=distance(HIP,KNEE),L2=distance(KNEE,ANKLE);
+const ease=v=>v*v*(3-2*v);
+function legIK(hip,ankle){
+ const dx=ankle[0]-hip[0],dy=ankle[1]-hip[1],dist=Math.hypot(dx,dy)||.0001;
+ const reachable=Math.min(L1+L2-.00001,Math.max(Math.abs(L1-L2)+.00001,dist));
+ const ux=dx/dist,uy=dy/dist;
+ const along=(reachable*reachable+L1*L1-L2*L2)/(2*reachable);
+ const height=Math.sqrt(Math.max(0,L1*L1-along*along));
+ const baseX=hip[0]+ux*along,baseY=hip[1]+uy*along;
+ const a=[baseX-uy*height,baseY+ux*height],b=[baseX+uy*height,baseY-ux*height];
+ // Favor the original knee's bending side consistently instead of flipping.
+ const origDir=(ANKLE[0]-HIP[0])*(KNEE[1]-HIP[1])-(ANKLE[1]-HIP[1])*(KNEE[0]-HIP[0]);
+ const side=(ankle[0]-hip[0])*(a[1]-hip[1])-(ankle[1]-hip[1])*(a[0]-hip[0]);
+ return origDir*side>=0?a:b;
+}
+function rotateLayer(key,pivot,newPivot,originalTarget,newTarget,opacity=1){
+ const startAngle=Math.atan2(originalTarget[1]-pivot[1],originalTarget[0]-pivot[0]);
+ const goalAngle=Math.atan2(newTarget[1]-newPivot[1],newTarget[0]-newPivot[0]);
+ ctx.save();ctx.globalAlpha=opacity;ctx.translate(...newPivot);
+ ctx.rotate(goalAngle-startAngle);ctx.translate(-pivot[0],-pivot[1]);
+ ctx.drawImage(layers[key],0,0);ctx.restore();
+}
+function draw(depth){
+ rawCtx.clearRect(0,0,245,418);ctx.clearRect(0,0,245,418);
+ if(!loaded){$('status').textContent='Load the original Animation Library ZIP to see the miner.';return}
+ rawCtx.drawImage(raw,0,0);
+ if($('ghost').checked){ctx.save();ctx.globalAlpha=.18;ctx.drawImage(raw,0,0);ctx.restore()}
+ const amount=ease(clamp(depth,0,1));
+ const drop=Number($('drop').value)*amount,back=Number($('back').value)*amount;
+ const newHip=[HIP[0]-back,HIP[1]+drop],newKnee=legIK(newHip,ANKLE);
+ // The foot remains at its exact original position. No per-limb scaling.
+ if($('legs').checked){
+  ctx.drawImage(layers.foot,0,0);
+  rotateLayer('shin',KNEE,newKnee,ANKLE,ANKLE);
+  rotateLayer('thigh',HIP,newHip,KNEE,newKnee);
+  ctx.save();ctx.translate(newHip[0]-HIP[0],newHip[1]-HIP[1]);ctx.drawImage(layers.pelvis,0,0);ctx.restore();
+ }
+ const pivotX=Number($('hipx').value),pivotY=Number($('hipy').value);
+ const x=pivotX-back,y=pivotY+drop;
+ const degrees=Number($('angle').value)*amount,rotation=degrees*Math.PI/180;
+ ctx.save();ctx.translate(x,y);ctx.rotate(rotation);ctx.translate(-pivotX,-pivotY);
+ for(const key of upper){
+  if(!$('upperarm').checked&&['upper_arm','forearm','hand'].includes(key))continue;
+  ctx.drawImage(layers[key],0,0);
+ }
+ ctx.restore();
+ if($('markers').checked){
+  paintMarker(ctx,newHip[0],newHip[1],'HIP','#ffb359');
+  paintMarker(ctx,newKnee[0],newKnee[1],'KNEE','#b4db7d');
+  paintMarker(ctx,ANKLE[0],ANKLE[1],'ANKLE','#d9adf5');
+  const sx=121,sy=94,dx=sx-pivotX,dy=sy-pivotY;
+  paintMarker(ctx,x+dx*Math.cos(rotation)-dy*Math.sin(rotation),y+dx*Math.sin(rotation)+dy*Math.cos(rotation),'SHOULDER','#79d1db');
+ }
+ $('poseInfo').textContent='Crouch '+Math.round(depth*100)+'% · upper bend '+degrees.toFixed(1)+'° · fixed thigh '+L1.toFixed(1)+' / shin '+L2.toFixed(1);
+ $('crouchOut').textContent=Math.round(depth*100)+'%';
+ $('angleOut').textContent=$('angle').value+'°';
+ $('dropOut').textContent=$('drop').value+' px';
+ $('backOut').textContent=$('back').value+' px';
+ $('hipxOut').textContent=pivotX;$('hipyOut').textContent=pivotY;
+ $('rangeOut').textContent=Number($('range').value).toFixed(1)+' sec';
+ $('status').textContent='✅ Original layers unchanged · hip translates · knees solved with fixed-length IK · planted ankle/foot';
+}
+function frame(now){
+ const dt=last?Math.min(.06,(now-last)/1000):0;last=now;
+ if(!loaded&&window.DepthsFullArt?.state?.ready)attach();
+ if(playing){
+  cycle+=dt/Number($('range').value);
+  manualDepth=.5-.5*Math.cos(cycle*2*Math.PI);
+  $('crouch').value=Math.round(manualDepth*100);
+ }else manualDepth=Number($('crouch').value)/100;
+ try{draw(manualDepth)}catch(err){$('status').textContent='⚠ Render error: '+err.message}
+ requestAnimationFrame(frame);
+}
+$('play').onclick=()=>{playing=!playing;$('play').textContent=playing?'⏸ Pause motion':'▶ Animate crouch';$('play').classList.toggle('on',playing)};
+$('zero').onclick=()=>{playing=false;manualDepth=0;$('crouch').value='0';$('play').textContent='▶ Animate crouch';$('play').classList.remove('on')};
+$('crouch').oninput=()=>{playing=false;manualDepth=Number($('crouch').value)/100;$('play').textContent='▶ Animate crouch';$('play').classList.remove('on')};
+$('load').onclick=()=>$('zip').click();
+$('zip').onchange=async()=>{const file=$('zip').files?.[0];if(!file)return;
+ try{await window.DepthsFullArt.install(file);loaded=false;attach()}catch(e){$('status').textContent='Import error: '+e.message}};
+$('save').onclick=()=>{
+ const data={studio:'055B',source:'standCrouch frame 0',hip:{x:Number($('hipx').value),y:Number($('hipy').value)},bend:Number($('angle').value),drop:Number($('drop').value),back:Number($('back').value),legLengths:{thigh:L1,shin:L2},note:'Isolated fixed-length knee/hip study. No approved animation changed.'};
+ const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');
+ a.href=url;a.download='the-depths-crouch-pivot-055b.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),2000);
+};
+requestAnimationFrame(frame);
+})();
+</script></body></html>
