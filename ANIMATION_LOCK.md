@@ -113,6 +113,15 @@
 - [ ] Visual review on phone: verify stop looks planted and the crossfade from varying leg poses does not produce ghosting/popping. Dedicated settle animation may be needed for truly natural weight transfer.
 - [ ] Do not declare the entire walking loop LOCKED: the source clips still need leg contact / natural stride refinement.
 
+## Prototype 037W8 — Walk → plant → settle → idle (November 17, 2026)
+- [x] The miner **no longer jumps directly from an arbitrary walk frame to idle**. On stopping upright, it holds the current source walking frame, advances toward the **nearest end-of-stride frame** (0 or 6) at 65ms/frame, holds contact briefly, then transitions to approved feet-down `standCrouch` frame 0.
+- [x] Uses original graphite-skeleton artwork only; no procedural redraw, no collision or world movement during the planting sequence.
+- [x] Preserves existing 145ms source-clip crossfade for the final contact-to-idle handoff; may still need dedicated source transition art if crossfade looks ghostlike.
+- [x] Tested different stopping positions/phases (72, 85, 98, 113 rendered-frame windows) and reverse walk: each reaches the same grounded idle pose with actual contact frame visible, no simulated position-lock violations.
+- [x] Eight-strip mining, bag dump and return regression still passes; Foot Lock experimental toggle remains OFF by default.
+- [ ] **Phone visual approval pending:** Does the foot look planted and final crossfade natural? If foot movement is still visibly unnatural, select/refine matching stop frames rather than asserting final animation quality.
+- [ ] Existing upright gait source/foot slide issues still remain; this pass specifically improves **stop-to-idle transitions**.
+
 ## Current checkpoint
 - Prototype **037P** is playable and mechanically validated; **no global visual lock**.
 - Open high-priority bug: prone sprite extends beyond aimed rock location.
