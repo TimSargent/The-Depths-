@@ -1,0 +1,117 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>The Depths — Skeletal Mesh 059A</title><style>
+*{box-sizing:border-box}body{margin:0;background:#0c1012;color:#e9ddc8;font:14px system-ui,-apple-system,sans-serif}main{max-width:960px;margin:0 auto;padding:12px}.tag{color:#dfb57e;letter-spacing:2px;font-size:11px;font-weight:700}
+h1{font-size:25px;margin:8px 0}p{line-height:1.52;color:#bdb2a3}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.box{background:#171a1d;border:1px solid #544c42;border-radius:10px;padding:8px}
+.box strong{font-size:12px;color:#e6c190}canvas{display:block;width:100%;height:auto;aspect-ratio:245/418;background:#111417;border-radius:6px}small{font-size:11px;color:#b2a798}
+.controls{padding:12px;border-radius:9px;border:1px solid #544c42;background:#181b1d;margin-top:10px}.row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}button{font:inherit;border:1px solid #ad8860;border-radius:8px;padding:10px;background:#54412e;color:#f8e5c8;cursor:pointer}
+button.on{background:#89643c}input[type=range]{width:100%;accent-color:#dab17a}label{display:block;color:#dbc5a8;font-size:12px;margin-top:10px}.status{color:#f0c999;font-size:12px;line-height:1.5;margin-top:12px}a{color:#e9bf84}
+</style></head><body><main>
+<div class="tag">THE DEPTHS · 059A · MESH-DEFORMED ARTIST FRAMES</div>
+<h1>Real artwork. Mapped motion. New in-betweens. ⛏️</h1>
+<p>This experimental animation is driven by the 12 landmarks mapped from our eight original frames. Instead of rotating disconnected crops from one standing drawing, we <b>deform each original frame's artwork toward intermediate joint positions</b> and generate new transition frames. Your original poses stay exactly intact.</p>
+<div class="grid"><div class="box"><strong>ORIGINAL · eight artist frames</strong><canvas id="original" width="245" height="418"></canvas><small>Reference motion, no retouching</small></div>
+<div class="box"><strong>059A · joint-driven in-betweens</strong><canvas id="motion" width="245" height="418"></canvas><small id="frameNote">Original source frames + interpolated skin</small></div></div>
+<div class="controls"><div class="row"><button id="play" class="on">⏸ Pause</button><button id="restart">↩ Restart</button><button id="import">Load original Animation ZIP</button><input id="zip" type="file" accept=".zip" hidden></div>
+<label>Playback frame <b id="timelineLabel">0 / 35</b><input id="timeline" type="range" min="0" max="35" value="0"></label>
+<label>Full forward + backward cycle <b id="speedLabel">4.0 sec</b><input id="speed" type="range" min="2" max="8" step=".2" value="4"></label>
+<label><input id="markers" type="checkbox"> Show driven joints</label>
+<div class="status" id="status">Reading your saved Animation Library. Generating 28 new transition frames locally…</div></div>
+<p>059A is a <b>skin-deformation prototype</b>, not our final production rig. It preserves the artist's exact eight keyframes, but changing pose artwork can produce faint doubled lines during some in-betweens. The earlier separate-layer rig still needs repaired/painted occluded surfaces. <a href="playtest-050f.html">Approved gameplay 050F</a> and <a href="rig-studio-049a.html">approved walk 049A</a> are unchanged.</p>
+<script src="assets/full-detail-037.js?v=059a"></script><script>
+(()=>{'use strict';
+const $=id=>document.getElementById(id);
+const original=$('original').getContext('2d'),motion=$('motion').getContext('2d');
+const keys=["hip","knee","ankle","toe","farKnee","farAnkle","farToe","shoulder","elbow","wrist","neck","headCenter"];
+const POSES=[{"hip":[86,200],"knee":[98,294],"ankle":[93,379],"toe":[126,396],"farKnee":[84,292],"farAnkle":[83,375],"farToe":[102,395],"shoulder":[121,94],"elbow":[110,155],"wrist":[114,220],"neck":[141,67],"headCenter":[148,42]},{"hip":[54,167],"knee":[82,256],"ankle":[83,342],"toe":[121,360],"farKnee":[70,248],"farAnkle":[75,341],"farToe":[98,355],"shoulder":[135,79],"elbow":[113,139],"wrist":[111,206],"neck":[164,67],"headCenter":[174,40]},{"hip":[45,154],"knee":[112,221],"ankle":[81,305],"toe":[115,322],"farKnee":[98,225],"farAnkle":[85,304],"farToe":[102,321],"shoulder":[141,75],"elbow":[123,140],"wrist":[154,210],"neck":[174,68],"headCenter":[187,42]},{"hip":[48,167],"knee":[142,196],"ankle":[98,274],"toe":[130,292],"farKnee":[101,211],"farAnkle":[77,284],"farToe":[99,298],"shoulder":[137,88],"elbow":[127,151],"wrist":[167,198],"neck":[164,84],"headCenter":[177,51]},{"hip":[32,186],"knee":[135,192],"ankle":[121,276],"toe":[158,290],"farKnee":[115,217],"farAnkle":[46,279],"farToe":[69,291],"shoulder":[115,94],"elbow":[118,157],"wrist":[179,174],"neck":[136,86],"headCenter":[148,52]},{"hip":[29,190],"knee":[130,185],"ankle":[108,272],"toe":[153,284],"farKnee":[113,227],"farAnkle":[37,268],"farToe":[53,283],"shoulder":[100,95],"elbow":[119,162],"wrist":[186,162],"neck":[119,86],"headCenter":[132,53]},{"hip":[32,197],"knee":[138,185],"ankle":[115,265],"toe":[149,280],"farKnee":[114,237],"farAnkle":[34,277],"farToe":[52,290],"shoulder":[98,97],"elbow":[129,164],"wrist":[197,122],"neck":[115,84],"headCenter":[126,52]},{"hip":[32,197],"knee":[137,185],"ankle":[115,270],"toe":[145,280],"farKnee":[114,237],"farAnkle":[35,274],"farToe":[54,291],"shoulder":[97,102],"elbow":[133,161],"wrist":[194,123],"neck":[113,85],"headCenter":[125,52]}];
+const EDGES=[[0,0],[122,0],[244,0],[0,104],[244,104],[0,209],[244,209],[0,313],[244,313],[0,417],[122,417],[244,417]],TRI=[[13,15,12],[15,13,7],[3,4,1],[22,20,23],[20,22,3],[15,0,17],[0,4,17],[0,15,7],[5,19,17],[4,5,17],[16,11,14],[11,13,14],[13,11,7],[9,16,18],[9,3,1],[20,9,18],[9,20,3],[2,4,3],[2,5,4],[22,6,3],[6,2,3],[2,6,5],[6,22,21],[19,6,21],[5,6,19],[11,10,7],[10,11,16],[9,8,16],[8,10,16],[10,8,7],[8,9,1],[8,0,7],[4,8,1],[0,8,4]];
+const LINKS=[['hip','knee'],['knee','ankle'],['ankle','toe'],['hip','farKnee'],['farKnee','farAnkle'],['farAnkle','farToe'],['hip','shoulder'],['shoulder','elbow'],['elbow','wrist'],['shoulder','neck'],['neck','headCenter']];
+let sources=[],cached=Array(36).fill(null),ready=false,busy=false,last=0,playing=true,clock=0,frameIndex=0,fail='';
+const mk=()=>{const c=document.createElement('canvas');c.width=245;c.height=418;return c};
+const lerp=(a,b,t)=>a+(b-a)*t;
+const points=i=>[...keys.map(k=>POSES[i][k]),...EDGES];
+const PT=POSES.map((_,i)=>points(i));
+function affine(src,dst){
+ const [x0,y0]=src[0],[x1,y1]=src[1],[x2,y2]=src[2];
+ const [X0,Y0]=dst[0],[X1,Y1]=dst[1],[X2,Y2]=dst[2];
+ const det=(x0-x2)*(y1-y2)-(x1-x2)*(y0-y2);
+ if(Math.abs(det)<.01)return null;
+ const a=((X0-X2)*(y1-y2)-(X1-X2)*(y0-y2))/det;
+ const c=((x0-x2)*(X1-X2)-(x1-x2)*(X0-X2))/det;
+ const b=((Y0-Y2)*(y1-y2)-(Y1-Y2)*(y0-y2))/det;
+ const d=((x0-x2)*(Y1-Y2)-(x1-x2)*(Y0-Y2))/det;
+ return[a,b,c,d,X2-a*x2-c*y2,Y2-b*x2-d*y2];
+}
+function warp(source,from,to){
+ const output=mk(),g=output.getContext('2d');
+ g.fillStyle='#111417';g.fillRect(0,0,245,418);
+ for(const tri of TRI){
+  const a=tri.map(i=>from[i]),b=tri.map(i=>to[i]);
+  const matrix=affine(a,b);if(!matrix)continue;
+  g.save();g.beginPath();g.moveTo(...b[0]);g.lineTo(...b[1]);g.lineTo(...b[2]);g.closePath();
+  g.clip();g.transform(...matrix);g.drawImage(source,0,0);g.restore();
+ }
+ return output;
+}
+function renderPair(i,t){
+ if(t<.0001)return sources[i];
+ const at=PT[i].map((p,j)=>[lerp(p[0],PT[i+1][j][0],t),lerp(p[1],PT[i+1][j][1],t)]);
+ const left=warp(sources[i],PT[i],at);
+ const right=warp(sources[i+1],PT[i+1],at);
+ const out=mk(),g=out.getContext('2d');
+ g.drawImage(left,0,0);
+ // Narrower crossfade reduces doubled contours away from the midpoint.
+ const q=Math.max(0,Math.min(1,(t-.32)/.36)),w=q*q*(3-2*q);
+ g.globalAlpha=w;g.drawImage(right,0,0);g.globalAlpha=1;
+ return out;
+}
+async function prepare(){
+ if(busy||ready)return;
+ const lib=window.DepthsFullArt;
+ if(!lib?.state?.ready)return;
+ const all=POSES.map((_,i)=>lib.get('standCrouch',i));
+ if(all.some(v=>!v)){fail='The complete eight-frame source is not loaded.';return}
+ busy=true;cached=Array(36).fill(null);sources=all.map(im=>{const c=mk();c.getContext('2d').drawImage(im,im.sourceX||0,im.sourceY||0);return c});
+ try{
+  for(let i=0;i<7;i++){
+   for(let j=0;j<5;j++){
+    cached[i*5+j]=j?renderPair(i,j/5):sources[i];
+    $('status').textContent='Generating mesh in-betweens: '+(i*5+j+1)+'/36 · original source remains intact';
+    await new Promise(requestAnimationFrame);
+   }
+  }
+  cached[35]=sources[7];ready=true;fail='';
+  $('status').textContent='✅ Prepared all 36 frames: 8 exact originals + 28 new in-between poses. No user rigging required.';
+ }catch(err){fail='Generation error: '+err.message;ready=false;$('status').textContent=fail}finally{busy=false}
+}
+function draw(){
+ original.clearRect(0,0,245,418);motion.clearRect(0,0,245,418);
+ if(!sources.length)return;
+ const i=Math.min(35,Math.max(0,frameIndex));
+ const key=Math.min(7,Math.round(i/5));
+ original.drawImage(sources[key],0,0);
+ motion.drawImage(cached[i]||sources[Math.min(7,Math.floor(i/5))],0,0);
+ if($('markers').checked){
+  const f=Math.min(6,Math.floor(i/5)),t=Math.min(1,(i%5)/5),pose={};
+  for(const k of keys)pose[k]=[lerp(POSES[f][k][0],POSES[f+1][k][0],t),lerp(POSES[f][k][1],POSES[f+1][k][1],t)];
+  const g=motion;g.save();g.strokeStyle='rgba(115,208,237,.8)';g.lineWidth=1.5;g.setLineDash([2,3]);
+  for(const [a,b] of LINKS){g.beginPath();g.moveTo(...pose[a]);g.lineTo(...pose[b]);g.stroke()}
+  g.setLineDash([]);g.fillStyle='#ffd58c';for(const p of Object.values(pose)){g.beginPath();g.arc(...p,3,0,Math.PI*2);g.fill()}g.restore();
+ }
+ $('timelineLabel').textContent=i+' / 35';$('speedLabel').textContent=$('speed').value+' sec';
+ $('frameNote').textContent=i%5===0?'Exact original artist keyframe':'New joint-driven in-between #'+(i%5);
+}
+function tick(now){
+ const dt=last?Math.min(.055,(now-last)/1000):0;last=now;
+ if(!ready&&!busy&&!fail&&window.DepthsFullArt?.state?.ready)prepare();
+ if(playing&&sources.length){clock=(clock+dt/Number($('speed').value))%2;
+  frameIndex=Math.round((clock<=1?clock:2-clock)*35);$('timeline').value=frameIndex}
+ draw();requestAnimationFrame(tick);
+}
+$('play').onclick=()=>{playing=!playing;$('play').textContent=playing?'⏸ Pause':'▶ Play';$('play').classList.toggle('on',playing)};
+$('restart').onclick=()=>{frameIndex=0;clock=0;playing=true;$('play').textContent='⏸ Pause'};
+$('timeline').oninput=()=>{playing=false;frameIndex=+$('timeline').value;$('play').textContent='▶ Play';draw()};
+$('markers').onchange=draw;$('speed').oninput=draw;
+$('import').onclick=()=>$('zip').click();
+$('zip').onchange=async()=>{try{const file=$('zip').files[0];if(!file)return;await window.DepthsFullArt.install(file);ready=false;fail='';await prepare()}catch(err){fail=err.message;$('status').textContent='⚠ '+fail}};
+requestAnimationFrame(tick);
+})();</script></main></body></html>
