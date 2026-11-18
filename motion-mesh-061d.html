@@ -1,0 +1,145 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1,viewport-fit=cover">
+<title>The Depths — Crouch to Prone 061D</title><style>
+*{box-sizing:border-box}body{margin:0;background:#0d1214;color:#e9dbc7;font-family:system-ui,-apple-system,sans-serif;font-size:14px}
+main{max-width:960px;margin:auto;padding:13px}.tag{font-size:11px;letter-spacing:2px;color:#e9bd88;font-weight:700}h1{font-size:25px;margin:7px 0}
+p{color:#bcb1a4;line-height:1.5}.panels{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.panel{background:#1c1e20;border:1px solid #564b3e;border-radius:9px;padding:8px;min-width:0}
+.panel b{color:#e4c39c;font-size:12px}canvas{display:block;width:100%;height:auto;aspect-ratio:600/336;background:#101619;border-radius:5px}
+small{color:#aaa29a;font-size:11px}.controls{padding:11px;border-radius:9px;border:1px solid #564b3e;background:#1b1d1f;margin-top:10px}
+.buttons{display:flex;flex-wrap:wrap;gap:7px}button{padding:10px;border:1px solid #a78059;border-radius:8px;background:#5a432f;color:#ffe7c7;font:inherit}
+button.active{background:#94704b}label{display:block;font-size:12px;color:#dcc4a6;margin-top:12px}
+input[type=range]{width:100%;accent-color:#e3b47f}.status{color:#f1cd98;font-size:12px;padding-top:12px;line-height:1.45}a{color:#ecc08e}
+</style></head><body><main>
+<div class="tag">THE DEPTHS · 061D · LOCALIZED INK HANDOFF · LOCKED CAMERA</div>
+<h1>Crouch → Prone · 061D ⛏️</h1>
+<p>Built on the <b>14 traced joints</b> and all eight original poses. A bounded displacement field preserves anatomy; a new <b>localized ink handoff</b> replaces the sudden whole-character frame swap. The 57-frame interpolation was rendered and inspected locally. Both panels use the exact same camera transform.</p>
+<div class="panels"><div class="panel"><b>ORIGINAL · eight poses</b><canvas id="source" width="600" height="336"></canvas><small>Original frame reference</small></div><div class="panel"><b>061D · close-up single-skin motion</b><canvas id="mesh" width="600" height="336"></canvas><small>49 in-between poses + eight exact original frames</small></div></div>
+<div class="controls"><div class="buttons"><button id="play" class="active">⏸ Pause</button><button id="restart">↩ Restart</button><button id="prev">◀ Frame</button><button id="next">Frame ▶</button><button id="import">Load original artwork ZIP</button><input type="file" accept=".zip" id="zip" hidden></div>
+<label>Animation frame <b id="frameText">0 / 56</b><input type="range" id="timeline" min="0" max="56" value="0"></label>
+<label>Forward/back cycle <b id="speedText">3.8 seconds</b><input type="range" id="speed" min="2" max="8" step=".2" value="3.8"></label>
+<label>Rendering mode: bounded joint deformation + localized ink handoff</label>
+<div id="status" class="status">Loading the original animation artwork from this device…</div></div>
+<p><b>Known imperfection:</b> local contour handoffs may still be visible where source drawings differ. This remains an experimental animation, not a fully skinned production rig. The source poses, ground alignment and character scale remain unchanged. The approved <a href="playtest-050f.html">050F gameplay</a> and <a href="motion-mesh-059a.html">059A stand-to-crouch</a> are untouched.</p>
+<script src="assets/full-detail-037.js?v=061d"></script>
+<script>
+(()=>{'use strict';
+const W=440,H=270,$=id=>document.getElementById(id);
+const S=$('source').getContext('2d'),M=$('mesh').getContext('2d');
+const CROP={x:70,y:100,w:300,h:168},VIEW={w:600,h:336};
+const keys=[[[192,204],[228,148],[244,122],[250,181],[290,158],[226,149],[284,166],[251,193],[235,221],[252,249],[223,221],[188,234],[190,248],[237,137]],[[199,201],[235,147],[251,118],[252,181],[301,184],[235,149],[290,164],[254,193],[237,226],[250,248],[234,226],[191,234],[190,249],[243,135]],[[216,192],[267,154],[289,130],[267,187],[310,186],[267,160],[291,234],[267,210],[244,237],[247,249],[246,235],[187,231],[188,251],[276,144]],[[215,191],[273,158],[298,136],[266,201],[270,245],[278,161],[329,213],[254,226],[232,242],[177,250],[228,241],[180,235],[180,250],[286,150]],[[209,187],[270,161],[297,142],[253,210],[259,243],[288,204],[324,244],[220,242],[165,230],[163,251],[216,239],[170,230],[163,251],[283,154]],[[211,186],[280,169],[307,157],[283,212],[307,239],[246,189],[273,232],[217,242],[160,227],[160,249],[198,239],[147,223],[135,237],[295,168]],[[213,189],[281,181],[310,168],[270,220],[318,243],[278,219],[312,242],[184,236],[133,230],[123,242],[190,238],[128,230],[119,243],[295,183]],[[214,208],[281,208],[307,184],[268,243],[330,246],[270,244],[328,245],[164,228],[117,226],[99,236],[169,229],[121,227],[99,236],[291,205]]],TRI=[[15,22,14],[22,17,14],[17,22,19],[22,24,19],[24,20,19],[23,18,21],[25,23,21],[20,25,21],[25,6,23],[5,0,1],[0,15,1],[15,0,22],[5,4,3],[3,4,20],[4,25,20],[4,6,25],[6,2,23],[2,15,16],[15,2,1],[18,2,16],[23,2,18],[7,5,3],[7,0,5],[7,10,0],[7,3,20],[10,7,20],[4,13,6],[2,13,1],[13,2,6],[13,5,1],[13,4,5],[11,24,22],[0,11,22],[10,8,0],[8,11,0],[8,9,11],[9,10,20],[9,8,10],[11,12,24],[9,12,11],[24,12,20],[12,9,20]];
+const BORDER=[[0,0],[220,0],[439,0],[0,135],[439,135],[0,269],[220,269],[439,269],[65,180],[380,180],[65,249],[380,249]];
+const P=keys.map(k=>[...k,...BORDER]);
+const canvas=()=>{let c=document.createElement('canvas');c.width=W;c.height=H;return c};
+const blend=(a,b,t)=>a+(b-a)*t;
+let sources=[],frames=[],ready=false,busy=false,playing=true,last=0,clock=0,position=0,error='';
+function warpSmooth(image,from,to){
+ const src=image.getContext('2d',{willReadFrequently:true}).getImageData(0,0,W,H);
+ const result=canvas(),g=result.getContext('2d'),dst=g.createImageData(W,H);
+ const raw=src.data,out=dst.data,n=from.length;
+ const dx=new Float32Array(n),dy=new Float32Array(n);
+ for(let j=0;j<n;j++){dx[j]=from[j][0]-to[j][0];dy[j]=from[j][1]-to[j][1]}
+ for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+  let sum=0,sx=0,sy=0;
+  for(let j=0;j<n;j++){
+   const px=x-to[j][0],py=y-to[j][1],fac=(j<14?3.0:.8)/(px*px+py*py+900);
+   sum+=fac;sx+=dx[j]*fac;sy+=dy[j]*fac;
+  }
+  sx/=sum;sy/=sum;
+  const radius=Math.hypot(sx,sy);
+  if(radius>10){sx*=10/radius;sy*=10/radius}
+  const X=x+sx,Y=y+sy;
+  if(X<0||Y<0||X>=W-1||Y>=H-1)continue;
+  const xx=Math.floor(X),yy=Math.floor(Y),u=X-xx,v=Y-yy;
+  const idx=(y*W+x)*4,p=(yy*W+xx)*4;
+  const a=(1-u)*(1-v),b=u*(1-v),c=(1-u)*v,d=u*v;
+  for(let k=0;k<4;k++)
+   out[idx+k]=raw[p+k]*a+raw[p+4+k]*b+raw[p+W*4+k]*c+raw[p+W*4+4+k]*d;
+ }
+ g.putImageData(dst,0,0);return result;
+}
+function progressiveInkHandoff(left,right,t){
+ // Localized left-to-right transition prevents two full superimposed bodies.
+ const c=canvas(),g=c.getContext('2d');
+ const A=left.getContext('2d',{willReadFrequently:true}).getImageData(0,0,W,H).data;
+ const B=right.getContext('2d',{willReadFrequently:true}).getImageData(0,0,W,H).data;
+ const output=g.createImageData(W,H),d=output.data;
+ const boundary=72+298*(t-.12)/.76,weights=new Float32Array(W);
+ for(let x=0;x<W;x++){
+  const v=Math.max(0,Math.min(1,(x-boundary)/18+.5));
+  weights[x]=v*v*(3-2*v);
+ }
+ for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+  const i=(y*W+x)*4,w=weights[x],v=1-w;
+  for(let k=0;k<4;k++)d[i+k]=B[i+k]*v+A[i+k]*w;
+ }
+ g.putImageData(output,0,0);
+ return c;
+}
+function morph(i,t){
+ if(t<=0)return sources[i];
+ const target=P[i].map((p,k)=>[blend(p[0],P[i+1][k][0],t),blend(p[1],P[i+1][k][1],t)]);
+ if(t<.12)return warpSmooth(sources[i],P[i],target);
+ if(t>.88)return warpSmooth(sources[i+1],P[i+1],target);
+ const left=warpSmooth(sources[i],P[i],target);
+ const right=warpSmooth(sources[i+1],P[i+1],target);
+ return progressiveInkHandoff(left,right,t);
+}
+function cacheSources(all){
+ const x0=Math.min(...all.map(im=>im.sourceX||0)),y0=Math.min(...all.map(im=>im.sourceY||0));
+ const x1=Math.max(...all.map(im=>(im.sourceX||0)+im.width));
+ const y1=Math.max(...all.map(im=>(im.sourceY||0)+im.height));
+ const scale=Math.min((W-36)/(x1-x0),(H-34)/(y1-y0));
+ const tx=(W-(x1-x0)*scale)/2-x0*scale,ty=(H-16)-y1*scale;
+ sources=all.map(im=>{const c=canvas(),g=c.getContext('2d');
+ g.drawImage(im,(im.sourceX||0)*scale+tx,(im.sourceY||0)*scale+ty,im.width*scale,im.height*scale);
+ return c});
+}
+async function prepare(){
+ if(busy||ready)return;
+ const library=window.DepthsFullArt;if(!library?.state?.ready)return;
+ const all=Array.from({length:8},(_,i)=>library.get('crouchProne',i));
+ if(all.some(x=>!x)){error='Source artwork missing; choose original 72-frame ZIP.';return}
+ busy=true;
+ try{
+  cacheSources(all);const next=Array(57);
+  for(let i=0;i<7;i++){
+   for(let j=0;j<8;j++){
+    const slot=i*8+j;next[slot]=j===0?sources[i]:morph(i,j/8);
+    $('status').textContent='Generating animation '+(slot+1)+'/57 …';
+    await new Promise(requestAnimationFrame);
+   }
+  }
+  next[56]=sources[7];frames=next;ready=true;error='';
+  $('status').textContent='✅ 57 frames prepared: eight exact original poses plus 49 localized in-betweens. Use frame stepping to inspect.';
+ }catch(e){error=e.message;$('status').textContent='⚠ '+error}
+ finally{busy=false}
+}
+function draw(){
+ S.clearRect(0,0,VIEW.w,VIEW.h);M.clearRect(0,0,VIEW.w,VIEW.h);
+ for(const g of [S,M]){g.fillStyle='#101619';g.fillRect(0,0,VIEW.w,VIEW.h)}
+ if(sources.length){
+  const idx=Math.max(0,Math.min(56,position));
+  S.drawImage(sources[Math.min(7,Math.round(idx/8))],CROP.x,CROP.y,CROP.w,CROP.h,0,0,VIEW.w,VIEW.h);
+  M.drawImage(frames[idx]||sources[Math.min(7,Math.floor(idx/8))],CROP.x,CROP.y,CROP.w,CROP.h,0,0,VIEW.w,VIEW.h);
+ }
+ $('frameText').textContent=position+' / 56';$('speedText').textContent=$('speed').value+' seconds';
+}
+$('play').onclick=()=>{playing=!playing;$('play').textContent=playing?'⏸ Pause':'▶ Play'};
+$('restart').onclick=()=>{position=0;clock=0;playing=true;$('timeline').value=0;$('play').textContent='⏸ Pause'};
+function stepFrame(delta){playing=false;position=Math.max(0,Math.min(56,position+delta));$('timeline').value=position;$('play').textContent='▶ Play';draw()}
+$('prev').onclick=()=>stepFrame(-1);
+$('next').onclick=()=>stepFrame(1);
+$('timeline').oninput=()=>{playing=false;position=+$('timeline').value;$('play').textContent='▶ Play';draw()};
+$('speed').oninput=draw;
+
+$('import').onclick=()=>$('zip').click();
+$('zip').onchange=async()=>{try{const f=$('zip').files[0];if(!f)return;await window.DepthsFullArt.install(f);ready=false;error='';prepare()}catch(e){error=e.message;$('status').textContent='⚠ '+error}};
+function tick(now){
+ let dt=last?Math.min(.06,(now-last)/1000):0;last=now;
+ if(!ready&&!busy&&!error)prepare();
+ if(ready&&playing){clock=(clock+dt/Number($('speed').value))%2;
+  position=Math.round((clock<=1?clock:2-clock)*56);$('timeline').value=position}
+ draw();requestAnimationFrame(tick);
+}requestAnimationFrame(tick);
+})();
+</script></main></body></html>
