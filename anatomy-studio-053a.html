@@ -211,7 +211,7 @@ function nativePose(v){
  p.headBase=plus2(p.shoulder,scale2(headAxis,34));
  p.headTip=plus2(p.headBase,scale2(headAxis,LENGTHS.head));
  for(const far of [false,true]){
-  const n=far?'far':'',k=n+'Knee',a=n+'Ankle',t=n+'Toe',e=n+'Elbow',h=n+'Hand';
+  const k=far?'farKnee':'knee',a=far?'farAnkle':'ankle',t=far?'farToe':'toe',e=far?'farElbow':'elbow',h=far?'farHand':'hand';
   const restingX=far?73:93,restGuideX=far?-12:12;
   const aimAnkle=[restingX+(guide[a][0]-restGuideX)*2.3,379+(guide[a][1]+6)*2.2];
   const guideKnee=plus2(p.hip,scale2(minus2(guide[k],guide.hip),2.3));
