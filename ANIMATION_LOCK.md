@@ -122,6 +122,16 @@
 - [ ] **Phone visual approval pending:** Does the foot look planted and final crossfade natural? If foot movement is still visibly unnatural, select/refine matching stop frames rather than asserting final animation quality.
 - [ ] Existing upright gait source/foot slide issues still remain; this pass specifically improves **stop-to-idle transitions**.
 
+## Motion Study 039A — Physical heavy walk prototype (November 17, 2026)
+- [x] User approved rebuilding the upright gait rather than iterating on the eight original PNG poses.
+- [x] Added standalone `gait-study.html` with side-by-side original animation library 014 walk and a **new 24-sample procedural motion study**.
+- [x] Study uses two alternating stationary-world foot strike anchors, a stance/swing phase with foot lift, two-bone knee IK, opposing arm motion, torso slump, compression under load, and headlamp following the skull.
+- [x] UI: cadence, stride length, fatigue, weight drop, directional flip, contact markers, pause/restart and 24-step frame scrubbing.
+- [x] Retains browser-local original ZIP import and the original graphite artwork intact. This is an **anatomy/motion study**, not replacement final graphite frames or production gameplay animation. The user must visually approve motion before transferring to high-detail artwork.
+- [x] Committed `gait-study.html`; syntax-checked and smoke-tested 800 mock animation frames, playback controls, scrubbing, and direction flip with no JS exceptions.
+- [ ] Visually inspect on iPhone, adjust stance-to-swing, hip timing, arm mechanics based on feedback. Then create true matched-style graphite in-between art; only then update gameplay.
+- [ ] Check left/right contact markers and stance anchor against animation footage: geometric contact is distinct from finished visually fixed sole.
+ 
 ## Current checkpoint
 - Prototype **037P** is playable and mechanically validated; **no global visual lock**.
 - Open high-priority bug: prone sprite extends beyond aimed rock location.
