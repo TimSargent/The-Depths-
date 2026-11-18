@@ -74,6 +74,14 @@
 - [ ] iPhone side-by-side visual QA: source crop bottoms vary a few pixels, so effect might be subtle; verify boot contact and reject if it introduces unnatural upper-body bob.
 - [ ] True horizontal planted-foot skating and believable transfer of weight remain open. Do not mark walk locked until this is visually approved.
 
+## Prototype 037W4 — Long walking course for visual review (November 17, 2026)
+- [x] Added default **Long walk test ON** preset: a pre-opened **three-tile-tall 40-column tunnel (x=2–45)**, allowing 39 cells of uninterrupted upright walking from the usual x=6 start.
+- [x] Starts in **Explore** mode and **standing** posture; hold RIGHT to walk through, hold LEFT to return. No digging needed.
+- [x] The **Long walk test ON/OFF** button resets the world into either the test tunnel or the unchanged normal mining map; Restart respects the selected preset.
+- [x] Preserves 037W2 improved cadence, 037W3 foot-plant toggle and original source artwork.
+- [x] Simulated traversal to x=45 with zero mining, zero lock violations; verified final upright idle frame holds and switching OFF restores the original mining layout.
+- [ ] Capture a continuous upright walk video with foot plant ON/OFF over the extended tunnel for visual approval; focus on frame seam, toe/heel skating and stop pose.
+
 ## Current checkpoint
 - Prototype **037P** is playable and mechanically validated; **no global visual lock**.
 - Open high-priority bug: prone sprite extends beyond aimed rock location.
