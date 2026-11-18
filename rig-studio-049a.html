@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0c0e10"><title>The Depths — Rig Studio v1</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#0c0e10;color:#eee6db;font:14px system-ui,-apple-system,sans-serif}main{max-width:980px;padding:12px;margin:auto}.kicker{font-size:11px;letter-spacing:2px;color:#cfaa7b;font-weight:700}h1{margin:4px 0;font-size:clamp(24px,5vw,34px)}a{color:#eab577}.sub{font-size:12px;color:#b9ad9f;line-height:1.55}.shell{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(230px,.9fr);gap:11px;margin-top:12px}.stage{background:#16191b;border:1px solid #584d40;border-radius:12px;padding:8px}#view{width:100%;aspect-ratio:480/530;display:block;background:#0d1012;border-radius:8px;touch-action:none}#msg{color:#d9b890;font-size:12px;padding:8px;min-height:34px}.controls{background:#191c1e;border:1px solid #4f483e;border-radius:12px;padding:12px}.controls h2{margin:0 0 12px;font-size:15px}.buttons{display:flex;flex-wrap:wrap;gap:7px}.buttons button{flex:1 1 110px}button{background:#34302b;border:1px solid #74634e;border-radius:9px;color:#f6e9d5;padding:10px 8px;font-weight:700;cursor:pointer}button.active{background:#785a38;border-color:#cda477}.slide{margin:13px 0}.slide label{display:flex;justify-content:space-between;font-size:12px}.slide b{color:#ebc18b}.slide input{width:100%;accent-color:#d4a16e}.meta{margin-top:10px;color:#b7ab99;font-size:12px;line-height:1.55}.notice{font-size:12px;border:1px solid #4c4438;background:#17191a;border-radius:9px;padding:10px;margin:13px 0;color:#cfc1b2;line-height:1.55}@media(max-width:670px){.shell{grid-template-columns:1fr}#view{aspect-ratio:480/445}.controls{padding:10px}.stage{padding:5px}} 
+</style></head><body><main>
+<div class="kicker">THE DEPTHS / TIMED ANKLE RIG 049A</div><h1>💀 Miner Rig Studio</h1>
+<p class="sub">Real movable layers clipped from our approved graphite skeleton. Retimed ankle rotation: push off toe-down, relax through the swing, then lift toes only in the final approach to heel contact. Other gait settings unchanged. Original-art overlay remains. Existing gameplay is unchanged.</p>
+<p class="sub"><a href="gait-study.html?build=039A">← Gait Study</a> · <a href="index.html?build=037W8">Mining game</a></p>
+<div class="shell"><div class="stage"><canvas id="view" width="480" height="530" aria-label="Animated miner rig with joint handles"></canvas><div id="msg">Checking for saved source artwork…</div><div class="buttons"><button id="import">💀 Load original ZIP</button><input id="file" type="file" accept=".zip,application/zip" hidden><button id="frame">⬇ Save frame PNG</button><button id="data">⬇ Export rig JSON</button></div></div>
+<section class="controls"><h2>⛏️ Rig controls</h2><div class="buttons"><button id="play" class="active">⏸ Pause walk</button><button id="reset">↻ Reset pose</button><button id="joints" class="active">◎ Joint markers ON</button><button id="reference">◉ Reference OFF</button></div>
+<div class="slide"><label for="phase">Walk phase <b id="phasev">0 / 24</b></label><input id="phase" type="range" min="0" max="24" step="1" value="0"></div>
+<div class="slide"><label for="speed">Cadence <b id="speedv">0.65×</b></label><input id="speed" type="range" min="0.2" max="1.4" step=".05" value=".65"></div>
+<div class="slide"><label for="stride">Full step length <b id="stridev">104 px</b></label><input id="stride" type="range" min="44" max="130" step="2" value="104"></div>
+<div class="slide"><label for="bend">Knee flex <b id="bendv">35%</b></label><input id="bend" type="range" min="0" max="100" step="5" value="35"></div>
+<div class="slide"><label for="lean">Forward lean <b id="leanv">0°</b></label><input id="lean" type="range" min="-10" max="20" step="1" value="0"></div><div class="slide"><label for="posture">Shoulder offset <b id="posturev">10 px</b></label><input id="posture" type="range" min="-10" max="40" step="1" value="10"></div>
+<div class="slide"><label for="arm">Arm swing <b id="armv">65%</b></label><input id="arm" type="range" min="0" max="100" step="5" value="65"></div>
+<div class="slide"><label for="elbow">Elbow flex variation <b id="elbowv">55%</b></label><input id="elbow" type="range" min="0" max="100" step="5" value="55"></div>
+<div class="slide"><label for="footroll">Foot articulation <b id="footrollv">100%</b></label><input id="footroll" type="range" min="0" max="150" step="5" value="100"></div>
+<div class="slide"><label for="weight">Weight drop <b id="weightv">5 px</b></label><input id="weight" type="range" min="0" max="11" step="1" value="5"></div>
+<div class="meta">Touch and drag either <b>ankle marker</b> to test inverse-kinematics posing. Release to resume the procedural walk. Pause the walk to hold a pose.</div>
+<div class="notice"><b>Art status:</b> the original upper-arm crop contained rib-cage strokes. This build uses separate graphite upper-arm bones so the chest no longer duplicates inside the arms. Far-side sprites and final art cleanup remain provisional.</div></section></div>
+</main>
+<script src="assets/full-detail-037.js?v=040a"></script>
+<script>
+(()=>{
+'use strict';
+const $=id=>document.getElementById(id),canvas=$('view'),ctx=canvas.getContext('2d');
+const W=245,H=418,clamp=(n,a,b)=>Math.max(a,Math.min(b,n)),radians=d=>d*Math.PI/180;
+const V=(x,y)=>({x,y}),add=(a,b)=>V(a.x+b.x,a.y+b.y),rot=(p,a)=>V(p.x*Math.cos(a)-p.y*Math.sin(a),p.x*Math.sin(a)+p.y*Math.cos(a));
+const parts={
+ head:{poly:[[130,5],[170,7],[179,32],[178,59],[162,78],[134,70],[122,46],[123,20]],start:[141,67],end:[148,26]},
+ neck:{poly:[[127,63],[147,65],[140,95],[123,98]],start:[133,80],end:[137,70]},
+ torso:{poly:[[114,80],[141,74],[137,117],[127,154],[114,158],[107,130],[109,98]],start:[123,96],end:[114,153]},
+ pelvis:{poly:[[80,177],[104,186],[103,216],[84,225],[72,205]],start:[86,195],end:[90,207]},
+ upper_arm:{poly:[[108,84],[133,90],[127,109],[121,137],[114,162],[97,147],[96,121]],start:[121,94],end:[110,155]},
+ forearm:{poly:[[108,143],[118,148],[118,216],[107,223],[104,179]],start:[110,154],end:[114,220]},
+ hand:{poly:[[109,211],[125,214],[130,244],[122,266],[109,254],[105,226]],start:[114,218],end:[119,246]},
+ thigh:{poly:[[77,186],[98,190],[103,232],[105,292],[93,302],[85,256]],start:[86,200],end:[98,294]},
+ shin:{poly:[[92,285],[107,289],[101,354],[98,381],[85,389],[84,342]],start:[98,294],end:[93,379]},
+ foot:{poly:[[83,374],[100,371],[112,385],[140,389],[141,402],[82,403]],start:[93,379],end:[126,396]}
+};
+let sprites={},originalFrame=null,loaded=false,playing=true,showJoints=true,showReference=false,phase=0,last=0,drag=null,dragAnkle=null,handles=[];
+const values=()=>({stride:+$('stride').value,knee:+$('bend').value/100,lean:+$('lean').value,posture:+$('posture').value,arm:+$('arm').value/100,elbow:+$('elbow').value/100,footroll:+$('footroll').value/100,weight:+$('weight').value});
+function attachSource(){
+ const lib=window.DepthsFullArt;if(!lib?.state?.ready)return false;
+ const frame=lib.get('standCrouch',0);if(!frame)return false;originalFrame=frame;
+ for(const [name,def] of Object.entries(parts)){
+  const c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d');
+  g.beginPath();def.poly.forEach((p,i)=>i?g.lineTo(...p):g.moveTo(...p));g.closePath();g.clip();
+  g.drawImage(frame,frame.sourceX||0,frame.sourceY||0);sprites[name]=c;
+ }
+ loaded=true;$('msg').textContent='✅ Original graphite loaded · 10 source layers + 6 far-side duplicates';
+ return true;
+}
+function drawPart(name,start,end,alpha=1){
+ const d=parts[name],im=sprites[name];if(!im)return;
+ const a=V(...d.start),b=V(...d.end),source=Math.atan2(b.y-a.y,b.x-a.x),target=Math.atan2(end.y-start.y,end.x-start.x);
+ const natural=Math.hypot(b.x-a.x,b.y-a.y),required=Math.hypot(end.x-start.x,end.y-start.y);
+ ctx.save();ctx.globalAlpha=alpha;ctx.translate(start.x,start.y);ctx.rotate(target-source);
+ const k=natural>1?required/natural:1;
+ ctx.scale(clamp(k,.6,1.35),clamp(k,.6,1.35));ctx.drawImage(im,-a.x,-a.y);ctx.restore();
+}
+function drawUpperArm(start,end,alpha=1){
+ // The upper-arm crop contains duplicate rib-cage art. Draw an independent
+ // graphite bone with fixed length and two fine chalk contour strokes.
+ const dx=end.x-start.x,dy=end.y-start.y,len=Math.max(1,Math.hypot(dx,dy));
+ const nx=-dy/len,ny=dx/len;
+ ctx.save();ctx.globalAlpha=alpha;ctx.lineCap='round';ctx.lineJoin='round';
+ function stroke(offset,width,color){
+  ctx.beginPath();ctx.moveTo(start.x+nx*offset,start.y+ny*offset);
+  ctx.quadraticCurveTo((start.x+end.x)/2+nx*(offset+1),(start.y+end.y)/2+ny*(offset+1),end.x+nx*offset,end.y+ny*offset);
+  ctx.strokeStyle=color;ctx.lineWidth=width;ctx.stroke();
+ }
+ stroke(-2.5,1.9,'#dfd7c9');stroke(2.5,1.5,'#eae2d4');stroke(0,.8,'rgba(238,229,211,.55)');
+ for(const p of [start,end]){ctx.beginPath();ctx.arc(p.x,p.y,3.5,0,Math.PI*2);ctx.fillStyle='#171a1a';ctx.fill();ctx.strokeStyle='#e0d5c0';ctx.lineWidth=1.4;ctx.stroke()}
+ ctx.restore();
+}
+function ik(hip,ankle,len1,len2,sign){
+ const dx=ankle.x-hip.x,dy=ankle.y-hip.y;
+ const magnitude=Math.max(.001,Math.hypot(dx,dy)),distance=clamp(magnitude,Math.abs(len1-len2)+.01,len1+len2-.01);
+ const ux=dx/magnitude,uy=dy/magnitude,along=(distance*distance+len1*len1-len2*len2)/(2*distance);
+ const height=Math.sqrt(Math.max(0,len1*len1-along*along));
+ return V(hip.x+ux*along+sign*(-uy)*height,hip.y+uy*along+sign*ux*height);
+}
+// Authored contact/down/passing/up key poses, with two steps in each full cycle.
+const WALK_POSES=[
+ {t:0,    lx:.55,ly:0,   rx:-.55,ry:0,   bob:0,  arm:-1},
+ {t:.125, lx:.28,ly:0,   rx:-.40,ry:-16, bob:3,  arm:-.72},
+ {t:.25,  lx:0,  ly:0,   rx:0,   ry:-34, bob:-1, arm:0},
+ {t:.375, lx:-.28,ly:0,  rx:.40, ry:-16, bob:-4, arm:.72},
+ {t:.50,  lx:-.55,ly:0,  rx:.55, ry:0,   bob:0,  arm:1},
+ {t:.625, lx:-.40,ly:-16,rx:.28,ry:0,   bob:3,  arm:.72},
+ {t:.75,  lx:0,  ly:-34,rx:0,   ry:0,   bob:-1, arm:0},
+ {t:.875, lx:.40,ly:-16,rx:-.28,ry:0,   bob:-4, arm:-.72},
+ {t:1,    lx:.55,ly:0,   rx:-.55,ry:0,   bob:0,  arm:-1}
+];
+function walkPose(p){
+ const t=((p%1)+1)%1;
+ let i=0;while(i<WALK_POSES.length-2&&WALK_POSES[i+1].t<t)i++;
+ const a=WALK_POSES[i],b=WALK_POSES[i+1];
+ let u=(t-a.t)/(b.t-a.t);
+ u=u*u*(3-2*u);
+ const result={};for(const key of ['lx','ly','rx','ry','bob','arm'])result[key]=a[key]+(b[key]-a[key])*u;
+ return result;
+}
+// Independent ankle timing per leg. Left contact is at phase 0,
+// right contact is at phase .5. Toe lift happens only near the next
+// contact; push-off occurs immediately after the foot trails behind.
+const FOOT_ROLL_KEYS=[
+ {t:0,angle:-12},   // heel strike: toe raised
+ {t:.06,angle:0},   // foot settles
+ {t:.36,angle:0},   // flat for most of planted stance
+ {t:.45,angle:13},  // trailing foot begins pushing off
+ {t:.53,angle:24},  // toe-down push-off
+ {t:.62,angle:10},  // foot relaxes after toe-off
+ {t:.72,angle:0},   // neutral in mid-swing
+ {t:.88,angle:0},   // stay neutral until nearly full extension
+ {t:.94,angle:-7},  // late toe lift, close to contact
+ {t:1,angle:-12}
+];
+function ankleRollAt(footPhase){
+ const t=((footPhase%1)+1)%1;
+ let i=0;while(i<FOOT_ROLL_KEYS.length-2&&FOOT_ROLL_KEYS[i+1].t<t)i++;
+ const a=FOOT_ROLL_KEYS[i],b=FOOT_ROLL_KEYS[i+1];
+ let u=(t-a.t)/(b.t-a.t);u=u*u*(3-2*u);
+ return a.angle+(b.angle-a.angle)*u;
+}
+// Foot sprite is anchored at the ankle. Turn its toe vector instead of
+// rotating the whole leg or altering the planted ankle position.
+function toeTarget(ankle,rollDeg){
+ const baseline=Math.atan2(11,31);
+ const angle=baseline+radians(rollDeg);
+ const length=Math.hypot(31,11);
+ return V(ankle.x+Math.cos(angle)*length,ankle.y+Math.sin(angle)*length);
+}
+function scene(){
+ const w=canvas.width,h=canvas.height;ctx.clearRect(0,0,w,h);ctx.fillStyle='#101315';ctx.fillRect(0,0,w,h);
+ ctx.save();ctx.translate(96,28);ctx.scale(.99,.99);
+ const floor=405;ctx.strokeStyle='#5e594e';ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(-75,floor);ctx.lineTo(310,floor);ctx.stroke();
+ if(!loaded){ctx.fillStyle='#dac5a6';ctx.font='14px system-ui';ctx.fillText('Load original Animation Library ZIP',-50,200);ctx.restore();return;}
+ if(showReference&&originalFrame){ctx.save();ctx.globalAlpha=.25;ctx.drawImage(originalFrame,originalFrame.sourceX||0,originalFrame.sourceY||0);ctx.restore();}
+ const c=values(),walk=walkPose(phase);
+ // Shift the hips over the planted foot during each half-stride.
+ const hipTravel=11*Math.sin(phase*2*Math.PI);
+ const hipX=90+hipTravel;
+ const footL=dragAnkle?.side==='L'?dragAnkle.point:V(94+walk.lx*c.stride,381+walk.ly);
+ const footR=dragAnkle?.side==='R'?dragAnkle.point:V(94+walk.rx*c.stride,381+walk.ry);
+ const leftGround=walk.ly>=-0.1,rightGround=walk.ry>=-0.1;
+ // Solve leg extension from actual grounded-foot reach. Bone lengths = 103+95.
+ const groundedReach=Math.max(0,
+    leftGround?Math.abs(footL.x-(hipX-3)):0,
+    rightGround?Math.abs(footR.x-(hipX+3)):0);
+ const targetLength=196;
+ const stanceHeight=Math.sqrt(Math.max(100,targetLength*targetLength-groundedReach*groundedReach));
+ const sink=walk.bob*c.weight/5;
+ const hipY=381-stanceHeight+sink+c.knee*3;
+ const hip=V(hipX,hipY),root=V(hipX-2,hipY-7);
+ const tilt=radians(c.lean);
+ const shoulder=add(root,rot(V(c.posture,-103),tilt)),neck=add(shoulder,rot(V(12,-18),tilt)),headBase=add(neck,rot(V(4,-14),tilt));
+ // Forward-folding knee in recovery, naturally almost straight at contact.
+ const kneeL=ik(V(hip.x-3,hip.y),footL,103,95,-1);
+ const kneeR=ik(V(hip.x+3,hip.y),footR,103,95,-1);
+ // Synchronize opposing arms to current foot separation. All limb sections rotate at joints.
+ const legSeparation=walk.arm;
+ const shoulderL=add(shoulder,rot(V(-5,2),tilt)),shoulderR=add(shoulder,rot(V(5,2),tilt));
+ function armChain(origin,travel,side){
+   const angle=travel*c.arm*.66+tilt*.16;
+   const elbow=add(origin,V(Math.sin(angle)*60,Math.cos(angle)*60));
+   // Flex isn't fixed: recover during the backswing, bend as the hand comes forward.
+   const cycle=Math.max(0,Math.min(1,(travel+1)/2));
+   const flex=(.08+c.elbow*(.25+1.05*cycle))*(1+.08*Math.sin(phase*4*Math.PI));
+   const lowerAngle=angle+flex;
+   const wrist=add(elbow,V(Math.sin(lowerAngle)*60,Math.cos(lowerAngle)*60));
+   const hand=add(wrist,V(Math.sin(lowerAngle)*24,Math.cos(lowerAngle)*24));
+   return {elbow,wrist,hand};
+ }
+ const leftArm=armChain(shoulderL,legSeparation,1),rightArm=armChain(shoulderR,-legSeparation,-1);
+ const elbowL=leftArm.elbow,elbowR=rightArm.elbow;
+ const wristL=leftArm.wrist,wristR=rightArm.wrist;
+ const line=(p,q)=>{ctx.strokeStyle='rgba(239,222,185,.2)';ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.stroke()};
+ // Draw arm layers first, then place the clean chest/ribcage over them.
+ // This hides source-polygon overlap that previously made ribs blob into arms.
+ drawPart('thigh',V(hip.x+3,hip.y),kneeR,.60);drawPart('shin',kneeR,footR,.60);
+ drawPart('foot',footR,toeTarget(footR,ankleRollAt(phase+.5)*c.footroll),.60);
+ drawUpperArm(shoulderR,elbowR,.57);drawPart('forearm',elbowR,wristR,.57);drawPart('hand',wristR,rightArm.hand,.57);
+ drawPart('thigh',V(hip.x-3,hip.y),kneeL);drawPart('shin',kneeL,footL);drawPart('foot',footL,toeTarget(footL,ankleRollAt(phase)*c.footroll));
+ drawPart('pelvis',root,V(root.x+2,root.y+12));
+ drawPart('torso',shoulder,V(root.x+2,root.y-43));
+ drawUpperArm(shoulderL,elbowL);drawPart('forearm',elbowL,wristL);drawPart('hand',wristL,leftArm.hand);
+ drawPart('neck',neck,headBase);
+ drawPart('head',headBase,V(headBase.x+7,headBase.y-41));
+ handles=[{side:'L',p:footL},{side:'R',p:footR}];
+ if(showJoints){
+  const dots=[shoulder,neck,headBase,root,hip,kneeL,kneeR,footL,footR,elbowL,elbowR,wristL,wristR];
+  for(const dot of dots){ctx.fillStyle='#201e1b';ctx.strokeStyle='#d3a771';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(dot.x,dot.y,dot===footL||dot===footR?5.5:3.5,0,Math.PI*2);ctx.fill();ctx.stroke()}
+  ctx.font='10px monospace';ctx.fillStyle='#dcb37d';ctx.fillText('L',footL.x-12,footL.y-7);ctx.fillText('R',footR.x-12,footR.y-7);
+ }
+ ctx.restore();ctx.fillStyle='#d8b081';ctx.font='12px monospace';ctx.fillText('ORIGINAL GRAPHITE · JOINT RIG 049A',13,21);
+ ctx.font='11px monospace';ctx.fillText('STEP '+(Math.floor((phase%1)*24))+' / 24',13,40);
+}
+function refresh(){for(const n of ['phase','speed','stride','bend','lean','posture','arm','elbow','footroll','weight']){const el=$(n);if(!el)continue;
+ const unit={speed:'×',stride:' px',bend:'%',lean:'°',posture:' px',arm:'%',elbow:'%',footroll:'%',weight:' px'}[n]||'';
+ const value=n==='phase'?Math.round((phase%1)*24)+' / 24':el.value+unit;$(n+'v').textContent=value}
+ $('play').textContent=playing?'⏸ Pause walk':'▶ Play walk';$('play').classList.toggle('active',playing);
+ $('joints').textContent=showJoints?'◎ Joint markers ON':'◎ Joint markers OFF';$('joints').classList.toggle('active',showJoints);
+ $('reference').textContent=showReference?'◉ Reference ON':'◉ Reference OFF';$('reference').classList.toggle('active',showReference)}
+function frame(t){if(!last)last=t;const dt=clamp((t-last)/1000,0,.05);last=t;
+ if(!loaded&&window.DepthsFullArt?.state?.ready)attachSource();
+ if(playing&&!dragAnkle)phase=(phase+dt*.6*+$('speed').value)%1;
+ scene();if(playing)$('phase').value=Math.round((phase%1)*24);refresh();requestAnimationFrame(frame)}
+$('import').onclick=()=>$('file').click();
+$('file').onchange=async()=>{const file=$('file').files?.[0];if(file)try{await window.DepthsFullArt.install(file);attachSource()}catch(e){$('msg').textContent='ZIP error: '+e.message}};
+window.addEventListener('depths-art-status',()=>{if(window.DepthsFullArt?.state?.ready)attachSource()});
+$('play').onclick=()=>{playing=!playing;refresh()};$('reset').onclick=()=>{phase=0;dragAnkle=null;playing=true;for(const [id,v] of Object.entries({speed:.65,stride:104,bend:0,lean:0,posture:6,arm:75,elbow:55,footroll:100,weight:5}))$(id).value=v;refresh()};
+$('joints').onclick=()=>{showJoints=!showJoints;refresh()};
+$('reference').onclick=()=>{showReference=!showReference;refresh()};
+$('phase').oninput=()=>{phase=+$('phase').value/24;playing=false;refresh()};
+function download(blob,name){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+$('frame').onclick=()=>canvas.toBlob(blob=>blob&&download(blob,'The_Depths_Rig_049A_Pose.png'),'image/png');
+$('data').onclick=()=>{const exportData={title:'The Depths Miner Rig 049A',source:'The_Depths_Animation_Library_014/stand_to_crouch/stand_to_crouch_00.png',resolution:[W,H],parts:Object.entries(parts).map(([name,d])=>({name,...d,farSideDuplicated:['upper_arm','forearm','hand','thigh','shin','foot'].includes(name)})),controls:values(),notes:'Source-clipped layers; far-side parts are provisional duplicates; needs occlusion cleanup.'};
+ download(new Blob([JSON.stringify(exportData,null,2)],{type:'application/json'}),'The_Depths_Rig_049A.json')};
+function pointerPos(e){const rect=canvas.getBoundingClientRect();return V((e.clientX-rect.left)*canvas.width/rect.width/0.99-96/0.99,(e.clientY-rect.top)*canvas.height/rect.height/0.99-28/0.99)}
+canvas.addEventListener('pointerdown',e=>{const p=pointerPos(e);const hit=handles.find(h=>Math.hypot(p.x-h.p.x,p.y-h.p.y)<24);if(hit){dragAnkle={side:hit.side,point:p};playing=false;canvas.setPointerCapture(e.pointerId);refresh()}});
+canvas.addEventListener('pointermove',e=>{if(dragAnkle)dragAnkle.point=pointerPos(e)});
+canvas.addEventListener('pointerup',()=>{dragAnkle=null});canvas.addEventListener('pointercancel',()=>{dragAnkle=null});
+refresh();requestAnimationFrame(frame);
+})();
+</script></body></html>
