@@ -17,7 +17,7 @@ input[type=range]{width:100%;accent-color:#e3b47f}.status{color:#f1cd98;font-siz
 <div class="controls"><div class="buttons"><button id="play" class="active">⏸ Pause</button><button id="restart">↩ Restart</button><button id="prev">◀ Frame</button><button id="next">Frame ▶</button><button id="import">Load original artwork ZIP</button><input type="file" accept=".zip" id="zip" hidden></div>
 <label>Animation frame <b id="frameText">0 / 35</b><input type="range" id="timeline" min="0" max="35" value="0"></label>
 <label>Forward/back cycle <b id="speedText">3.8 seconds</b><input type="range" id="speed" min="2" max="8" step=".2" value="3.8"></label>
-<label><input id="clean" type="checkbox" checked> Bounded single-skin mode (prevents doubled limbs; original frame handoffs remain visible)</label>
+<label>Rendering mode: bounded single-skin (locked to protect anatomy)</label>
 <div id="status" class="status">Loading the original animation artwork from this device…</div></div>
 <p><b>Known imperfection:</b> bounded deformation preserves most limb contours, but source handoffs can still pop. This is a mesh prototype, not a production-ready skin. The source poses, ground alignment and character scale remain unchanged. The approved <a href="playtest-050f.html">050F gameplay</a> and <a href="motion-mesh-059a.html">059A stand-to-crouch</a> are untouched.</p>
 <script src="assets/full-detail-037.js?v=061c"></script>
@@ -83,7 +83,7 @@ async function prepare(){
   cacheSources(all);const next=Array(36);
   for(let i=0;i<7;i++){
    for(let j=0;j<5;j++){
-    const slot=i*5+j;next[slot]=j===0?sources[i]:morph(i,j/5,$('clean').checked);
+    const slot=i*5+j;next[slot]=j===0?sources[i]:morph(i,j/5);
     $('status').textContent='Generating animation '+(slot+1)+'/36 …';
     await new Promise(requestAnimationFrame);
    }
@@ -110,7 +110,7 @@ $('prev').onclick=()=>stepFrame(-1);
 $('next').onclick=()=>stepFrame(1);
 $('timeline').oninput=()=>{playing=false;position=+$('timeline').value;$('play').textContent='▶ Play';draw()};
 $('speed').oninput=draw;
-$('clean').onchange=()=>{if(sources.length){ready=false;frames=[];error='';prepare()}};
+
 $('import').onclick=()=>$('zip').click();
 $('zip').onchange=async()=>{try{const f=$('zip').files[0];if(!f)return;await window.DepthsFullArt.install(f);ready=false;error='';prepare()}catch(e){error=e.message;$('status').textContent='⚠ '+error}};
 function tick(now){
