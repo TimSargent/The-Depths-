@@ -82,6 +82,17 @@
 - [x] Simulated traversal to x=45 with zero mining, zero lock violations; verified final upright idle frame holds and switching OFF restores the original mining layout.
 - [ ] Capture a continuous upright walk video with foot plant ON/OFF over the extended tunnel for visual approval; focus on frame seam, toe/heel skating and stop pose.
 
+## Prototype 037W5 — Correct invalid walking A/B comparisons (November 17, 2026)
+- [x] Latest 47.9s iPhone recording of 037W4B shows user prefers Walk Polish OFF in extended corridor, contrary to earlier short test. Do **not** claim the faster gait is definitively superior.
+- [x] Root cause: old Walk Polish toggle bundled cadence, original-foot correction enablement, seam blending and idle pose; this prevented controlled comparisons.
+- [x] Split out **Fast cadence ON/OFF**: it now changes walk-frame advancement rate only (1.25 vs 3 cells per seven-frame cycle), retaining the frame phase when toggled.
+- [x] **Foot plant ON/OFF** now independently selects original-frame boot-bottom vs shared ground datum regardless of walking speed.
+- [x] **Seam blend ON/OFF** now independently controls the loop boundary on either cadence; default OFF to avoid overlapping ghost legs. Upright idle always retains a compatible last original walk frame.
+- [x] Force-refresh imported-original-art script query so latest source ground-contact metadata is loaded.
+- [x] Simulated long walking course under fast, slow and Foot Plant OFF settings; full eight-strip mining/dump regression after disabling long course: zero posture locks.
+- [ ] User visual A/B: keep **Foot plant ON** and **Seam blend OFF** fixed, compare Fast cadence ON/OFF along same corridor. Then test Foot Plant independently at the preferred cadence.
+- [ ] Source-derived exact stance-foot positions and horizontal foot locking remain unimplemented; do not confuse vertical boot baseline with true planted-foot world locking.
+
 ## Current checkpoint
 - Prototype **037P** is playable and mechanically validated; **no global visual lock**.
 - Open high-priority bug: prone sprite extends beyond aimed rock location.
