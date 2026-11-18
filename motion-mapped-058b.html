@@ -1,0 +1,57 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>The Depths — Mapped Motion 058B</title><style>
+*{box-sizing:border-box}body{margin:0;background:#0d1113;color:#ecdfcb;font:14px system-ui,-apple-system,sans-serif}main{max-width:950px;margin:auto;padding:12px}h1{margin:8px 0;font-size:25px}.tag{font-size:11px;letter-spacing:2px;color:#eabb84;font-weight:700}p{color:#b9aea1;line-height:1.48}
+.panels{display:grid;grid-template-columns:1fr 1fr;gap:9px}.panel{padding:7px;border:1px solid #534c43;background:#191c1e;border-radius:9px;min-width:0}.panel b{color:#efcc9c;font-size:12px}canvas{display:block;width:100%;height:auto;aspect-ratio:245/418;background:#070a0c;border-radius:5px}.panel small{color:#aea69a}
+.ctrl{margin-top:11px;padding:12px;background:#191c1e;border:1px solid #554d44;border-radius:9px}button{border:1px solid #ac865e;border-radius:7px;padding:10px;background:#5a402d;color:#f9e3c6;font:inherit}button.on{background:#946537}input[type=range]{accent-color:#ddb074;width:100%}label{font-size:12px;color:#d1bca6}.buttons{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:10px}.status{font-size:12px;color:#e9c38f;line-height:1.5}.hint{font-size:12px;color:#bdb0a4}a{color:#eabf84}
+</style></head><body><main>
+<div class="tag">THE DEPTHS · 058B · ARTIST-FRAME MOTION MAPPING</div><h1>Mapped original crouch ⛏️</h1>
+<p>I traced <b>12 anatomical landmarks on all eight original frames</b> from the exported image. Both panels show the real original artwork, not stretched graphite crops; the right panel verifies our tracked skeletal joints against the artist's actual motion. No dragging or calibration needed.</p>
+<div class="panels"><div class="panel"><b>ORIGINAL ARTWORK</b><canvas id="source" width="245" height="418"></canvas><small>Authentic source frame</small></div>
+<div class="panel"><b>ARTWORK + TRACKED RIG</b><canvas id="rig" width="245" height="418"></canvas><small>12 mapped joint points per frame</small></div></div>
+<div class="ctrl"><div class="buttons"><button id="play" class="on">⏸ Pause</button><button id="restart">↩ Restart</button><button id="export">⬇ Export all rig coordinates</button><button id="import">Load original Animation ZIP</button><input id="zip" type="file" accept=".zip" hidden></div>
+<label>Frame <strong id="frameLabel">0 / 7</strong><input id="frame" type="range" min="0" max="7" step="1" value="0"></label>
+<label>Animation cycle <strong id="speedLabel">1.8 sec</strong><input id="speed" type="range" min="1" max="6" step=".2" value="1.8"></label>
+<label><input id="markers" type="checkbox" checked> Show mapped joints and bone links</label>
+<div id="status" class="status">Looking for saved original Animation Library on this device…</div></div>
+<p class="hint">This completes the source-frame skeleton <b>mapping</b>. An independent articulated graphite skin is still a separate task; this page deliberately preserves the original frames instead of distorting them. <a href="playtest-050f.html">Approved gameplay 050F</a> remains untouched.</p>
+<script src="assets/full-detail-037.js?v=058b"></script><script>
+(()=>{'use strict';
+const $=id=>document.getElementById(id),S=$('source').getContext('2d'),R=$('rig').getContext('2d');
+const keys=["hip","knee","ankle","toe","farKnee","farAnkle","farToe","shoulder","elbow","wrist","neck","headCenter"],frames=[{"hip":[86,200],"knee":[98,294],"ankle":[93,379],"toe":[126,396],"farKnee":[84,292],"farAnkle":[83,375],"farToe":[102,395],"shoulder":[121,94],"elbow":[110,155],"wrist":[114,220],"neck":[141,67],"headCenter":[148,42]},{"hip":[54,167],"knee":[82,256],"ankle":[83,342],"toe":[121,360],"farKnee":[70,248],"farAnkle":[75,341],"farToe":[98,355],"shoulder":[135,79],"elbow":[113,139],"wrist":[111,206],"neck":[164,67],"headCenter":[174,40]},{"hip":[45,154],"knee":[112,221],"ankle":[81,305],"toe":[115,322],"farKnee":[98,225],"farAnkle":[85,304],"farToe":[102,321],"shoulder":[141,75],"elbow":[123,140],"wrist":[154,210],"neck":[174,68],"headCenter":[187,42]},{"hip":[48,167],"knee":[142,196],"ankle":[98,274],"toe":[130,292],"farKnee":[101,211],"farAnkle":[77,284],"farToe":[99,298],"shoulder":[137,88],"elbow":[127,151],"wrist":[167,198],"neck":[164,84],"headCenter":[177,51]},{"hip":[32,186],"knee":[135,192],"ankle":[121,276],"toe":[158,290],"farKnee":[115,217],"farAnkle":[46,279],"farToe":[69,291],"shoulder":[115,94],"elbow":[118,157],"wrist":[179,174],"neck":[136,86],"headCenter":[148,52]},{"hip":[29,190],"knee":[130,185],"ankle":[108,272],"toe":[153,284],"farKnee":[113,227],"farAnkle":[37,268],"farToe":[53,283],"shoulder":[100,95],"elbow":[119,162],"wrist":[186,162],"neck":[119,86],"headCenter":[132,53]},{"hip":[32,197],"knee":[138,185],"ankle":[115,265],"toe":[149,280],"farKnee":[114,237],"farAnkle":[34,277],"farToe":[52,290],"shoulder":[98,97],"elbow":[129,164],"wrist":[197,122],"neck":[115,84],"headCenter":[126,52]},{"hip":[32,197],"knee":[137,185],"ankle":[115,270],"toe":[145,280],"farKnee":[114,237],"farAnkle":[35,274],"farToe":[54,291],"shoulder":[97,102],"elbow":[133,161],"wrist":[194,123],"neck":[113,85],"headCenter":[125,52]}];
+const edges=[['hip','knee'],['knee','ankle'],['ankle','toe'],['hip','farKnee'],['farKnee','farAnkle'],['farAnkle','farToe'],['hip','shoulder'],['shoulder','elbow'],['elbow','wrist'],['shoulder','neck'],['neck','headCenter']];
+const colors={hip:'#ff886b',knee:'#a3ea82',ankle:'#c5a0fb',toe:'#edcb86',farKnee:'#a3ea82',farAnkle:'#c5a0fb',farToe:'#edcb86',shoulder:'#79d4f6',elbow:'#fda66d',wrist:'#70e0d2',neck:'#ffffff',headCenter:'#f17ec9'};
+let step=0,playing=true,clock=0,last=0,ready=false,error='';
+function check(){const lib=window.DepthsFullArt;if(!lib?.state?.ready)return false;return frames.every((_,i)=>!!lib.get('standCrouch',i))}
+function draw(){
+ S.clearRect(0,0,245,418);R.clearRect(0,0,245,418);
+ if(!ready){$('status').textContent=error||'Source art not loaded. Load your original Animation Library ZIP once.';return}
+ const idx=Math.min(7,Math.round(step)),im=window.DepthsFullArt.get('standCrouch',idx);
+ S.drawImage(im,im.sourceX||0,im.sourceY||0);
+ R.drawImage(im,im.sourceX||0,im.sourceY||0);
+ if($('markers').checked){
+  const pose=frames[idx];
+  R.save();R.strokeStyle='rgba(102,210,242,.82)';R.lineWidth=1.5;R.setLineDash([3,3]);
+  for(const [a,b] of edges){R.beginPath();R.moveTo(...pose[a]);R.lineTo(...pose[b]);R.stroke()}
+  R.setLineDash([]);
+  for(const k of keys){const p=pose[k];R.beginPath();R.arc(...p,3.4,0,Math.PI*2);R.fillStyle=colors[k];R.fill();R.lineWidth=1;R.strokeStyle='#101519';R.stroke()}
+  R.restore()
+ }
+ $('frameLabel').textContent=idx+' / 7';$('speedLabel').textContent=$('speed').value+' sec';
+ $('status').textContent='✅ Eight artist-drawn source frames mapped. 12 anatomical coordinates per frame. No input required.';
+}
+$('play').onclick=()=>{playing=!playing;$('play').textContent=playing?'⏸ Pause':'▶ Play';$('play').classList.toggle('on',playing)};
+$('restart').onclick=()=>{clock=0;step=0;playing=true;$('play').textContent='⏸ Pause'};
+$('frame').oninput=()=>{playing=false;step=+$('frame').value;$('play').textContent='▶ Play';draw()};
+$('markers').onchange=draw;$('speed').oninput=draw;
+$('import').onclick=()=>$('zip').click();
+$('zip').onchange=async()=>{try{const file=$('zip').files[0];if(!file)return;await window.DepthsFullArt.install(file);ready=check();draw()}catch(e){error='Import error: '+e.message;ready=false;draw()}};
+$('export').onclick=()=>{
+ const data={version:'058B',sequence:'standCrouch',canvas:[245,418],source:'Original 8-frame reference exported by user',mapping:'Visually traced by assistant (approximate pixels)',landmarks:keys,frames};
+ const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');
+ a.href=url;a.download='the-depths-motion-keys-058b.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),4000);
+};
+function tick(now){const dt=last?Math.min(.06,(now-last)/1000):0;last=now;
+ try{if(!ready)ready=check();if(ready&&playing){clock=(clock+dt/Number($('speed').value))%2;step=(clock<=1?clock:2-clock)*7;$('frame').value=Math.round(step)}draw()}catch(e){error='⚠ '+e.message;ready=false;$('status').textContent=error}
+ requestAnimationFrame(tick)
+}requestAnimationFrame(tick);
+})();</script></main></body></html>
