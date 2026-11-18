@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>The Depths — Posture Studio 051A</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;background:#0c0e10;color:#ece4d7;font:14px system-ui,-apple-system,Arial,sans-serif}
+main{max-width:1040px;margin:auto;padding:14px}.tag{font-size:11px;color:#d9b47e;letter-spacing:2px;font-weight:700}
+h1{font-size:clamp(23px,5vw,33px);margin:5px 0}p{color:#bcb2a5;line-height:1.5;font-size:13px;margin:7px 0 14px}
+a{color:#e3b87a}.panes{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pane{border:1px solid #564c40;border-radius:12px;background:#171b1e;padding:10px;min-width:0}
+.pane b{font-size:12px;color:#efc28d}canvas{width:100%;aspect-ratio:440/390;display:block;border-radius:8px;background:#0d1113;margin-top:8px}
+.panel{padding:12px;border:1px solid #4c463d;border-radius:10px;margin-top:11px;background:#17191b}
+.buttons{display:flex;flex-wrap:wrap;gap:7px}button,select{border:1px solid #79644a;border-radius:8px;background:#302e2b;color:#f2e4d0;padding:10px;font-size:13px;cursor:pointer}
+button.on{background:#735638;border-color:#d7b184}button{flex:1 1 130px}
+.slider{margin:12px 0}.slider label{font-size:12px;display:flex;justify-content:space-between}.slider input{width:100%;accent-color:#daa66f}
+small{color:#b8ad9d}.footnote{color:#d1b48d;font-size:12px;line-height:1.5}
+@media(max-width:590px){main{padding:9px}.pane{padding:6px}.panes{gap:5px}canvas{aspect-ratio:1/1.15}button{flex:1 1 130px}}
+</style></head><body><main>
+<div class="tag">THE DEPTHS · POSTURE STUDIO 051A · NON-DESTRUCTIVE</div>
+<h1>💀 Original Art → Smooth Posture</h1>
+<p>Our original 050F posture key poses, interpolated continuously beside the actual source PNG frames. The left side is preserved artwork; the right side is an animated joint-motion study. This is not yet a finished re-skinned character. Nothing here modifies gameplay, approved walking, crawling, or mining.</p>
+<div class="panes">
+<section class="pane"><b>ORIGINAL ARTWORK · 8 source frames</b><canvas id="original" width="440" height="390"></canvas><small id="artLabel">Checking saved Animation Library…</small></section>
+<section class="pane"><b>INTERPOLATED JOINTS · smooth in-betweens</b><canvas id="joints" width="440" height="390"></canvas><small id="jointLabel">50% pose / game skeleton</small></section>
+</div>
+<section class="panel">
+<div class="buttons"><button id="play" class="on">⏸ Pause</button><button id="reverse">↕ Reverse direction ON</button><button id="marks" class="on">◎ Joints ON</button><button id="overlay">◉ Ghost reference OFF</button></div>
+<div class="slider"><label>Transition <strong id="transitionText">Standing → Crouching</strong></label><select id="transition" style="width:100%"><option value="standCrouch">Standing → crouching</option><option value="crouchProne">Crouching → prone</option><option value="full">Standing → prone (complete)</option></select></div>
+<div class="slider"><label>Animation progress <strong id="progressText">0%</strong></label><input type="range" id="progress" min="0" max="1000" value="0" step="1"></div>
+<div class="slider"><label>Duration <strong id="durationText">3.0 seconds</strong></label><input id="duration" type="range" min="1.0" max="8.0" step=".25" value="3"></div>
+<div class="buttons"><button id="load">💀 Load original Animation Library ZIP</button><input id="zip" type="file" accept=".zip,application/zip" hidden><button id="export">⬇ Export joint key poses JSON</button></div>
+<div class="footnote" id="status">Loading original artwork if saved in this browser…</div>
+</section>
+<p><b>Preserved:</b> <a href="playtest-050f.html">Game Playtest 050F</a> · <a href="rig-studio-049a.html">Approved Walk Studio 049A</a>. This studio is deliberately separate. The right-hand joints use the seven posture key poses already authored in the game. Future artwork rigging will follow these joints, but requires clipping and joint mapping for each action.</p>
+</main>
+<script src="assets/full-detail-037.js?v=051a"></script>
+<script>
+(()=>{
+'use strict';
+const $=id=>document.getElementById(id);
+const original=$('original'),oc=original.getContext('2d');
+const joint=$('joints'),ctx=joint.getContext('2d');
+const floor=337,cx=218,scale=1.39;
+const poses=[
+// 0 — Upright: both feet stable; relaxed arms.
+{hip:[0,-65],shoulder:[0,-139],head:[3,-171],elbow:[16,-111],hand:[16,-88],farElbow:[-14,-113],farHand:[-12,-88],knee:[12,-34],ankle:[12,-6],toe:[24,0],farKnee:[-12,-34],farAnkle:[-12,-6],farToe:[-3,0]},
+// 1 — Lean at hips: feet remain planted; upper-body weight moves forward.
+{hip:[-2,-63],shoulder:[13,-132],head:[22,-164],elbow:[27,-105],hand:[33,-82],farElbow:[0,-108],farHand:[5,-85],knee:[12,-34],ankle:[12,-6],toe:[24,0],farKnee:[-12,-34],farAnkle:[-12,-6],farToe:[-3,0]},
+// 2 — Bend the knees: hips travel backwards/down while heels stay put.
+{hip:[-13,-51],shoulder:[17,-117],head:[28,-149],elbow:[34,-91],hand:[37,-67],farElbow:[5,-94],farHand:[11,-68],knee:[14,-31],ankle:[12,-6],toe:[24,0],farKnee:[-18,-29],farAnkle:[-12,-6],farToe:[-3,0]},
+// 3 — Kneel: knees touch first and take the weight; shins trail back.
+{hip:[-26,-40],shoulder:[16,-86],head:[29,-116],elbow:[36,-62],hand:[44,-36],farElbow:[0,-61],farHand:[16,-32],knee:[14,-7],ankle:[-17,-5],toe:[-29,0],farKnee:[-33,-7],farAnkle:[-62,-5],farToe:[-71,0]},
+// 4 — Reach: torso hinges down, palms approach the floor while knees hold.
+{hip:[-30,-36],shoulder:[21,-64],head:[44,-89],elbow:[37,-33],hand:[52,-3],farElbow:[8,-34],farHand:[24,-3],knee:[11,-6],ankle:[-19,-5],toe:[-31,0],farKnee:[-37,-7],farAnkle:[-64,-5],farToe:[-73,0]},
+// 5 — All fours: palms planted below shoulders; hips over bent knees.
+{hip:[-33,-34],shoulder:[15,-46],head:[43,-65],elbow:[31,-26],hand:[40,-3],farElbow:[1,-25],farHand:[12,-3],knee:[-4,-7],ankle:[-36,-4],toe:[-49,0],farKnee:[-43,-7],farAnkle:[-72,-4],farToe:[-84,0]},
+// 6 — Military low crawl: elbows under shoulders, chest and hips lowered;
+//     thighs angle toward the knees, shins/feet trail BACK behind them.
+{hip:[-38,-17],shoulder:[12,-25],head:[43,-38],elbow:[29,-12],hand:[40,-3],farElbow:[-3,-12],farHand:[9,-3],knee:[-8,-8],ankle:[-52,-4],toe:[-69,0],farKnee:[-43,-8],farAnkle:[-76,-4],farToe:[-89,0]}
+];
+let t=0,playing=true,reverse=true,showJoints=true,ghost=false,last=0,direction=1;
+const clamp=(n,a,b)=>Math.max(a,Math.min(b,n)),smooth=v=>v*v*(3-2*v);
+function interpolatedPose(v){
+ const u=clamp(v,0,6),i=Math.floor(u),j=Math.min(i+1,6),a=smooth(u-i),out={};
+ for(const key of Object.keys(poses[0]))out[key]=[poses[i][key][0]*(1-a)+poses[j][key][0]*a,poses[i][key][1]*(1-a)+poses[j][key][1]*a];
+ return out;
+}
+function phasePose(){
+ const kind=$('transition').value;
+ return kind==='standCrouch'?3*t:kind==='crouchProne'?3+3*t:6*t;
+}
+function sourceFrame(){
+ const kind=$('transition').value,v=t*7;
+ if(kind==='standCrouch')return {name:'standCrouch',frame:Math.round(v),desired:176+(119-176)*t};
+ if(kind==='crouchProne')return {name:'crouchProne',frame:Math.round(v),desired:119+(65-119)*t};
+ if(t<=.5)return {name:'standCrouch',frame:Math.round(t*14),desired:176+(119-176)*(t*2)};
+ return {name:'crouchProne',frame:Math.round((t-.5)*14),desired:119+(65-119)*(t*2-1)};
+}
+function background(g,label){
+ g.clearRect(0,0,440,390);
+ g.fillStyle='#101416';g.fillRect(0,0,440,390);
+ g.strokeStyle='#4a4942';g.lineWidth=1.5;g.beginPath();g.moveTo(18,floor);g.lineTo(422,floor);g.stroke();
+ g.fillStyle='#bfa17e';g.font='12px ui-monospace,monospace';g.fillText(label,14,21);
+}
+function source(g,opacity=1){
+ const spec=sourceFrame(),im=window.DepthsFullArt?.get(spec.name,spec.frame);
+ if(!im)return false;
+ // Source artwork stays intact. Display scale follows the intended change
+ // in body height, rather than assuming every transition frame is upright.
+ const h=Math.max(1,im.height),k=spec.desired/h;
+ g.save();g.globalAlpha=opacity;g.imageSmoothingEnabled=true;
+ g.drawImage(im,cx-im.width*k/2,floor-im.height*k,im.width*k,im.height*k);
+ g.restore();return true;
+}
+function drawSkeleton(){
+ const p=interpolatedPose(phasePose());
+ const at=k=>[cx+p[k][0]*scale,floor+p[k][1]*scale];
+ function bone(a,b,w,color){
+  const A=at(a),B=at(b);
+  ctx.strokeStyle=color;ctx.lineWidth=w;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(...A);ctx.lineTo(...B);ctx.stroke();
+ }
+ function dot(k,r=3){const pt=at(k);ctx.fillStyle='#eac38a';ctx.beginPath();ctx.arc(...pt,r,0,Math.PI*2);ctx.fill()}
+ background(ctx,'CONTINUOUS POSE '+phasePose().toFixed(2)+' / 6');
+ if(ghost)source(ctx,.20);
+ bone('hip','farKnee',3,'#6e7777');bone('farKnee','farAnkle',2.6,'#6e7777');bone('farAnkle','farToe',2.2,'#6e7777');
+ bone('shoulder','farElbow',2.8,'#6e7777');bone('farElbow','farHand',2.3,'#6e7777');
+ bone('hip','shoulder',6,'#e2d3bd');
+ bone('hip','knee',4,'#e2d3bd');bone('knee','ankle',3.8,'#e2d3bd');bone('ankle','toe',2.8,'#e2d3bd');
+ bone('shoulder','elbow',3.8,'#e2d3bd');bone('elbow','hand',3.5,'#e2d3bd');
+ const H=at('head');ctx.strokeStyle='#e2d3bd';ctx.lineWidth=3;ctx.beginPath();ctx.arc(H[0],H[1],11,0,Math.PI*2);ctx.stroke();
+ ctx.beginPath();ctx.moveTo(...at('shoulder'));ctx.lineTo(H[0],H[1]+8);ctx.stroke();
+ if(showJoints)for(const k of ['hip','shoulder','head','knee','ankle','toe','elbow','hand','farKnee','farAnkle','farElbow','farHand'])dot(k,k==='hip'?4:2.6);
+}
+function draw(){
+ const spec=sourceFrame();
+ background(oc,'ORIGINAL '+spec.name.toUpperCase()+' FRAME '+spec.frame+'/7');
+ const ok=source(oc);
+ $('artLabel').textContent=ok?'Original source '+spec.name+' / frame '+spec.frame:'Original art not loaded — select the Animation Library ZIP';
+ $('jointLabel').textContent='Continuously interpolated game key poses · '+phasePose().toFixed(2)+' / 6';
+ drawSkeleton();
+ $('progressText').textContent=Math.round(t*100)+'%';
+ $('transitionText').textContent=$('transition').selectedOptions[0].textContent;
+ $('durationText').textContent=Number($('duration').value).toFixed(2)+' seconds';
+ $('status').textContent=window.DepthsFullArt?.state?.ready?'✅ Approved original artwork loaded · comparison available':'Load the original Animation Library ZIP to compare the 8 source images. The animated joint study works without the ZIP.';
+}
+function frame(now){
+ const dt=Math.min(.06,last?(now-last)/1000:0);last=now;
+ if(playing){t+=direction*dt/Number($('duration').value);if(t>=1){t=1;if(reverse)direction=-1;else t=0}if(t<=0){t=0;direction=1}}
+ $('progress').value=Math.round(t*1000);draw();requestAnimationFrame(frame);
+}
+$('play').onclick=()=>{playing=!playing;$('play').textContent=playing?'⏸ Pause':'▶ Play';$('play').classList.toggle('on',playing)};
+$('reverse').onclick=()=>{reverse=!reverse;$('reverse').textContent='↕ Reverse direction '+(reverse?'ON':'OFF')};
+$('marks').onclick=()=>{showJoints=!showJoints;$('marks').textContent='◎ Joints '+(showJoints?'ON':'OFF')};
+$('overlay').onclick=()=>{ghost=!ghost;$('overlay').textContent='◉ Ghost reference '+(ghost?'ON':'OFF')};
+$('progress').oninput=()=>{t=Number($('progress').value)/1000;playing=false;$('play').textContent='▶ Play';$('play').classList.remove('on')};
+$('transition').onchange=()=>{t=0;direction=1};
+$('load').onclick=()=>$('zip').click();
+$('zip').onchange=async()=>{
+ const file=$('zip').files?.[0];if(!file)return;
+ try{await window.DepthsFullArt.install(file);draw()}catch(e){$('status').textContent='ZIP import error: '+e.message}
+};
+$('export').onclick=()=>{
+ const payload={version:'051A diagnostic',source:'playtest-050f.html',poseKeys:poses,notes:'Original 050F key positions. No existing animations overwritten.'};
+ const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+ const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='The_Depths_Posture_Keys_051A.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+};
+window.addEventListener('depths-art-status',draw);
+requestAnimationFrame(frame);
+})();
+</script></body></html>
