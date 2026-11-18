@@ -112,6 +112,20 @@ function normalize(key,images){
    // Original source frame's own lowest visible boot: W3 stance-floor lock.
    // Draw-time toggle chooses this without modifying source artwork.
    im.motionReference.plantedFootY=im.height;
+   // Measure the source artwork's bottommost opaque boot marks, rather
+   // than guessing a toe location from the skeleton's proportions.
+   const pixels=im.getContext('2d').getImageData(0,0,im.width,im.height);
+   let weightedX=0,alphaTotal=0;
+   for(let y=Math.max(0,im.height-10);y<im.height;y++){
+    for(let x=0;x<im.width;x++){
+     const a=pixels.data[(y*im.width+x)*4+3];
+     if(a<90)continue;
+     weightedX+=x*a;alphaTotal+=a;
+    }
+   }
+   const toeX=alphaTotal?weightedX/alphaTotal:im.width/2;
+   im.motionReference.contactX=toeX;
+   im.motionReference.contactSide=(toeX<im.motionReference.centerX?'rear':'front');
   }
   im.fullDetailScale={sx,sy};
   im.isOriginalArtwork=true;
