@@ -1,0 +1,303 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>The Depths · 105 side-by-side rig review</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#0d1214;color:#ebdcc8;font:14px system-ui,-apple-system,sans-serif}
+main{max-width:1080px;margin:auto;padding:14px}.tag{font-size:11px;letter-spacing:1.6px;font-weight:750;color:#e8be87}
+h1{font-size:25px;margin:8px 0}p{color:#b9aea2;line-height:1.45}.panels{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.panel{min-width:0;padding:8px;border:1px solid #635140;border-radius:9px;background:#1a1d1f}
+.panel b{font-size:12px;color:#f2c996}canvas{display:block;width:100%;aspect-ratio:600/336;background:#101619;border-radius:5px}
+.controls{margin:12px 0;border:1px solid #605140;border-radius:9px;padding:12px;background:#191d20}
+.buttons{display:flex;flex-wrap:wrap;gap:8px}button{border:1px solid #bb8d5a;border-radius:8px;padding:10px 12px;background:#644a30;color:#ffdfb4;font:inherit}
+label{font-size:12px;color:#e7caa7;display:block;margin-top:13px}input[type=range]{width:100%;accent-color:#dbb17c}
+.status{font-size:12px;color:#edc793;margin-top:9px;line-height:1.4}small{font-size:11px;color:#aaa197}a{color:#e9b982}
+@media(min-width:700px){.panel{padding:12px}}@media(max-width:390px){main{padding:8px}.panels{gap:5px}.panel{padding:4px}.panel b{font-size:10px}}
+</style></head><body><main>
+<div class="tag">THE DEPTHS · 105 · SIDE-BY-SIDE DEVELOPMENT PLAYTEST</div>
+<h1>Crouch → Prone ⛏️</h1>
+<p>Two synchronized views of the same 57-frame timeline. <b>Left:</b> original eight artist poses, held between keys. <b>Right:</b> 105 joint-constrained arm/hand interpolation reconstructed from the same original artwork. This is a development test, not an approved game animation.</p>
+<div class="panels"><div class="panel"><b>ORIGINAL · 8 sprite poses</b><canvas id="left" width="600" height="336"></canvas><small>Original frames remain unchanged</small></div>
+<div class="panel"><b>105 · rigged interpolation</b><canvas id="right" width="600" height="336"></canvas><small>57 frames, same camera and clock</small></div></div>
+<div class="controls">
+<div class="buttons"><button id="play">⏸ Pause</button><button id="restart">↩ Restart</button><button id="prev">◀ Frame</button><button id="next">Frame ▶</button><button id="import">Load artwork ZIP</button><input id="file" type="file" accept=".zip" hidden></div>
+<label>Frame <b id="frame">0 / 56</b><input id="scrub" type="range" min="0" max="56" value="0"></label>
+<label>Forward-and-back loop <b id="speedLabel">4.0 seconds</b><input id="speed" type="range" min="2" max="9" value="4" step=".2"></label>
+<div id="status" class="status">Loading the original source artwork from this device…</div>
+</div><p><b>Known QA failures:</b> fine detail and some pose boundaries still require visual approval. This build constrains stray strokes to their moving limbs. The viewer does not change approved gameplay. <a href="playtest-050f.html">Approved 050F gameplay</a></p>
+<script src="assets/full-detail-037.js?v=105"></script>
+<script>
+(()=>{'use strict';
+const W=440,H=270,STEP=8,COUNT=57;
+const K=[[[192,204],[228,148],[244,122],[250,181],[290,158],[226,149],[284,166],[251,193],[235,221],[252,249],[223,221],[188,234],[190,248],[237,137]],[[199,201],[235,147],[251,118],[252,181],[301,184],[235,149],[290,164],[254,193],[237,226],[250,248],[234,226],[191,234],[190,249],[243,135]],[[216,192],[267,154],[289,130],[267,187],[310,186],[267,160],[291,234],[267,210],[244,237],[247,249],[246,235],[187,231],[188,251],[276,144]],[[215,191],[273,158],[298,136],[266,201],[270,245],[278,161],[329,213],[254,226],[232,242],[177,250],[228,241],[180,235],[180,250],[286,150]],[[209,187],[270,161],[297,142],[253,210],[259,243],[288,204],[324,244],[220,242],[165,230],[163,251],[216,239],[170,230],[163,251],[283,154]],[[211,186],[280,169],[307,157],[283,212],[307,239],[246,189],[273,232],[217,242],[160,227],[160,249],[198,239],[147,223],[135,237],[295,168]],[[213,189],[281,181],[310,168],[270,220],[318,243],[278,219],[312,242],[184,236],[133,230],[123,242],[190,238],[128,230],[119,243],[295,183]],[[214,208],[281,208],[307,184],[268,243],[330,246],[270,244],[328,245],[164,228],[117,226],[99,236],[169,229],[121,227],[99,236],[291,205]]];
+const SWITCHES=[[4,4,4,4,3,4,4,4,4,4,4,4,4,4,4],[4,4,4,4,4,3,4,4,4,4,4,4,4,4,4],[4,4,4,4,4,4,4,3,2,4,5,4,4,4,4],[4,4,4,5,3,4,4,4,7,5,4,4,4,4],[4,4,4,4,4,4,4,4,4,4,4,4,4,4,4],[4,4,4,2,4,4,4,5,7,4,4,5,4,4,4],[4,6,4,4,4,4,4,4,2,4,6,4,4,4,4]];
+const BONES=[[0,1],[1,13],[1,3],[3,4],[1,5],[5,6],[0,7],[7,8],[8,9],[0,10],[10,11],[11,12]];
+const ORDER=[6,7,8,9,10,11,0,1,4,5,2,3,13,12,14];
+const HANDS={3:[12,3,4],5:[13,5,6]};
+const $=id=>document.getElementById(id);
+const L=$('left').getContext('2d'),R=$('right').getContext('2d');
+const CROP=[70,100,300,168];
+const make=()=>{const c=document.createElement('canvas');c.width=W;c.height=H;return c};
+const ctx=(c)=>c.getContext('2d',{willReadFrequently:true});
+const smooth=t=>t*t*(3-2*t);
+let sources=[],sourceData=[],pieces=[],tips={},donor={},tipRepair={},frames=[],ready=false,busy=false,
+playing=true,clock=0,last=0,position=0,error='';
+function hypot(a,b){return Math.hypot(a,b)}
+function pchip(k,t){
+ if(t<=0)return K[0][k];if(t>=7)return K[7][k];
+ const i=Math.floor(t),u=t-i,res=[];
+ for(let axis=0;axis<2;axis++){
+  const val=j=>K[j][k][axis];
+  const slope=j=>{if(j===0)return val(1)-val(0);if(j===7)return val(7)-val(6);
+   const a=val(j)-val(j-1),b=val(j+1)-val(j);return a*b>0?2*a*b/(a+b):0};
+  res.push((2*u*u*u-3*u*u+1)*val(i)+(u*u*u-2*u*u+u)*slope(i)+(-2*u*u*u+3*u*u)*val(i+1)+(u*u*u-u*u)*slope(i+1));
+ }
+ return res;
+}
+function labelDistance(j,x,y,landmarks){
+ if(j===14)return (Math.hypot((x-landmarks[2][0])*.8,(y-landmarks[2][1])*1.05)-2)*.65;
+ if(j===12||j===13){const k=j===12?4:6;return Math.hypot(x-landmarks[k][0],y-landmarks[k][1])*.62}
+ const [a,b]=BONES[j],A=landmarks[a],B=landmarks[b],vx=B[0]-A[0],vy=B[1]-A[1];
+ const t=Math.max(0,Math.min(1,((x-A[0])*vx+(y-A[1])*vy)/Math.max(1,vx*vx+vy*vy)));
+ return Math.hypot(x-A[0]-t*vx,y-A[1]-t*vy)*(j===0?.74:j===1?.8:1);
+}
+function handZone(x,y,k){
+ const landmarks=K[k],result=[];
+ for(const [elbow,wrist] of [[3,4],[5,6]]){
+  const w=landmarks[wrist],e=landmarks[elbow],v=[w[0]-e[0],w[1]-e[1]],len=hypot(...v);
+  const u=len<2?[1,0]:[v[0]/len,v[1]/len],along=(x-w[0])*u[0]+(y-w[1])*u[1],
+   across=Math.abs((x-w[0])*u[1]-(y-w[1])*u[0]);
+  result.push(along>=-6&&along<=22&&across<=10+Math.max(0,along)*.18);
+ }
+ return result;
+}
+function initializePieces(){
+ pieces=[];tips={};donor={};tipRepair={};
+ for(let i=0;i<8;i++){
+  const src=sourceData[i],out=Array.from({length:15},()=>new Uint8ClampedArray(src.length));
+  const marks=K[i],w=4,v=6;
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+   const ds=Array.from({length:15},(_,j)=>labelDistance(j,x,y,marks));
+   let best=0;for(let j=1;j<15;j++)if(ds[j]<ds[best])best=j;
+   const zones=handZone(x,y,i),near=Math.hypot(x-marks[w][0],y-marks[w][1]),far=Math.hypot(x-marks[v][0],y-marks[v][1]);
+   if(zones[0]&&(!zones[1]||near<=far))best=12;
+   if(zones[1]&&(!zones[0]||far<near))best=13;
+   const valid=best===12?(zones[0]||ds[12]<19):best===13?(zones[1]||ds[13]<19):ds[best]<19;
+   if(valid){const q=(y*W+x)*4;
+    for(let c=0;c<4;c++)out[best][q+c]=src[q+c];
+   }
+  }
+  pieces.push(out.map(bytes=>{const c=make(),g=ctx(c),data=g.createImageData(W,H);data.data.set(bytes);g.putImageData(data,0,0);return c}));
+ }
+ // Extract original wrist->farthest-visible-tip anchors and replacement donor mapping.
+ for(let i=0;i<8;i++)for(const part of [3,5]){
+  const hand=part===3?12:13,elbow=part===3?3:5,wrist=part===3?4:6;
+  const buf=sourcePixels(pieces[i][hand]),w=K[i][wrist],e=K[i][elbow];
+  const vx=w[0]-e[0],vy=w[1]-e[1],len=hypot(vx,vy)+1e-6,u=[vx/len,vy/len];
+  let best=-Infinity,tip=[w[0]+u[0]*4,w[1]+u[1]*4],count=0;
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+   if(buf[(y*W+x)*4+3]<=10)continue;count++;
+   const projection=(x-w[0])*u[0]+(y-w[1])*u[1];
+   if(projection>best){best=projection;tip=[x,y]}
+  }
+  tips[i+':'+part]={tip,count,length:Math.hypot(tip[0]-w[0],tip[1]-w[1])};
+ }
+ for(let i=0;i<8;i++)for(const part of [3,5]){
+  const good=j=>{const q=tips[j+':'+part];return q.count>=45&&q.length>=5};
+  const q=tips[i+':'+part],valid=q.count>=40&&q.length>=4;
+  let pick=i;
+  if(!valid){const avail=Array.from({length:8},(_,j)=>j).filter(good);if(avail.length)pick=avail.reduce((a,b)=>Math.abs(a-i)<=Math.abs(b-i)?a:b)}
+  donor[i+':'+part]=pick;
+ }
+ for(let i=0;i<8;i++)for(const part of [3,5]){
+  const src=donor[i+':'+part],w=part===3?4:6,e=part===3?3:5;
+  if(src===i){tipRepair[i+':'+part]=tips[i+':'+part].tip;continue}
+  const A=K[src][e],B=K[src][w],C=K[i][e],D=K[i][w],
+   au=[B[0]-A[0],B[1]-A[1]],bu=[D[0]-C[0],D[1]-C[1]],
+   lenA=hypot(...au),lenB=hypot(...bu),cs=(au[0]*bu[0]+au[1]*bu[1])/(lenA*lenB),
+   sn=(au[0]*bu[1]-au[1]*bu[0])/(lenA*lenB),
+   local=[tips[src+':'+part].tip[0]-B[0],tips[src+':'+part].tip[1]-B[1]],
+   scale=Math.max(.7,Math.min(1.35,lenB/lenA));
+  tipRepair[i+':'+part]=[D[0]+(cs*local[0]-sn*local[1])*scale,D[1]+(sn*local[0]+cs*local[1])*scale];
+ }
+}
+function sourcePixels(c){return ctx(c).getImageData(0,0,W,H).data}
+function affineFrom(source,part,target){
+ if(part>=12){const k=part===12?4:part===13?6:2;return [1,0,0,1,target[k][0]-K[source][k][0],target[k][1]-K[source][k][1]]}
+ const [a,b]=BONES[part],A=K[source][a],B=K[source][b],D=target[a],E=target[b];
+ const ux=B[0]-A[0],uy=B[1]-A[1],vx=E[0]-D[0],vy=E[1]-D[1],la=hypot(ux,uy),lb=hypot(vx,vy);
+ if(la<1||lb<1)return [1,0,0,1,0,0];
+ const scale=Math.max(.65,Math.min(1.55,lb/la)),c=(ux*vx+uy*vy)/(la*lb)*scale,s=(ux*vy-uy*vx)/(la*lb)*scale;
+ return [c,s,-s,c,D[0]-c*A[0]+s*A[1],D[1]-s*A[0]-c*A[1]];
+}
+function warpCanvas(src,affine){
+ const c=make(),g=c.getContext('2d');
+ g.setTransform(...affine);g.drawImage(src,0,0);return c;
+}
+function warp(source,part,target){return warpCanvas(pieces[source][part],affineFrom(source,part,target))}
+function tipAt(part,t){
+ if(t<=0)return tipRepair['0:'+part];if(t>=7)return tipRepair['7:'+part];
+ const i=Math.floor(t),u=t-i,res=[];
+ for(let axis=0;axis<2;axis++){
+  const value=j=>tipRepair[j+':'+part][axis];
+  const slope=j=>{if(j===0)return value(1)-value(0);if(j===7)return value(7)-value(6);
+   const a=value(j)-value(j-1),b=value(j+1)-value(j);return a*b>0?2*a*b/(a+b):0};
+  res.push((2*u**3-3*u*u+1)*value(i)+(u**3-2*u*u+u)*slope(i)+(-2*u**3+3*u*u)*value(i+1)+(u**3-u*u)*slope(i+1));
+ }
+ return res;
+}
+function handWarp(source,part,target,time){
+ const hand=part===3?12:13,wrist=part===3?4:6;
+ const a=K[source][wrist],b=tips[source+':'+part].tip,
+  x=target[wrist],y=tipAt(part,time),
+  va=[b[0]-a[0],b[1]-a[1]],vb=[y[0]-x[0],y[1]-x[1]],la=hypot(...va),lb=hypot(...vb);
+ if(la<1||lb<1)return make();
+ const theta=Math.atan2(vb[1],vb[0])-Math.atan2(va[1],va[0]),
+  scale=Math.max(.74,Math.min(1.24,lb/la)),
+  c=Math.cos(theta)*scale,s=Math.sin(theta)*scale;
+ const orig=pieces[source][hand],bytes=sourcePixels(orig),copy=new Uint8ClampedArray(bytes),
+  ux=va[0]/la,uy=va[1]/la;
+ for(let yy=0;yy<H;yy++)for(let xx=0;xx<W;xx++){
+  const q=(yy*W+xx)*4,along=(xx-a[0])*ux+(yy-a[1])*uy,
+   across=Math.abs((xx-a[0])*uy-(yy-a[1])*ux);
+  if(along< -4||along>la+5||across>14)copy[q+3]=0;
+ }
+ const texture=make(),g=ctx(texture),img=g.createImageData(W,H);img.data.set(copy);g.putImageData(img,0,0);
+ return warpCanvas(texture,[c,s,-s,c,x[0]-c*a[0]+s*a[1],x[1]-s*a[0]-c*a[1]]);
+}
+function trimForearm(sprite,target,part){
+ const e=target[part===3?3:5],w=target[part===3?4:6],
+  vx=w[0]-e[0],vy=w[1]-e[1],len=hypot(vx,vy);
+ if(len<1)return sprite;
+ const u=[vx/len,vy/len],data=ctx(sprite).getImageData(0,0,W,H);
+ for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+  const q=(y*W+x)*4,projection=(x-w[0])*u[0]+(y-w[1])*u[1],
+   across=Math.abs((x-w[0])*u[1]-(y-w[1])*u[0]),
+   a=Math.max(0,Math.min(1,(2-projection)/3)),
+   suppression=Math.max(0,Math.min(1,(projection+1.2)/3.2))*Math.max(0,Math.min(1,(17-across)/4.5));
+  data.data[q+3]=Math.round(data.data[q+3]*a*(1-suppression));
+ }
+ ctx(sprite).putImageData(data,0,0);return sprite;
+}
+function mixPixels(a,b,t){
+ const A=sourcePixels(a),B=sourcePixels(b),out=make(),g=ctx(out),image=g.createImageData(W,H);
+ const d=image.data,wa=1-smooth(t),wb=smooth(t);
+ for(let p=0;p<W*H;p++){
+  const q=p*4,aw=A[q+3]*wa/255,bw=B[q+3]*wb/255,total=aw+bw;
+  if(total<1e-6)continue;
+  for(let k=0;k<3;k++)d[q+k]=Math.round((A[q+k]*aw+B[q+k]*bw)/total);
+  d[q+3]=Math.round(Math.min(255,total*255));
+ }
+ g.putImageData(image,0,0);return out;
+}
+
+function stabilizeSkin(sprite,a,b,halfWidth,overhang=4){
+ // Keep transformed ink near its moving anatomical bone.
+ const context=ctx(sprite),out=context.getImageData(0,0,W,H),d=out.data;
+ const vx=b[0]-a[0],vy=b[1]-a[1],len=Math.hypot(vx,vy);
+ if(len<1)return sprite;
+ const ux=vx/len,uy=vy/len;
+ for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+  const p=(y*W+x)*4;if(d[p+3]===0)continue;
+  const longitudinal=(x-a[0])*ux+(y-a[1])*uy;
+  const lateral=Math.abs((x-a[0])*uy-(y-a[1])*ux);
+  const side=Math.max(0,Math.min(1,(halfWidth+2-lateral)/2));
+  const rear=Math.max(0,Math.min(1,(longitudinal+overhang+2)/2));
+  const front=Math.max(0,Math.min(1,(len+overhang+2-longitudinal)/2));
+  d[p+3]=Math.round(d[p+3]*side*rear*front);
+ }
+ context.putImageData(out,0,0);return sprite;
+}
+function stabilizeHand(sprite,target,part,time){
+ const wrist=target[part===3?4:6],tip=tipAt(part,time);
+ return stabilizeSkin(sprite,wrist,tip,12,5);
+}
+
+function tween(i,local){
+ const t=i+local,target=Array.from({length:14},(_,j)=>pchip(j,t));
+ const c=make(),g=c.getContext('2d');
+ for(const part of ORDER){
+  if(part===12||part===13)continue;
+  if(part===3||part===5){
+   const A=trimForearm(warp(i,part,target),target,part),
+    B=trimForearm(warp(i+1,part,target),target,part);
+   const merged=mixPixels(A,B,local);
+   const elbow=part===3?3:5,wrist=part===3?4:6;
+   g.drawImage(stabilizeSkin(merged,target[elbow],target[wrist],10,4),0,0);
+  }else{
+   const from=local*8<SWITCHES[i][part]?i:i+1;
+   const sprite=warp(from,part,target);
+   if(part===2||part===4){
+    const elbow=part===2?3:5;
+    g.drawImage(stabilizeSkin(sprite,target[1],target[elbow],11,5),0,0);
+   }else{g.drawImage(sprite,0,0)}
+  }
+ }
+ for(const part of [5,3]){
+  const A=handWarp(donor[i+':'+part],part,target,t),
+    B=handWarp(donor[(i+1)+':'+part],part,target,t);
+  g.drawImage(stabilizeHand(mixPixels(A,B,local),target,part,t),0,0);
+ }
+ return c;
+}
+function installSources(all){
+ const x0=Math.min(...all.map(c=>c.sourceX||0)),y0=Math.min(...all.map(c=>c.sourceY||0)),
+  x1=Math.max(...all.map(c=>(c.sourceX||0)+c.width)),y1=Math.max(...all.map(c=>(c.sourceY||0)+c.height)),
+  scale=Math.min((W-36)/(x1-x0),(H-34)/(y1-y0)),
+  ox=(W-(x1-x0)*scale)/2-x0*scale,oy=H-16-y1*scale;
+ sources=all.map(im=>{
+  const c=make(),g=c.getContext('2d');
+  g.drawImage(im,(im.sourceX||0)*scale+ox,(im.sourceY||0)*scale+oy,im.width*scale,im.height*scale);
+  return c;
+ });
+ sourceData=sources.map(sourcePixels);
+ initializePieces();
+}
+async function prepare(){
+ if(busy||ready)return;
+ const lib=window.DepthsFullArt;if(!lib?.state?.ready)return;
+ const all=Array.from({length:8},(_,i)=>lib.get('crouchProne',i));
+ if(all.some(x=>!x))return;
+ busy=true;error='';
+ try{
+  $('status').textContent='Mapping original graphite body parts…';await new Promise(requestAnimationFrame);
+  installSources(all);
+  const out=Array(COUNT);
+  for(let i=0;i<7;i++)for(let j=0;j<STEP;j++){
+   const n=i*STEP+j;out[n]=j===0?sources[i]:tween(i,j/STEP);
+   $('status').textContent='Generating 105 frames: '+(n+1)+' / '+COUNT;
+   if(n%2===0)await new Promise(requestAnimationFrame);
+  }
+  out[56]=sources[7];frames=out;ready=true;
+  $('status').textContent='✅ 57 synchronized frames ready. Left: original key poses. Right: 105 joint-constrained arm/hand motion. Experimental; not visually approved.';
+ }catch(e){error=String(e?.message||e);$('status').textContent='⚠ '+error}
+ finally{busy=false}
+}
+function draw(){
+ for(const g of [L,R]){g.fillStyle='#101619';g.fillRect(0,0,600,336)}
+ const n=Math.max(0,Math.min(56,position)),l=sources[Math.min(7,Math.round(n/8))],r=frames[n];
+ if(l)L.drawImage(l,...CROP,0,0,600,336);
+ if(r)R.drawImage(r,...CROP,0,0,600,336);
+ $('frame').textContent=n+' / 56';$('speedLabel').textContent=$('speed').value+' seconds';
+}
+function pause(){playing=false;$('play').textContent='▶ Play'}
+$('play').onclick=()=>{playing=!playing;$('play').textContent=playing?'⏸ Pause':'▶ Play'};
+$('restart').onclick=()=>{position=0;clock=0;playing=true;$('play').textContent='⏸ Pause';draw()};
+$('prev').onclick=()=>{pause();position=Math.max(0,position-1);$('scrub').value=position;draw()};
+$('next').onclick=()=>{pause();position=Math.min(56,position+1);$('scrub').value=position;draw()};
+$('scrub').oninput=()=>{pause();position=Number($('scrub').value);draw()};
+$('speed').oninput=draw;
+$('import').onclick=()=>$('file').click();
+$('file').onchange=async()=>{try{
+ const f=$('file').files[0];if(!f)return;
+ await window.DepthsFullArt.install(f);
+ sources=[];frames=[];sourceData=[];ready=false;error='';prepare();
+ }catch(e){$('status').textContent='⚠ '+String(e?.message||e)}};
+function tick(ms){
+ const dt=last?Math.min(.06,(ms-last)/1000):0;last=ms;
+ if(!ready&&!busy&&!error)prepare();
+ if(ready&&playing){clock=(clock+dt/Number($('speed').value))%2;
+  position=Math.round((clock<=1?clock:2-clock)*56);$('scrub').value=position}
+ draw();requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+})();
+</script></main></body></html>
