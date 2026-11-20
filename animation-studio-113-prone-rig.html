@@ -353,6 +353,21 @@ const bound=(images)=>{
  const x=Math.max(0,minX-margin),y=Math.max(0,minY-margin);
  return {x,y,w:Math.min(W-x,maxX-minX+1+2*margin),h:Math.min(H-y,maxY-minY+1+2*margin)};
 };
+function seamScore(){
+ if(frames.length!==64)return null;
+ const values=[];
+ for(let j=0;j<64;j++){
+  const A=ctx(frames[j]).getImageData(0,0,W,H).data,
+        B=ctx(frames[(j+1)%64]).getImageData(0,0,W,H).data;
+  let delta=0;
+  for(let k=0;k<A.length;k+=32){
+   delta+=Math.abs(A[k+3]-B[k+3]);
+  }
+  values.push(delta);
+ }
+ const sorted=[...values].sort((a,b)=>a-b),med=(sorted[31]+sorted[32])*.5;
+ return +(values[63]/Math.max(1,med)).toFixed(2);
+}
 async function prepare113(){
  if(busy||ready)return;
  const lib=window.DepthsFullArt;
@@ -376,7 +391,8 @@ async function prepare113(){
   const handIntegrity=frames.every((f,n)=>n%8!==0||f===sources[n/8]);
   if(!handIntegrity)throw Error('Source keyframe preservation failed');
   ready=true;
-  $('status').textContent='113 arm polish · 64 frames · all 8 keys exact';
+  const ratio=seamScore();
+  $('status').textContent='113 rig · 64 frames · exact keys · seam '+ratio+'×'+(ratio>1.8?' ⚠ inspect':'');
   $('load').style.display='none';
  }catch(e){
   error=String(e?.message||e);
