@@ -192,10 +192,32 @@ async function prepare(){
    if(k%3===0)await new Promise(requestAnimationFrame);
   }
   frames=out;camera=imBounds([...sources,...frames]);ready=true;
-  $('status').textContent='64 frames · '+sourceMode+' · loop seam rendered';
+  const loopQA=inspectLoop();
+  $('status').textContent='64 frames · '+sourceMode+' · '+loopQA.status+' ('+loopQA.ratio+'×)';
   $('load').style.display=sourceMode==='original graphite'?'none':'inline';
  }catch(e){error=String(e?.message||e);$('status').textContent=error;$('load').style.display='inline'}
  finally{busy=false}
+}
+function frameDifference(a,b){
+ const A=raw(a),B=raw(b);
+ let diff=0;
+ // Compare perceptual premultiplied brightness and alpha in a fixed region.
+ for(let p=0;p<A.length;p+=16){
+  const alphaA=A[p+3]/255,alphaB=B[p+3]/255;
+  const lightA=(A[p]+A[p+1]+A[p+2])/765*alphaA;
+  const lightB=(B[p]+B[p+1]+B[p+2])/765*alphaB;
+  diff+=Math.abs(alphaA-alphaB)+Math.abs(lightA-lightB);
+ }
+ return diff;
+}
+function inspectLoop(){
+ if(frames.length!==COUNT)return {status:'unavailable'};
+ const jumps=frames.map((img,i)=>frameDifference(img,frames[(i+1)%COUNT]));
+ const median=[...jumps].sort((a,b)=>a-b)[COUNT/2];
+ const seam=jumps[COUNT-1];
+ const ratio=seam/Math.max(1,median);
+ return {seam:Number(seam.toFixed(1)),typical:Number(median.toFixed(1)),ratio:Number(ratio.toFixed(2)),
+  status:ratio>1.75?'CHECK SEAM': 'NO LARGE SEAM SPIKE'};
 }
 function drawCanvas(g,img){
  const w=g.canvas.width,h=g.canvas.height;
