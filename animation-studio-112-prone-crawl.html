@@ -1,0 +1,262 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#101619"><title>The Depths · Prone Crawl Studio 112</title>
+<style>
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:#080c0e;color:#eee2d2;font:14px system-ui,-apple-system,sans-serif;overscroll-behavior:none}
+body{height:100dvh}
+main{height:100%;display:flex;flex-direction:column;gap:7px;padding:max(7px,env(safe-area-inset-top)) 8px max(8px,env(safe-area-inset-bottom));max-width:1800px;margin:auto}
+header{display:flex;align-items:center;justify-content:space-between;gap:10px;flex:0 0 auto}
+h1{font-size:15px;line-height:1.2;margin:0;font-weight:750}
+header span{font:11px ui-monospace,monospace;color:#e6bd87}
+#stage{flex:1;min-height:0;display:grid;grid-template-columns:1fr;gap:7px;overflow:hidden}
+.panel{min-width:0;min-height:0;display:flex;flex-direction:column;gap:3px}
+.panel .name{font-size:11px;letter-spacing:.6px;color:#dbc09d;margin:0 3px}
+.frame{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;background:#101619;border:1px solid #3b3430;border-radius:10px;overflow:hidden}
+canvas{display:block;width:100%;height:100%;max-width:100%;max-height:100%}
+body[data-view="rig"] #originalPanel,body[data-view="original"] #rigPanel{display:none}
+body[data-view="compare"] #stage{grid-template-columns:1fr 1fr}
+body[data-view="compare"] .panel{min-width:0}
+@media(max-width:720px) and (orientation:portrait){
+ body[data-view="compare"] #stage{grid-template-columns:1fr;grid-template-rows:1fr 1fr}
+}
+.toolbar{flex:0 0 auto;padding:7px 10px 5px;background:#171a1c;border:1px solid #3d3631;border-radius:10px}
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.tabs{display:flex;gap:3px;background:#0e1214;border-radius:8px;padding:3px}
+button{border:0;border-radius:7px;color:#dac8ae;background:transparent;font:inherit;cursor:pointer}
+.tabs button{padding:8px 11px;font-size:12px}
+.tabs button.active{background:#665038;color:#fff0d8}
+#play{padding:7px 13px;font-size:16px;color:#f6d7a8;border:1px solid #66523a;min-width:46px}
+.control{display:flex;gap:12px;align-items:center;margin-top:5px}
+.control span{width:50px;flex:0 0 50px;font:11px ui-monospace,monospace;color:#d5b88b}
+.control input{min-width:0;flex:1;accent-color:#dfaf6c;height:24px}
+#load{font-size:11px;text-decoration:underline;color:#a8a0a0;padding:0 1px}
+#status{font-size:10px;color:#bcb09c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:45%;text-align:right}
+@media(max-height:520px){main{gap:3px}h1{font-size:12px}.toolbar{padding:4px 8px}.tabs button{padding:5px 8px}.control{margin-top:0}.control input{height:18px}}
+</style>
+<style>
+#originalPanel .name,#rigPanel .name{display:flex;justify-content:space-between}
+#status{max-width:65%}
+@media (max-width:680px){#status{max-width:58%}}
+</style></head>
+<body data-view="rig"><main>
+<header><h1>THE DEPTHS <span>·</span> Prone Crawl <span>112</span></h1><span id="counter">0 / 63</span></header>
+<section id="stage">
+<div id="originalPanel" class="panel"><div class="name"><span>ORIGINAL · 8 POSES</span><span>8 FPS KEYS</span></div><div class="frame"><canvas id="left" width="900" height="560"></canvas></div></div>
+<div id="rigPanel" class="panel"><div class="name"><span>MOTION STUDY · 64-FRAME LOOP</span><span>EXPERIMENTAL</span></div><div class="frame"><canvas id="right" width="900" height="560"></canvas></div></div>
+</section><section class="toolbar">
+<div class="topbar"><div class="tabs"><button data-mode="rig" class="active">Smooth</button><button data-mode="original">Original</button><button data-mode="compare">Compare</button></div><button id="play" aria-label="Pause animation">⏸</button></div>
+<div class="control"><span id="frameLabel">Frame 0</span><input aria-label="Animation frame" id="scrub" type="range" min="0" max="63" value="0" step="1"></div>
+<div class="control"><span id="speedLabel">3.0 s</span><input aria-label="Loop speed" id="speed" type="range" min="1.4" max="7" value="3" step=".2"></div>
+<div class="topbar"><button id="load" style="display:none">Load original artwork ZIP</button><input id="file" type="file" hidden accept=".zip"><span id="status">Loading original graphite crawl art…</span></div>
+</section></main>
+<script src="assets/full-detail-037.js?v=112"></script>
+<script>
+(()=>{'use strict';
+const N=8,STEP=8,COUNT=64, W=440,H=270, bg='#101619';
+const $=id=>document.getElementById(id);
+const L=$('left').getContext('2d'),R=$('right').getContext('2d');
+const make=()=>{const c=document.createElement('canvas');c.width=W;c.height=H;return c};
+const ctx=c=>c.getContext('2d',{willReadFrequently:true});
+const smooth=t=>t*t*(3-2*t);
+let sources=[],frames=[],camera={x:0,y:0,w:W,h:H},ready=false,busy=false,error='',sourceMode='',
+ playing=true,clock=0,last=0,position=0;
+const raw=c=>ctx(c).getImageData(0,0,W,H).data;
+function installSources(all){
+ const x0=Math.min(...all.map(c=>c.sourceX||0)),y0=Math.min(...all.map(c=>c.sourceY||0));
+ const x1=Math.max(...all.map(c=>(c.sourceX||0)+c.width)),y1=Math.max(...all.map(c=>(c.sourceY||0)+c.height));
+ const scl=Math.min((W-45)/(x1-x0),(H-30)/(y1-y0));
+ const ox=(W-(x1-x0)*scl)/2-x0*scl,oy=H-15-y1*scl;
+ sources=all.map(im=>{
+  const c=make();ctx(c).drawImage(im,(im.sourceX||0)*scl+ox,(im.sourceY||0)*scl+oy,im.width*scl,im.height*scl);
+  return c;
+ });
+}
+function imBounds(images){
+ let loX=W,loY=H,hiX=-1,hiY=-1;
+ for(const im of images){
+  const d=raw(im);
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+   if(d[(y*W+x)*4+3]>55){loX=Math.min(loX,x);loY=Math.min(loY,y);hiX=Math.max(hiX,x);hiY=Math.max(hiY,y)}
+  }
+ }
+ if(hiX<loX)return{x:0,y:0,w:W,h:H};
+ const p=Math.max(10,Math.round((hiY-loY)*.12));
+ const x=Math.max(0,loX-p),y=Math.max(0,loY-p);
+ return{x,y,w:Math.min(W-x,hiX-loX+1+2*p),h:Math.min(H-y,hiY-loY+1+2*p)};
+}
+// Motion references are registered to one canvas. Determine translation
+// from ink centroids, then independently track small near-skeleton regions.
+function imageInfo(im){
+ const d=raw(im);
+ const small=new Float32Array(220*135);
+ let sx=0,sy=0,total=0;
+ for(let y=0;y<135;y++)for(let x=0;x<220;x++){
+  const q=((y*2)*W+x*2)*4;
+  const a=(d[q+3]+d[q+7]+d[q+W*4+3]+d[q+W*4+7])/1020;
+  small[y*220+x]=a;
+  if(a>.08){sx+=x*a;sy+=y*a;total+=a}
+ }
+ return{rgba:d,small,cx:total?sx/total:110,cy:total?sy/total:65};
+}
+function bilinear(a,x,y,ch){
+ if(x<0||y<0||x>=W-1||y>=H-1)return 0;
+ const ix=x|0,iy=y|0,u=x-ix,v=y-iy,p=(iy*W+ix)*4+ch;
+ return (a[p]*(1-u)+a[p+4]*u)*(1-v)+(a[p+W*4]*(1-u)+a[p+W*4+4]*u)*v;
+}
+function estimateFlow(A,B){
+ // Block search at half source resolution; never infer a skeletal pose
+ // from the stand-crouch rig. Sparse patches get centroid fallback.
+ const gw=23,gh=15, vx=new Float32Array(gw*gh),vy=new Float32Array(gw*gh);
+ const gx=B.cx-A.cx,gy=B.cy-A.cy,src=A.small,dst=B.small;
+ for(let j=0;j<gh;j++)for(let i=0;i<gw;i++){
+  const x=9+i*9,y=4+j*9,p=j*gw+i;
+  let support=0;
+  for(let yy=-4;yy<=4;yy+=2)for(let xx=-4;xx<=4;xx+=2){
+   const qy=y+yy,qx=x+xx;
+   if(qx>=0&&qx<220&&qy>=0&&qy<135)support+=src[qy*220+qx]
+  }
+  if(support<.6){vx[p]=gx*2;vy[p]=gy*2;continue}
+  let score=Infinity,dxBest=gx,dyBest=gy;
+  const dx0=Math.round(gx),dy0=Math.round(gy);
+  for(let dy=dy0-9;dy<=dy0+9;dy+=2)
+   for(let dx=dx0-12;dx<=dx0+12;dx+=2){
+    let cost=0,weight=0;
+    for(let yy=-6;yy<=6;yy+=2)for(let xx=-6;xx<=6;xx+=2){
+     const ax=x+xx,ay=y+yy,bx=ax+dx,by=ay+dy;
+     if(ax<0||ax>=220||ay<0||ay>=135||bx<0||bx>=220||by<0||by>=135)continue;
+     const aa=src[ay*220+ax],bb=dst[by*220+bx],importance=.15+Math.max(aa,bb);
+     cost+=(aa-bb)*(aa-bb)*importance;weight+=importance;
+    }
+    if(weight>0){
+     cost=cost/weight + .00014*((dx-gx)**2+(dy-gy)**2);
+     if(cost<score){score=cost;dxBest=dx;dyBest=dy}
+    }
+   }
+  vx[p]=dxBest*2;vy[p]=dyBest*2;
+ }
+ return {gw,gh,vx,vy,gx:gx*2,gy:gy*2};
+}
+function vectorAt(field,x,y){
+ const fx=Math.max(0,Math.min(field.gw-1,(x*.5-9)/9)),
+       fy=Math.max(0,Math.min(field.gh-1,(y*.5-4)/9));
+ const ix=Math.floor(fx),iy=Math.floor(fy),nx=Math.min(field.gw-1,ix+1),ny=Math.min(field.gh-1,iy+1);
+ const u=fx-ix,v=fy-iy;
+ const sample=k=>{const q=iy*field.gw+ix;return(field[k][q]*(1-u)+field[k][iy*field.gw+nx]*u)*(1-v)+(field[k][ny*field.gw+ix]*(1-u)+field[k][ny*field.gw+nx]*u)*v};
+ return [sample('vx'),sample('vy')];
+}
+function blendPair(A,B,flowAB,flowBA,t){
+ if(t<=0)return A.im;
+ const aa=A.info.rgba,bb=B.info.rgba, c=make(),g=ctx(c),d=g.createImageData(W,H),out=d.data,
+ u=smooth(t);
+ // Inverse warp both graphite sources into one intermediate body pose.
+ // Premultiplied colors avoid the dim pencil-edge artifact.
+ for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+  const k=(y*W+x)*4;
+  const va=vectorAt(flowAB,x,y),vb=vectorAt(flowBA,x,y);
+  const ax=x-u*va[0],ay=y-u*va[1],bx=x-(1-u)*vb[0],by=y-(1-u)*vb[1];
+  const opa=bilinear(aa,ax,ay,3)/255,opb=bilinear(bb,bx,by,3)/255;
+  const wa=opa*(1-u),wb=opb*u,sum=wa+wb;
+  if(sum<.0005)continue;
+  const alpha=Math.min(1,sum);
+  out[k+3]=Math.round(alpha*255);
+  for(let ch=0;ch<3;ch++){
+   const ca=wa?bilinear(aa,ax,ay,ch):0,cb=wb?bilinear(bb,bx,by,ch):0;
+   out[k+ch]=Math.round((ca*wa+cb*wb)/sum);
+  }
+ }
+ g.putImageData(d,0,0);return c;
+}
+async function prepare(){
+ if(busy||ready)return;
+ const full=window.DepthsFullArt;
+ // Only actual original graphite art is allowed. The compressed fallback
+ // looks like a filled-in cream mannequin and isn't our miner.
+ if(!full?.state?.ready){
+  $('status').textContent=full?.state?.busy?'Restoring original graphite art…':'Original art required · tap Load ZIP';
+  $('load').style.display='inline';
+  return;
+ }
+ const originals=Array.from({length:8},(_,i)=>full.get('proneCrawl',i));
+ if(originals.some(x=>!x)){
+  $('status').textContent='Original prone-crawl poses missing · load the artwork ZIP';
+  $('load').style.display='inline';
+  return;
+ }
+ sourceMode='original graphite';
+ busy=true;error='';
+ try{
+  $('status').textContent='Mapping crawl-loop motion fields…';await new Promise(requestAnimationFrame);
+  installSources(originals);
+  const info=sources.map(imageInfo);
+  const pairs=info.map((a,i)=>{const j=(i+1)%8;return{a:{info:a,im:sources[i]},b:{info:info[j],im:sources[j]},f:estimateFlow(a,info[j]),r:estimateFlow(info[j],a)}});
+  const out=Array(COUNT);
+  for(let i=0;i<N;i++)for(let k=0;k<STEP;k++){
+   const n=i*STEP+k,p=pairs[i];
+   out[n]=k===0?sources[i]:blendPair(p.a,p.b,p.f,p.r,k/STEP);
+   if(k%3===0)await new Promise(requestAnimationFrame);
+  }
+  frames=out;camera=imBounds([...sources,...frames]);ready=true;
+  const loopQA=inspectLoop();
+  $('status').textContent='64 frames · '+sourceMode+' · '+loopQA.status+' ('+loopQA.ratio+'×)';
+  $('load').style.display=sourceMode==='original graphite'?'none':'inline';
+ }catch(e){error=String(e?.message||e);$('status').textContent=error;$('load').style.display='inline'}
+ finally{busy=false}
+}
+function frameDifference(a,b){
+ const A=raw(a),B=raw(b);
+ let diff=0;
+ // Compare perceptual premultiplied brightness and alpha in a fixed region.
+ for(let p=0;p<A.length;p+=16){
+  const alphaA=A[p+3]/255,alphaB=B[p+3]/255;
+  const lightA=(A[p]+A[p+1]+A[p+2])/765*alphaA;
+  const lightB=(B[p]+B[p+1]+B[p+2])/765*alphaB;
+  diff+=Math.abs(alphaA-alphaB)+Math.abs(lightA-lightB);
+ }
+ return diff;
+}
+function inspectLoop(){
+ if(frames.length!==COUNT)return {status:'unavailable'};
+ const jumps=frames.map((img,i)=>frameDifference(img,frames[(i+1)%COUNT]));
+ const median=[...jumps].sort((a,b)=>a-b)[COUNT/2];
+ const seam=jumps[COUNT-1];
+ const ratio=seam/Math.max(1,median);
+ return {seam:Number(seam.toFixed(1)),typical:Number(median.toFixed(1)),ratio:Number(ratio.toFixed(2)),
+  status:ratio>1.75?'CHECK SEAM': 'NO LARGE SEAM SPIKE'};
+}
+function drawCanvas(g,img){
+ const w=g.canvas.width,h=g.canvas.height;
+ g.fillStyle=bg;g.fillRect(0,0,w,h);if(!img)return;
+ const scale=Math.min((w-14)/camera.w,(h-14)/camera.h);
+ const dw=camera.w*scale,dh=camera.h*scale;
+ g.imageSmoothingEnabled=true;
+ g.drawImage(img,camera.x,camera.y,camera.w,camera.h,(w-dw)/2,(h-dh)/2,dw,dh);
+}
+function resolution(g){
+ const b=g.canvas.getBoundingClientRect(),ratio=Math.min(2,window.devicePixelRatio||1);
+ const w=Math.max(1,Math.round(b.width*ratio)),h=Math.max(1,Math.round(b.height*ratio));
+ if(g.canvas.width!==w||g.canvas.height!==h){g.canvas.width=w;g.canvas.height=h}
+}
+function draw(){
+ resolution(L);resolution(R);
+ const n=Math.max(0,Math.min(COUNT-1,position));
+ drawCanvas(L,sources[Math.floor(n/STEP)%N]);
+ drawCanvas(R,frames[n]);
+ $('counter').textContent=n+' / 63';$('frameLabel').textContent='Frame '+n;
+ $('speedLabel').textContent=Number($('speed').value).toFixed(1)+' s';
+}
+function pause(){playing=false;$('play').textContent='▶';$('play').setAttribute('aria-label','Play animation')}
+$('play').onclick=()=>{playing=!playing;$('play').textContent=playing?'⏸':'▶'};
+$('scrub').oninput=()=>{pause();position=Number($('scrub').value);draw()};
+$('speed').oninput=draw;
+for(const b of document.querySelectorAll('[data-mode]'))b.onclick=()=>{document.body.dataset.view=b.dataset.mode;for(const e of document.querySelectorAll('[data-mode]'))e.classList.toggle('active',e===b);draw()};
+$('load').onclick=()=>$('file').click();
+$('file').onchange=async()=>{try{const f=$('file').files?.[0];if(!f)return;await window.DepthsFullArt.install(f);ready=false;error='';frames=[];sources=[];prepare()}catch(e){$('status').textContent=String(e?.message||e)}};
+window.addEventListener('depths-art-status',()=>{if(!ready&&!busy){error='';prepare()}});
+function tick(ms){
+ const dt=last?Math.min(.06,(ms-last)/1000):0;last=ms;
+ if(!ready&&!busy&&!error)prepare();
+ if(ready&&playing){clock=(clock+dt/Number($('speed').value))%1;position=Math.floor(clock*COUNT)%COUNT;$('scrub').value=position}
+ draw();requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+})();
+</script></body></html>
