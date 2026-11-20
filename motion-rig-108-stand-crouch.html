@@ -5,24 +5,24 @@
 main{max-width:1080px;margin:auto;padding:14px}.tag{font-size:11px;letter-spacing:1.6px;font-weight:750;color:#e8be87}
 h1{font-size:25px;margin:8px 0}p{color:#b9aea2;line-height:1.45}.panels{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
 .panel{min-width:0;padding:8px;border:1px solid #635140;border-radius:9px;background:#1a1d1f}
-.panel b{font-size:12px;color:#f2c996}canvas{display:block;width:100%;aspect-ratio:600/336;background:#101619;border-radius:5px}
+.panel b{font-size:12px;color:#f2c996}canvas{display:block;width:100%;aspect-ratio:440/270;background:#101619;border-radius:5px}
 .controls{margin:12px 0;border:1px solid #605140;border-radius:9px;padding:12px;background:#191d20}
 .buttons{display:flex;flex-wrap:wrap;gap:8px}button{border:1px solid #bb8d5a;border-radius:8px;padding:10px 12px;background:#644a30;color:#ffdfb4;font:inherit}
 label{font-size:12px;color:#e7caa7;display:block;margin-top:13px}input[type=range]{width:100%;accent-color:#dbb17c}
 .status{font-size:12px;color:#edc793;margin-top:9px;line-height:1.4}small{font-size:11px;color:#aaa197}a{color:#e9b982}
-@media(min-width:700px){.panel{padding:12px}}@media(max-width:390px){main{padding:8px}.panels{gap:5px}.panel{padding:4px}.panel b{font-size:10px}}
+@media(min-width:700px){.panel{padding:12px}}@media(max-width:620px){main{padding:8px}.panels{grid-template-columns:1fr;gap:10px}.panel{padding:9px}.panel b{font-size:12px}h1{font-size:23px}.controls{padding:10px}}
 </style></head><body><main>
 <div class="tag">THE DEPTHS · 108 · SIDE-BY-SIDE DEVELOPMENT PLAYTEST</div>
 <h1>Stand → Crouch ⛏️</h1>
-<p>Two synchronized views of the same 57-frame timeline. <b>Left:</b> original eight artist poses, held between keys. <b>Right:</b> 108 joint-constrained arm/hand interpolation reconstructed from the same original artwork. This is a new stand-to-crouch development candidate. Original 8 poses remain exact.</p>
-<div class="panels"><div class="panel"><b>ORIGINAL · 8 sprite poses</b><canvas id="left" width="600" height="336"></canvas><small>Original frames remain unchanged</small></div>
-<div class="panel"><b>108 · single-hand-source rig</b><canvas id="right" width="600" height="336"></canvas><small>57 frames, same camera and clock</small></div></div>
+<p>Full-figure view (head to toes) of the synchronized 57-frame timeline. <b>Left:</b> original eight artist poses, held between keys. <b>Right:</b> 108 joint-constrained arm/hand interpolation reconstructed from the same original artwork. This is a new stand-to-crouch development candidate. Original 8 poses remain exact.</p>
+<div class="panels"><div class="panel"><b>ORIGINAL · 8 sprite poses</b><canvas id="left" width="600" height="368"></canvas><small>Original frames remain unchanged</small></div>
+<div class="panel"><b>108 · single-hand-source rig</b><canvas id="right" width="600" height="368"></canvas><small>57 frames, same camera and clock</small></div></div>
 <div class="controls">
 <div class="buttons"><button id="play">⏸ Pause</button><button id="restart">↩ Restart</button><button id="prev">◀ Frame</button><button id="next">Frame ▶</button><button id="import">Load artwork ZIP</button><input id="file" type="file" accept=".zip" hidden></div>
 <label>Frame <b id="frame">0 / 56</b><input id="scrub" type="range" min="0" max="56" value="0"></label>
 <label>Forward-and-back loop <b id="speedLabel">4.0 seconds</b><input id="speed" type="range" min="2" max="9" value="4" step=".2"></label>
 <div id="status" class="status">Loading the original source artwork from this device…</div>
-</div><p><b>Known QA failures:</b> The original stand-to-crouch artwork includes overlapping arm layers. The mapped far-side joints are approximations, so check hand and wrist fidelity carefully. The viewer does not change approved gameplay. <a href="playtest-050f.html">Approved 050F gameplay</a></p>
+</div><p><b>Known QA failures:</b> The full character is now visible on mobile. The original stand-to-crouch artwork includes overlapping arm layers. The mapped far-side joints are approximations, so check hand and wrist fidelity carefully. The viewer does not change approved gameplay. <a href="playtest-050f.html">Approved 050F gameplay</a></p>
 <script src="assets/full-detail-037.js?v=108"></script>
 <script>
 (()=>{'use strict';
@@ -34,7 +34,7 @@ const ORDER=[6,7,8,9,10,11,0,1,4,5,2,3,13,12,14];
 const HANDS={3:[12,3,4],5:[13,5,6]};
 const $=id=>document.getElementById(id);
 const L=$('left').getContext('2d'),R=$('right').getContext('2d');
-const CROP=[70,100,300,168];
+const CROP=[0,0,440,270];
 const make=()=>{const c=document.createElement('canvas');c.width=W;c.height=H;return c};
 const ctx=(c)=>c.getContext('2d',{willReadFrequently:true});
 const smooth=t=>t*t*(3-2*t);
@@ -283,10 +283,10 @@ async function prepare(){
  finally{busy=false}
 }
 function draw(){
- for(const g of [L,R]){g.fillStyle='#101619';g.fillRect(0,0,600,336)}
+ for(const g of [L,R]){g.fillStyle='#101619';g.fillRect(0,0,600,368)}
  const n=Math.max(0,Math.min(56,position)),l=sources[Math.min(7,Math.round(n/8))],r=frames[n];
- if(l)L.drawImage(l,...CROP,0,0,600,336);
- if(r)R.drawImage(r,...CROP,0,0,600,336);
+ if(l)L.drawImage(l,...CROP,0,0,600,368);
+ if(r)R.drawImage(r,...CROP,0,0,600,368);
  $('frame').textContent=n+' / 56';$('speedLabel').textContent=$('speed').value+' seconds';
 }
 function pause(){playing=false;$('play').textContent='▶ Play'}
