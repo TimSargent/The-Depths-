@@ -1,0 +1,610 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#101619">
+<title>The Depths · Animation Studio 115</title>
+<style>
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:#080c0e;color:#eee2d2;font:14px system-ui,-apple-system,sans-serif;overscroll-behavior:none}
+body{height:100dvh}
+main{height:100%;display:flex;flex-direction:column;gap:7px;padding:max(7px,env(safe-area-inset-top)) 8px max(8px,env(safe-area-inset-bottom));max-width:1800px;margin:auto}
+header{display:flex;align-items:center;justify-content:space-between;gap:10px;flex:0 0 auto}
+h1{font-size:15px;line-height:1.2;margin:0;font-weight:750}
+header span{font:11px ui-monospace,monospace;color:#e6bd87}
+#stage{flex:1;min-height:0;display:grid;grid-template-columns:1fr;gap:7px;overflow:hidden}
+.panel{min-width:0;min-height:0;display:flex;flex-direction:column;gap:3px}
+.panel .name{font-size:11px;letter-spacing:.6px;color:#dbc09d;margin:0 3px}
+.frame{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;background:#101619;border:1px solid #3b3430;border-radius:10px;overflow:hidden}
+canvas{display:block;width:100%;height:100%;max-width:100%;max-height:100%}
+body[data-view="rig"] #originalPanel,body[data-view="original"] #rigPanel{display:none}
+body[data-view="map"] #originalPanel,body[data-view="map"] #rigPanel{display:none}
+body:not([data-view="map"]) #mapPanel{display:none}
+#mapPanel{display:flex;flex-direction:column;min-height:0;flex:1}
+#mapPanel .frame{touch-action:none}
+#mapPanel canvas{touch-action:none}
+.maptools{display:flex;gap:5px;flex-wrap:wrap;align-items:center;padding:5px 2px}
+.maptools select,.maptools button{background:#22282b;color:#f1dcc1;border:1px solid #66584a;border-radius:6px;padding:7px;font-size:12px;max-width:100%}
+.maptools select{flex:1;min-width:110px}
+#mapHint{font-size:11px;color:#cfb48a;margin:2px 5px}
+body[data-view="compare"] #stage{grid-template-columns:1fr 1fr}
+body[data-view="compare"] .panel{min-width:0}
+@media(max-width:720px) and (orientation:portrait){
+ body[data-view="compare"] #stage{grid-template-columns:1fr;grid-template-rows:1fr 1fr}
+}
+.toolbar{flex:0 0 auto;padding:7px 10px 5px;background:#171a1c;border:1px solid #3d3631;border-radius:10px}
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.tabs{display:flex;gap:3px;background:#0e1214;border-radius:8px;padding:3px}
+button{border:0;border-radius:7px;color:#dac8ae;background:transparent;font:inherit;cursor:pointer}
+.tabs button{padding:8px 11px;font-size:12px}
+.tabs button.active{background:#665038;color:#fff0d8}
+#play{padding:7px 13px;font-size:16px;color:#f6d7a8;border:1px solid #66523a;min-width:46px}
+.control{display:flex;gap:12px;align-items:center;margin-top:5px}
+.control span{width:50px;flex:0 0 50px;font:11px ui-monospace,monospace;color:#d5b88b}
+.control input{min-width:0;flex:1;accent-color:#dfaf6c;height:24px}
+#load{font-size:11px;text-decoration:underline;color:#a8a0a0;padding:0 1px}
+#status{font-size:10px;color:#bcb09c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:45%;text-align:right}
+@media(max-height:520px){main{gap:3px}h1{font-size:12px}.toolbar{padding:4px 8px}.tabs button{padding:5px 8px}.control{margin-top:0}.control input{height:18px}}
+</style></head>
+<body data-view="rig"><main>
+<header><h1>THE DEPTHS <span>·</span> Prone Crawl <span>115</span></h1><span id="counter">0 / 63</span></header>
+<section id="stage">
+<div id="originalPanel" class="panel"><div class="name">ORIGINAL · 8 KEY POSES</div><div class="frame"><canvas id="left" width="900" height="560"></canvas></div></div>
+<div id="rigPanel" class="panel"><div class="name">SMOOTH · 64 FRAMES</div><div class="frame"><canvas id="right" width="900" height="560"></canvas></div></div>
+<div id="mapPanel" class="panel">
+  <div class="maptools"><select id="posePick" aria-label="Select original pose"></select><select id="jointPick" aria-label="Select anatomical anchor"></select><button id="mapPrev" aria-label="Previous pose">◀</button><button id="mapNext" aria-label="Next pose">▶</button></div>
+  <div class="frame"><canvas id="mapCanvas" width="900" height="560" aria-label="Original graphite source with draggable anatomy joint markers"></canvas></div>
+  <div id="mapHint">Drag colored markers to the actual joints. All corrections stay on this device.</div>
+  <div class="maptools"><button id="mapApply">Rebuild from corrections</button><button id="mapUndo">Reset this pose</button><button id="mapExport">Export mapping JSON</button><button id="mapImport">Import mapping</button><input id="mapFile" type="file" accept=".json,application/json" hidden></div>
+</div>
+</section>
+<section class="toolbar">
+<div class="topbar"><div class="tabs"><button data-mode="rig" class="active">Smooth</button><button data-mode="original">Original</button><button data-mode="compare">Compare</button><button data-mode="map">Map joints</button></div>
+<button id="play" aria-label="Pause animation">⏸</button></div>
+<div class="control"><span id="frameLabel">Frame 0</span><input aria-label="Animation frame" id="scrub" type="range" min="0" max="63" value="0" step="1"></div>
+<div class="control"><span id="speedLabel">3.0 s</span><input aria-label="Cycle speed" id="speed" type="range" min="2" max="9" value="3" step=".2"></div>
+<div class="topbar"><button id="load" style="display:none">Load original art ZIP</button><input type="file" id="file" hidden accept=".zip"><span id="status">Loading original artwork…</span></div>
+</section>
+</main>
+<script src="assets/full-detail-037.js?v=115"></script>
+<script>
+(()=>{'use strict';
+const W=440,H=270,STEP=8,COUNT=64;
+const K=Array.from({length:8},()=>Array.from({length:14},()=>[0,0]));
+const SWITCHES=Array.from({length:8},()=>Array(15).fill(4));
+const BONES=[[0,1],[1,13],[1,3],[3,4],[1,5],[5,6],[0,7],[7,8],[8,9],[0,10],[10,11],[11,12]];
+const ORDER=[6,7,8,9,10,11,0,1,4,5,2,3,13,12,14];
+const HANDS={3:[12,3,4],5:[13,5,6]};
+const MAP_KEY='depths-prone-crawl-115-mapping-v1';
+const JOINT_NAMES=['Pelvis','Shoulder','Head','Near elbow','Near wrist','Far elbow','Far wrist','Near knee','Near ankle','Near toe','Far knee','Far ankle','Far toe','Neck','Near palm','Near fingertips','Far palm','Far fingertips'];
+const EXTRA_NAMES=[14,15,16,17]; 
+let mappingExtras=Array.from({length:8},()=>Array.from({length:4},()=>[0,0]));
+let autoSeed=null,editPose=0,editJoint=3,dragMarker=false,editDirty=false,sourceSignature='';
+function clampCoord(point){return [Math.round(Math.max(0,Math.min(W-1,point[0]))*10)/10,Math.round(Math.max(0,Math.min(H-1,point[1]))*10)/10]}
+function jointPos(p,j){return j<14?K[p][j]:mappingExtras[p][j-14]}
+function setJoint(p,j,point){
+ const val=clampCoord(point);
+ if(j<14)K[p][j]=val;else mappingExtras[p][j-14]=val;
+ editDirty=true;
+}
+function savedMap(){
+ try{return JSON.parse(localStorage.getItem(MAP_KEY)||'null')}catch(e){return null}
+}
+function loadMapData(data){
+ if(!data||data.version!==1||!Array.isArray(data.poses)||data.poses.length!==8)return false;
+ for(const pose of data.poses){
+  if(!Array.isArray(pose)||pose.length!==18||pose.some(p=>!Array.isArray(p)||p.length!==2||p.some(n=>!Number.isFinite(n))))return false;
+ }
+ data.poses.forEach((pose,i)=>pose.forEach((point,j)=>setJoint(i,j,point)));
+ return true;
+}
+function persistMap(){
+ try{localStorage.setItem(MAP_KEY,JSON.stringify({version:1,motion:'proneCrawl',sourceSignature,poses:Array.from({length:8},(_,i)=>Array.from({length:18},(_,j)=>jointPos(i,j)))}))}catch(e){$('status').textContent='Could not save mapping locally'}
+}
+function backupSeed(){autoSeed=Array.from({length:8},(_,i)=>Array.from({length:18},(_,j)=>[...jointPos(i,j)]))}
+function seedPalmTargets(){
+ for(let i=0;i<8;i++)for(const [e,w,p,t] of [[3,4,14,15],[5,6,16,17]]){
+  const E=K[i][e],Wrist=K[i][w],dx=Wrist[0]-E[0],dy=Wrist[1]-E[1],len=Math.hypot(dx,dy)||1;
+  mappingExtras[i][p-14]=clampCoord([Wrist[0]+dx/len*4,Wrist[1]+dy/len*4]);
+  mappingExtras[i][t-14]=clampCoord([Wrist[0]+dx/len*13,Wrist[1]+dy/len*13]);
+ }
+}
+const $=id=>document.getElementById(id);
+const L=$('left').getContext('2d'),R=$('right').getContext('2d'),M=$('mapCanvas').getContext('2d');
+
+const make=()=>{const c=document.createElement('canvas');c.width=W;c.height=H;return c};
+const ctx=(c)=>c.getContext('2d',{willReadFrequently:true});
+const smooth=t=>t*t*(3-2*t);
+let sources=[],sourceData=[],pieces=[],tips={},donor={},tipRepair={},frames=[],ready=false,busy=false,
+playing=true,clock=0,last=0,position=0,error='';
+function hypot(a,b){return Math.hypot(a,b)}
+function pchip(k,t){
+ const i=Math.floor(t)%8,u=t-Math.floor(t),res=[];
+ for(let axis=0;axis<2;axis++){
+  const val=j=>K[(j+8)%8][k][axis],
+   a=val(i-1),b=val(i),c=val(i+1),d=val(i+2);
+  res.push((2*u*u*u-3*u*u+1)*b+(u*u*u-2*u*u+u)*(c-a)*.5+
+   (-2*u*u*u+3*u*u)*c+(u*u*u-u*u)*(d-b)*.5);
+ }
+ return res;
+}
+function labelDistance(j,x,y,landmarks){
+ if(j===14)return (Math.hypot((x-landmarks[2][0])*.8,(y-landmarks[2][1])*1.05)-2)*.65;
+ if(j===12||j===13){const k=j===12?4:6;return Math.hypot(x-landmarks[k][0],y-landmarks[k][1])*.62}
+ const [a,b]=BONES[j],A=landmarks[a],B=landmarks[b],vx=B[0]-A[0],vy=B[1]-A[1];
+ const t=Math.max(0,Math.min(1,((x-A[0])*vx+(y-A[1])*vy)/Math.max(1,vx*vx+vy*vy)));
+ return Math.hypot(x-A[0]-t*vx,y-A[1]-t*vy)*(j===0?.74:j===1?.8:1);
+}
+function handZone(x,y,k){
+ const landmarks=K[k],result=[];
+ for(const [elbow,wrist] of [[3,4],[5,6]]){
+  // Palm/tip are independent artist-calibrated anchors, not wrist extrapolation.
+  const part=elbow===3?0:2, w=landmarks[wrist],tip=mappingExtras[k][part+1],
+   v=[tip[0]-w[0],tip[1]-w[1]],len=Math.max(1,hypot(...v)),
+   u=[v[0]/len,v[1]/len],along=(x-w[0])*u[0]+(y-w[1])*u[1],
+   across=Math.abs((x-w[0])*u[1]-(y-w[1])*u[0]);
+  result.push(along>=-5&&along<=len+5&&across<=10+Math.max(0,along)*.13);
+ }
+ return result;
+}
+// Prone crawl: far arm isn't individually annotated in the original 058B
+// study, so use the near-arm bone with a 4–5px side offset. Mark as provisional.
+function initializePieces(){
+ pieces=[];tips={};donor={};tipRepair={};
+ for(let i=0;i<8;i++){
+  const src=sourceData[i],out=Array.from({length:15},()=>new Uint8ClampedArray(src.length));
+  const marks=K[i],w=4,v=6;
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+   const ds=Array.from({length:15},(_,j)=>labelDistance(j,x,y,marks));
+   let best=0;for(let j=1;j<15;j++)if(ds[j]<ds[best])best=j;
+   const zones=handZone(x,y,i),near=Math.hypot(x-marks[w][0],y-marks[w][1]),far=Math.hypot(x-marks[v][0],y-marks[v][1]);
+   if(zones[0]&&(!zones[1]||near<=far))best=12;
+   if(zones[1]&&(!zones[0]||far<near))best=13;
+   // Do not throw away graphite because the joint detector is imperfect.
+   // Each visible pixel belongs to exactly ONE anatomical layer, including
+   // pencil fragments near the ends of forearms and behind the torso.
+   const q=(y*W+x)*4;
+   if(src[q+3]>0){
+    for(let c=0;c<4;c++)out[best][q+c]=src[q+c];
+   }
+  }
+  pieces.push(out.map(bytes=>{const c=make(),g=ctx(c),data=g.createImageData(W,H);data.data.set(bytes);g.putImageData(data,0,0);return c}));
+ }
+ // Extract original wrist->farthest-visible-tip anchors and replacement donor mapping.
+ for(let i=0;i<8;i++)for(const part of [3,5]){
+  const hand=part===3?12:13,elbow=part===3?3:5,wrist=part===3?4:6;
+  const buf=sourcePixels(pieces[i][hand]),w=K[i][wrist],e=K[i][elbow];
+  const vx=w[0]-e[0],vy=w[1]-e[1],len=hypot(vx,vy)+1e-6,u=[vx/len,vy/len];
+  let best=-Infinity,tip=[w[0]+u[0]*4,w[1]+u[1]*4],count=0;
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+   if(buf[(y*W+x)*4+3]<=10)continue;count++;
+   const projection=(x-w[0])*u[0]+(y-w[1])*u[1];
+   if(projection>best){best=projection;tip=[x,y]}
+  }
+  // Explicit hand tip replaces the unstable farthest-ink scan.
+  const trueTip=mappingExtras[i][part===3?1:3];
+  tips[i+':'+part]={tip:[...trueTip],count:Math.max(count,50),length:Math.max(1,Math.hypot(trueTip[0]-w[0],trueTip[1]-w[1]))};
+ }
+ for(let i=0;i<8;i++)for(const part of [3,5]){
+  const good=j=>{const q=tips[j+':'+part];return q.count>=45&&q.length>=5};
+  const q=tips[i+':'+part],valid=q.count>=40&&q.length>=4;
+  let pick=i;
+  if(!valid){const avail=Array.from({length:8},(_,j)=>j).filter(good);if(avail.length)pick=avail.reduce((a,b)=>Math.abs(a-i)<=Math.abs(b-i)?a:b)}
+  donor[i+':'+part]=pick;
+ }
+ for(let i=0;i<8;i++)for(const part of [3,5]){
+  const src=donor[i+':'+part],w=part===3?4:6,e=part===3?3:5;
+  if(src===i){tipRepair[i+':'+part]=tips[i+':'+part].tip;continue}
+  const A=K[src][e],B=K[src][w],C=K[i][e],D=K[i][w],
+   au=[B[0]-A[0],B[1]-A[1]],bu=[D[0]-C[0],D[1]-C[1]],
+   lenA=hypot(...au),lenB=hypot(...bu),cs=(au[0]*bu[0]+au[1]*bu[1])/(lenA*lenB),
+   sn=(au[0]*bu[1]-au[1]*bu[0])/(lenA*lenB),
+   local=[tips[src+':'+part].tip[0]-B[0],tips[src+':'+part].tip[1]-B[1]],
+   scale=Math.max(.7,Math.min(1.35,lenB/lenA));
+  tipRepair[i+':'+part]=[D[0]+(cs*local[0]-sn*local[1])*scale,D[1]+(sn*local[0]+cs*local[1])*scale];
+ }
+}
+function sourcePixels(c){return ctx(c).getImageData(0,0,W,H).data}
+function affineFrom(source,part,target){
+ if(part>=12){const k=part===12?4:part===13?6:2;return [1,0,0,1,target[k][0]-K[source][k][0],target[k][1]-K[source][k][1]]}
+ const [a,b]=BONES[part],A=K[source][a],B=K[source][b],D=target[a],E=target[b];
+ const ux=B[0]-A[0],uy=B[1]-A[1],vx=E[0]-D[0],vy=E[1]-D[1],la=hypot(ux,uy),lb=hypot(vx,vy);
+ if(la<1||lb<1)return [1,0,0,1,0,0];
+ const scale=Math.max(.65,Math.min(1.55,lb/la)),c=(ux*vx+uy*vy)/(la*lb)*scale,s=(ux*vy-uy*vx)/(la*lb)*scale;
+ return [c,s,-s,c,D[0]-c*A[0]+s*A[1],D[1]-s*A[0]-c*A[1]];
+}
+function warpCanvas(src,affine){
+ const c=make(),g=c.getContext('2d');
+ g.setTransform(...affine);g.drawImage(src,0,0);return c;
+}
+function warp(source,part,target){return warpCanvas(pieces[source][part],affineFrom(source,part,target))}
+function tipAt(part,t){
+ const i=Math.floor(t)%8,u=t-Math.floor(t),res=[];
+ for(let axis=0;axis<2;axis++){
+  const val=j=>tipRepair[((j+8)%8)+':'+part][axis],
+   a=val(i-1),b=val(i),c=val(i+1),d=val(i+2);
+  res.push((2*u*u*u-3*u*u+1)*b+(u*u*u-2*u*u+u)*(c-a)*.5+
+   (-2*u*u*u+3*u*u)*c+(u*u*u-u*u)*(d-b)*.5);
+ }
+ return res;
+}
+function handWarp(source,part,target,time){
+ const hand=part===3?12:13,wrist=part===3?4:6;
+ const a=K[source][wrist],b=tips[source+':'+part].tip,
+  x=target[wrist],y=tipAt(part,time),
+  va=[b[0]-a[0],b[1]-a[1]],vb=[y[0]-x[0],y[1]-x[1]],la=hypot(...va),lb=hypot(...vb);
+ if(la<1||lb<1)return make();
+ const theta=Math.atan2(vb[1],vb[0])-Math.atan2(va[1],va[0]),
+  scale=Math.max(.74,Math.min(1.24,lb/la)),
+  c=Math.cos(theta)*scale,s=Math.sin(theta)*scale;
+ const orig=pieces[source][hand],bytes=sourcePixels(orig),copy=new Uint8ClampedArray(bytes),
+  ux=va[0]/la,uy=va[1]/la;
+ for(let yy=0;yy<H;yy++)for(let xx=0;xx<W;xx++){
+  const q=(yy*W+xx)*4,along=(xx-a[0])*ux+(yy-a[1])*uy,
+   across=Math.abs((xx-a[0])*uy-(yy-a[1])*ux);
+  if(along< -4||along>la+5||across>14)copy[q+3]=0;
+ }
+ const texture=make(),g=ctx(texture),img=g.createImageData(W,H);img.data.set(copy);g.putImageData(img,0,0);
+ return warpCanvas(texture,[c,s,-s,c,x[0]-c*a[0]+s*a[1],x[1]-s*a[0]-c*a[1]]);
+}
+function trimForearm(sprite,target,part){
+ const e=target[part===3?3:5],w=target[part===3?4:6],
+  vx=w[0]-e[0],vy=w[1]-e[1],len=hypot(vx,vy);
+ if(len<1)return sprite;
+ const u=[vx/len,vy/len],data=ctx(sprite).getImageData(0,0,W,H);
+ for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+  const q=(y*W+x)*4,projection=(x-w[0])*u[0]+(y-w[1])*u[1],
+   across=Math.abs((x-w[0])*u[1]-(y-w[1])*u[0]),
+   a=Math.max(0,Math.min(1,(2-projection)/3)),
+   suppression=Math.max(0,Math.min(1,(projection+1.2)/3.2))*Math.max(0,Math.min(1,(17-across)/4.5));
+  data.data[q+3]=Math.round(data.data[q+3]*a*(1-suppression));
+ }
+ ctx(sprite).putImageData(data,0,0);return sprite;
+}
+function mixPixels(a,b,t){
+ const A=sourcePixels(a),B=sourcePixels(b),out=make(),g=ctx(out),image=g.createImageData(W,H);
+ const d=image.data,wa=1-smooth(t),wb=smooth(t);
+ for(let p=0;p<W*H;p++){
+  const q=p*4,aw=A[q+3]*wa/255,bw=B[q+3]*wb/255,total=aw+bw;
+  if(total<1e-6)continue;
+  for(let k=0;k<3;k++)d[q+k]=Math.round((A[q+k]*aw+B[q+k]*bw)/total);
+  d[q+3]=Math.round(Math.min(255,total*255));
+ }
+ g.putImageData(image,0,0);return out;
+}
+
+function stabilizeSkin(sprite,a,b,halfWidth,overhang=4){
+ // Keep transformed ink near its moving anatomical bone.
+ const context=ctx(sprite),out=context.getImageData(0,0,W,H),d=out.data;
+ const vx=b[0]-a[0],vy=b[1]-a[1],len=Math.hypot(vx,vy);
+ if(len<1)return sprite;
+ const ux=vx/len,uy=vy/len;
+ for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+  const p=(y*W+x)*4;if(d[p+3]===0)continue;
+  const longitudinal=(x-a[0])*ux+(y-a[1])*uy;
+  const lateral=Math.abs((x-a[0])*uy-(y-a[1])*ux);
+  const side=Math.max(0,Math.min(1,(halfWidth+2-lateral)/2));
+  const rear=Math.max(0,Math.min(1,(longitudinal+overhang+2)/2));
+  const front=Math.max(0,Math.min(1,(len+overhang+2-longitudinal)/2));
+  d[p+3]=Math.round(d[p+3]*side*rear*front);
+ }
+ context.putImageData(out,0,0);return sprite;
+}
+function stabilizeHand(sprite,target,part,time){
+ const wrist=target[part===3?4:6],tip=tipAt(part,time);
+ return stabilizeSkin(sprite,wrist,tip,12,5);
+}
+
+function tween(i,local){
+ const t=i+local,target=Array.from({length:14},(_,j)=>pchip(j,t));
+ const c=make(),g=c.getContext('2d');
+ // One graphite source per anatomical part per frame, warped onto a shared
+ // smoothly interpolated joint rig. No overlapping dual-source limb ghosts.
+ const chosen=local<.5?i:(i+1)%8;
+ for(const part of ORDER){
+  if(part===12||part===13)continue;
+  const source=part===14?chosen:chosen;
+  let sprite=warp(source,part,target);
+  if(part===3||part===5){
+   const elbow=part===3?3:5,wrist=part===3?4:6;
+   sprite=trimForearm(sprite,target,part);
+   sprite=stabilizeSkin(sprite,target[elbow],target[wrist],12,6);
+  }else if(part===2||part===4){
+   const elbow=part===2?3:5;
+   sprite=stabilizeSkin(sprite,target[1],target[elbow],14,6);
+  }else if([6,7,8,9,10,11].includes(part)){
+   const [a,b]=BONES[part];
+   sprite=stabilizeSkin(sprite,target[a],target[b],12,6);
+  }
+  g.drawImage(sprite,0,0);
+ }
+ for(const part of [5,3]){
+  const safe=donor[chosen+':'+part];
+  const hand=handWarp(safe,part,target,t);
+  g.drawImage(stabilizeHand(hand,target,part,t),0,0);
+ }
+ return c;
+}
+function ringJointAt(pixels,cx,cy,radius){
+ // Ink-bounded circle detection. The hand-drawn joint nodes have a bright
+ // graphite ring and a relatively dark center. Search within the anatomical
+ // neighborhood, not across the whole skeleton.
+ const get=(x,y)=>{
+  if(x<0||x>=W||y<0||y>=H)return 0;
+  return pixels[(Math.round(y)*W+Math.round(x))*4+3]/255;
+ };
+ let best=-Infinity,pos=[cx,cy],confidence=0;
+ const reach=Math.max(7,radius),radii=[2.5,3.5,4.5,5.5];
+ for(let yy=Math.max(5,Math.round(cy-reach));yy<=Math.min(H-6,Math.round(cy+reach));yy+=1)
+ for(let xx=Math.max(5,Math.round(cx-reach));xx<=Math.min(W-6,Math.round(cx+reach));xx+=1){
+  const dist=Math.hypot(xx-cx,yy-cy);
+  for(const rad of radii){
+   let ring=0;
+   for(let a=0;a<12;a++){
+    const theta=a*Math.PI/6;
+    ring+=get(xx+rad*Math.cos(theta),yy+rad*Math.sin(theta));
+   }
+   ring/=12;
+   const center=(get(xx,yy)+get(xx-1,yy)+get(xx+1,yy)+get(xx,yy-1)+get(xx,yy+1))/5;
+   const contrast=Math.max(0,ring-center);
+   const score=ring*.8+contrast*.65-dist/(reach+3)*.5;
+   if(score>best){best=score;pos=[xx,yy];confidence=ring}
+  }
+ }
+ return confidence>.20?pos:[cx,cy];
+}
+function inferCrawlJoints(){
+ for(let frame=0;frame<8;frame++){
+  const im=sourcePixels(sources[frame]);
+  let x0=W,y0=H,x1=-1,y1=-1;
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+   if(im[(y*W+x)*4+3]>70){
+    x0=Math.min(x0,x);x1=Math.max(x1,x);y0=Math.min(y0,y);y1=Math.max(y1,y);
+   }
+  }
+  if(x1<x0)throw Error('Crawl source '+frame+' has no visible graphite');
+  const wid=x1-x0,hei=y1-y0,px=a=>x0+wid*a,py=a=>y0+hei*a;
+  // Prone geometry inferred from each unique pose. The joint seeds follow
+  // the horizontal body, rather than any standing-person template.
+  const a=[
+   [px(.43),py(.45)],[px(.71),py(.39)],[px(.81),py(.18)],
+   [px(.78),py(.66)],[px(.94),py(.87)],[px(.67),py(.64)],
+   [px(.86),py(.84)],[px(.33),py(.63)],[px(.13),py(.79)],
+   [px(.03),py(.85)],[px(.34),py(.72)],[px(.14),py(.85)],
+   [px(.02),py(.90)],[px(.75),py(.33)]
+  ];
+  for(let j=0;j<14;j++){
+   const [cx,cy]=a[j],r=j===0||j===1?16:13;
+   let best=1e9,coord=[cx,cy];
+   for(let y=Math.max(0,Math.floor(cy-r));y<=Math.min(H-1,Math.ceil(cy+r));y++)
+    for(let x=Math.max(0,Math.floor(cx-r));x<=Math.min(W-1,Math.ceil(cx+r));x++){
+     const alpha=im[(y*W+x)*4+3];if(alpha<85)continue;
+     const cost=Math.hypot(x-cx,y-cy)+(255-alpha)/255*.5;
+     if(cost<best){best=cost;coord=[x,y]}
+    }
+   const circleJoint=[0,1,3,4,5,6,7,8,10,11].includes(j);
+   // A joint ring is much stronger anatomical evidence than a nearby rib or
+   // overlapping leg stroke. Heads and fingertips remain texture-led.
+   K[frame][j]=circleJoint?ringJointAt(im,coord[0],coord[1],10):coord;
+  }
+ }
+}
+
+function installSources(all){
+ const x0=Math.min(...all.map(c=>c.sourceX||0)),y0=Math.min(...all.map(c=>c.sourceY||0)),
+  x1=Math.max(...all.map(c=>(c.sourceX||0)+c.width)),y1=Math.max(...all.map(c=>(c.sourceY||0)+c.height)),
+  scale=Math.min((W-36)/(x1-x0),(H-34)/(y1-y0)),
+  ox=(W-(x1-x0)*scale)/2-x0*scale,oy=H-16-y1*scale;
+ sources=all.map(im=>{
+  const c=make(),g=c.getContext('2d');
+  g.drawImage(im,(im.sourceX||0)*scale+ox,(im.sourceY||0)*scale+oy,im.width*scale,im.height*scale);
+  return c;
+ });
+ sourceData=sources.map(sourcePixels);
+ inferCrawlJoints();
+ seedPalmTargets();
+ backupSeed();
+ const prev=savedMap();
+ // Saved coordinates are already normalized to this 440x270 source stage.
+ if(prev&&prev.sourceSignature===sourceSignature)loadMapData(prev);
+ initializePieces();
+}
+
+let camera={x:0,y:0,w:W,h:H},visible=false;
+const bound=(images)=>{
+ let minX=W,minY=H,maxX=-1,maxY=-1;
+ for(const im of images){
+  const data=ctx(im).getImageData(0,0,W,H).data;
+  // Sample alpha everywhere. Tiny antialiased residue is excluded.
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+   if(data[(y*W+x)*4+3]>48){
+    minX=Math.min(minX,x);minY=Math.min(minY,y);
+    maxX=Math.max(maxX,x);maxY=Math.max(maxY,y);
+   }
+  }
+ }
+ if(maxX<minX)return {x:0,y:0,w:W,h:H};
+ const margin=Math.max(9,Math.round((maxY-minY)*.08));
+ const x=Math.max(0,minX-margin),y=Math.max(0,minY-margin);
+ return {x,y,w:Math.min(W-x,maxX-minX+1+2*margin),h:Math.min(H-y,maxY-minY+1+2*margin)};
+};
+function seamScore(){
+ if(frames.length!==64)return null;
+ const values=[];
+ for(let j=0;j<64;j++){
+  const A=ctx(frames[j]).getImageData(0,0,W,H).data,
+        B=ctx(frames[(j+1)%64]).getImageData(0,0,W,H).data;
+  let delta=0;
+  for(let k=0;k<A.length;k+=32){
+   delta+=Math.abs(A[k+3]-B[k+3]);
+  }
+  values.push(delta);
+ }
+ const sorted=[...values].sort((a,b)=>a-b),med=(sorted[31]+sorted[32])*.5;
+ return +(values[63]/Math.max(1,med)).toFixed(2);
+}
+async function prepare115(){
+ if(busy||ready)return;
+ const lib=window.DepthsFullArt;
+ if(!lib?.state?.ready){$('status').textContent=lib?.state?.message||'Original source art required';$('load').style.display='inline';return}
+ const originals=Array.from({length:8},(_,i)=>lib.get('proneCrawl',i));
+ if(originals.some(x=>!x)){$('status').textContent='Prone Crawl artwork missing';$('load').style.display='inline';return}
+ busy=true;error='';
+ try{
+  $('status').textContent='Preparing original-art motion…';
+  await new Promise(requestAnimationFrame);
+  sourceSignature=originals.map(c=>[c.sourceX||0,c.sourceY||0,c.width,c.height].join(',')).join('|');
+  installSources(originals);
+  const out=Array(COUNT);
+  for(let i=0;i<8;i++)for(let j=0;j<STEP;j++){
+   const n=i*STEP+j;out[n]=j===0?sources[i]:tween(i,j/STEP);
+   if(n%3===0)await new Promise(requestAnimationFrame);
+  }
+  frames=out;
+  // The camera fits the actual pixel bounds of both versions. Never hard-crop
+  // at a fixed y=100 or assume a stand pose occupies the prone pose window.
+  camera=bound([...sources,...frames]);
+  const handIntegrity=frames.every((f,n)=>n%8!==0||f===sources[n/8]);
+  if(!handIntegrity)throw Error('Source keyframe preservation failed');
+  ready=true;
+  const ratio=seamScore();
+  $('status').textContent='115 no-ghost limbs · 64 frames · exact keys · seam '+ratio+'×'+(ratio>1.8?' ⚠ inspect':'');
+  $('load').style.display='none';
+ }catch(e){
+  error=String(e?.message||e);
+  $('status').textContent='Animation unavailable: '+error;
+  $('load').style.display='inline';
+ }finally{busy=false}
+}
+function drawFrame(g,img){
+ const dw=g.canvas.width,dh=g.canvas.height;
+ g.fillStyle='#101619';g.fillRect(0,0,dw,dh);
+ if(!img)return;
+ const scale=Math.min((dw-14)/camera.w,(dh-14)/camera.h);
+ const w=camera.w*scale,h=camera.h*scale;
+ const dx=(dw-w)/2,dy=(dh-h)/2;
+ g.imageSmoothingEnabled=true;
+ g.drawImage(img,camera.x,camera.y,camera.w,camera.h,dx,dy,w,h);
+}
+function setCanvasResolution(g){
+ const rect=g.canvas.getBoundingClientRect();
+ const density=Math.min(2,window.devicePixelRatio||1);
+ const width=Math.max(1,Math.round(rect.width*density)),height=Math.max(1,Math.round(rect.height*density));
+ if(g.canvas.width!==width||g.canvas.height!==height){g.canvas.width=width;g.canvas.height=height;}
+}
+function paint115(){
+ setCanvasResolution(L);setCanvasResolution(R);setCanvasResolution(M);
+ const n=Math.max(0,Math.min(63,position));
+ drawFrame(L,sources[Math.min(7,Math.round(n/8))]);
+ drawFrame(R,frames[n]);
+ if(document.body.dataset.view==='map')drawMapping();
+ $('counter').textContent=n+' / 63';$('frameLabel').textContent='Frame '+n;
+ $('speedLabel').textContent=Number($('speed').value).toFixed(1)+' s';
+}
+function pause(){playing=false;$('play').textContent='▶';$('play').setAttribute('aria-label','Play animation')}
+$('play').onclick=()=>{playing=!playing;$('play').textContent=playing?'⏸':'▶'};
+$('scrub').oninput=()=>{pause();position=Number($('scrub').value);paint115()};
+$('speed').oninput=paint115;
+for(const b of document.querySelectorAll('[data-mode]'))b.onclick=()=>{
+ document.body.dataset.view=b.dataset.mode;
+ for(const bb of document.querySelectorAll('[data-mode]'))bb.classList.toggle('active',bb===b);
+ paint115();
+};
+const posePick=$('posePick'),jointPick=$('jointPick');
+for(let i=0;i<8;i++){const option=document.createElement('option');option.value=String(i);option.textContent='Pose '+(i+1)+' / 8';posePick.appendChild(option)}
+JOINT_NAMES.forEach((name,i)=>{const o=document.createElement('option');o.value=String(i);o.textContent=name;jointPick.appendChild(o)});
+function drawMapping(){
+ if(!sources.length)return;
+ const g=M,dw=g.canvas.width,dh=g.canvas.height;
+ g.fillStyle='#101619';g.fillRect(0,0,dw,dh);
+ const scale=Math.min((dw-22)/camera.w,(dh-22)/camera.h);
+ const w=camera.w*scale,h=camera.h*scale,dx=(dw-w)/2,dy=(dh-h)/2;
+ g.drawImage(sources[editPose],camera.x,camera.y,camera.w,camera.h,dx,dy,w,h);
+ const toScreen=p=>[dx+(p[0]-camera.x)*scale,dy+(p[1]-camera.y)*scale];
+ for(const [a,b] of BONES){
+  const x=toScreen(jointPos(editPose,a)),y=toScreen(jointPos(editPose,b));
+  g.beginPath();g.moveTo(...x);g.lineTo(...y);g.strokeStyle='rgba(89,195,238,.35)';g.lineWidth=2;g.stroke();
+ }
+ for(const [a,b] of [[4,14],[14,15],[6,16],[16,17]]){
+  const x=toScreen(jointPos(editPose,a)),y=toScreen(jointPos(editPose,b));
+  g.beginPath();g.moveTo(...x);g.lineTo(...y);g.strokeStyle='rgba(255,194,99,.75)';g.lineWidth=2;g.stroke();
+ }
+ for(let j=0;j<18;j++){
+  const [x,y]=toScreen(jointPos(editPose,j)),active=j===editJoint;
+  g.beginPath();g.arc(x,y,active?8:4,0,Math.PI*2);
+  g.fillStyle=active?'#fff2b5':j>=14?'#f5a65d':'#68c2ed';g.fill();
+  if(active){g.strokeStyle='#13191d';g.lineWidth=2;g.stroke()}
+  if(active||j>=14){g.fillStyle='#f9edd9';g.font=Math.max(12,Math.min(16,scale*5))+'px system-ui';g.fillText(String(j),x+8,y-7)}
+ }
+ $('mapHint').textContent='Pose '+(editPose+1)+' · '+JOINT_NAMES[editJoint]+' · drag marker onto its real graphite location'+(editDirty?' · unsaved changes':'');
+}
+function pointerToMap(e){
+ const r=M.canvas.getBoundingClientRect();
+ const dx=(e.clientX-r.left)*(M.canvas.width/r.width),dy=(e.clientY-r.top)*(M.canvas.height/r.height);
+ const sc=Math.min((M.canvas.width-22)/camera.w,(M.canvas.height-22)/camera.h);
+ return [camera.x+(dx-(M.canvas.width-camera.w*sc)/2)/sc,camera.y+(dy-(M.canvas.height-camera.h*sc)/2)/sc];
+}
+M.canvas.addEventListener('pointerdown',e=>{
+ if(!sources.length)return;
+ e.preventDefault();pause();M.canvas.setPointerCapture(e.pointerId);
+ const p=pointerToMap(e),nearest=Array.from({length:18},(_,i)=>i).sort((a,b)=>{
+  const dist=i=>Math.hypot(jointPos(editPose,i)[0]-p[0],jointPos(editPose,i)[1]-p[1]);
+  return dist(a)-dist(b);
+ })[0];
+ // When near a marker, drag it. Otherwise place the selected joint.
+ if(Math.hypot(jointPos(editPose,nearest)[0]-p[0],jointPos(editPose,nearest)[1]-p[1])<18)editJoint=nearest;
+ jointPick.value=String(editJoint);dragMarker=true;setJoint(editPose,editJoint,p);drawMapping();
+});
+M.canvas.addEventListener('pointermove',e=>{if(!dragMarker)return;e.preventDefault();setJoint(editPose,editJoint,pointerToMap(e));drawMapping()});
+function endDrag(){if(!dragMarker)return;dragMarker=false;persistMap();drawMapping()}
+M.canvas.addEventListener('pointerup',endDrag);M.canvas.addEventListener('pointercancel',endDrag);
+posePick.onchange=()=>{editPose=Number(posePick.value);drawMapping()};
+jointPick.onchange=()=>{editJoint=Number(jointPick.value);drawMapping()};
+$('mapPrev').onclick=()=>{editPose=(editPose+7)%8;posePick.value=editPose;drawMapping()};
+$('mapNext').onclick=()=>{editPose=(editPose+1)%8;posePick.value=editPose;drawMapping()};
+$('mapApply').onclick=async()=>{
+ if(busy||!sources.length)return;
+ busy=true;ready=false;
+ $('status').textContent='Rebuilding 64 mapped rig frames…';
+ try{
+  initializePieces();
+  const out=Array(COUNT);
+  for(let i=0;i<8;i++)for(let j=0;j<8;j++){
+   const n=i*8+j;out[n]=j===0?sources[i]:tween(i,j/8);
+   if(j%3===0)await new Promise(requestAnimationFrame);
+  }
+  frames=out;camera=bound([...sources,...frames]);ready=true;
+  editDirty=false;persistMap();
+  $('status').textContent='Mapping applied · 64 rig frames rebuilt';
+ }catch(e){error=String(e);$('status').textContent=error}
+ finally{busy=false}
+};
+$('mapUndo').onclick=()=>{if(!autoSeed)return;for(let j=0;j<18;j++)setJoint(editPose,j,autoSeed[editPose][j]);persistMap();drawMapping();$('status').textContent='Pose reset; tap Rebuild to apply'};
+$('mapExport').onclick=()=>{
+ if(!sources.length)return;persistMap();
+ const data={version:1,motion:'proneCrawl',sourceSignature,poses:Array.from({length:8},(_,i)=>Array.from({length:18},(_,j)=>jointPos(i,j)))};
+ const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),u=URL.createObjectURL(blob),a=document.createElement('a');
+ a.href=u;a.download='The_Depths_ProneCrawl_115_Mapping.json';a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);
+};
+$('mapImport').onclick=()=>$('mapFile').click();
+$('mapFile').onchange=async()=>{
+ const file=$('mapFile').files?.[0];if(!file)return;
+ try{
+  const obj=JSON.parse(await file.text());
+  if(obj.sourceSignature!==sourceSignature||!loadMapData(obj))throw Error('Mapping file does not match these original poses');
+  persistMap();drawMapping();$('status').textContent='Mapping imported · tap Rebuild';
+ }catch(e){$('status').textContent='Import failed: '+String(e.message||e)}
+};
+$('load').onclick=()=>$('file').click();
+$('file').onchange=async()=>{
+ const file=$('file').files?.[0];if(!file)return;
+ try{await window.DepthsFullArt.install(file);sources=[];frames=[];ready=false;error='';prepare115()}
+ catch(e){$('status').textContent=String(e?.message||e)}
+};
+window.addEventListener('depths-art-status',()=>{if(!ready&&!busy){error='';prepare115()}});
+function tick115(ms){
+ const dt=last?Math.min(.07,(ms-last)/1000):0;last=ms;
+ if(!ready&&!busy&&!error)prepare115();
+ if(ready&&playing){clock=(clock+dt/Number($('speed').value))%1;position=Math.floor(clock*64)%64;$('scrub').value=position}
+ paint115();requestAnimationFrame(tick115);
+}
+requestAnimationFrame(tick115);
+})();
+</script></body></html>
