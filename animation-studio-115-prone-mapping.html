@@ -183,7 +183,7 @@ function initializePieces(){
   }
   // Explicit hand tip replaces the unstable farthest-ink scan.
   const trueTip=mappingExtras[i][part===3?1:3];
-  tips[i+':'+part]={tip:[...trueTip],count:Math.max(count,50),length:Math.max(1,Math.hypot(trueTip[0]-w[0],trueTip[1]-w[1]))};
+  tips[i+':'+part]={tip:[...trueTip],count,length:Math.max(1,Math.hypot(trueTip[0]-w[0],trueTip[1]-w[1]))};
  }
  for(let i=0;i<8;i++)for(const part of [3,5]){
   const good=j=>{const q=tips[j+':'+part];return q.count>=45&&q.length>=5};
@@ -193,15 +193,10 @@ function initializePieces(){
   donor[i+':'+part]=pick;
  }
  for(let i=0;i<8;i++)for(const part of [3,5]){
-  const src=donor[i+':'+part],w=part===3?4:6,e=part===3?3:5;
-  if(src===i){tipRepair[i+':'+part]=tips[i+':'+part].tip;continue}
-  const A=K[src][e],B=K[src][w],C=K[i][e],D=K[i][w],
-   au=[B[0]-A[0],B[1]-A[1]],bu=[D[0]-C[0],D[1]-C[1]],
-   lenA=hypot(...au),lenB=hypot(...bu),cs=(au[0]*bu[0]+au[1]*bu[1])/(lenA*lenB),
-   sn=(au[0]*bu[1]-au[1]*bu[0])/(lenA*lenB),
-   local=[tips[src+':'+part].tip[0]-B[0],tips[src+':'+part].tip[1]-B[1]],
-   scale=Math.max(.7,Math.min(1.35,lenB/lenA));
-  tipRepair[i+':'+part]=[D[0]+(cs*local[0]-sn*local[1])*scale,D[1]+(sn*local[0]+cs*local[1])*scale];
+  // The artist-calibrated target tip is authoritative EVEN IF we borrow
+  // graphite texture from another pose with more complete finger pixels.
+  const j=part===3?1:3;
+  tipRepair[i+':'+part]=[...mappingExtras[i][j]];
  }
 }
 function sourcePixels(c){return ctx(c).getImageData(0,0,W,H).data}
@@ -250,13 +245,12 @@ function handWarp(source,part,target,time){
   c=Math.cos(theta)*scale,s=Math.sin(theta)*scale;
  const orig=pieces[source][hand],bytes=sourcePixels(orig),copy=new Uint8ClampedArray(bytes),
   ux=va[0]/la,uy=va[1]/la;
+ const handTip=mappingExtras[source][part===3?1:3];
+ const handReach=Math.max(la,Math.hypot(handTip[0]-a[0],handTip[1]-a[1]))+5;
  for(let yy=0;yy<H;yy++)for(let xx=0;xx<W;xx++){
   const q=(yy*W+xx)*4,along=(xx-a[0])*ux+(yy-a[1])*uy,
    across=Math.abs((xx-a[0])*uy-(yy-a[1])*ux);
-  // Preserve the original complete palm/finger drawing past the palm anchor.
-  const tip=mappingExtras[source][part===3?1:3];
-  const fingertipReach=Math.hypot(tip[0]-a[0],tip[1]-a[1]);
-  if(along< -5||along>Math.max(la,fingertipReach)+5||across>14)copy[q+3]=0;
+  if(along< -5||along>handReach||across>14)copy[q+3]=0;
  }
  const texture=make(),g=ctx(texture),img=g.createImageData(W,H);img.data.set(copy);g.putImageData(img,0,0);
  return warpCanvas(texture,[c,s,-s,c,x[0]-c*a[0]+s*a[1],x[1]-s*a[0]-c*a[1]]);
@@ -424,7 +418,7 @@ function installSources(all){
  initializePieces();
 }
 
-let camera={x:0,y:0,w:W,h:H},visible=false;
+let camera={x:0,y:0,w:W,h:H},mapCamera={x:0,y:0,w:W,h:H},visible=false;
 const bound=(images)=>{
  let minX=W,minY=H,maxX=-1,maxY=-1;
  for(const im of images){
@@ -477,7 +471,7 @@ async function prepare115(){
   frames=out;
   // The camera fits the actual pixel bounds of both versions. Never hard-crop
   // at a fixed y=100 or assume a stand pose occupies the prone pose window.
-  camera=bound([...sources,...frames]);
+  camera=bound([...sources,...frames]);mapCamera=bound(sources);
   const handIntegrity=frames.every((f,n)=>n%8!==0||f===sources[n/8]);
   if(!handIntegrity)throw Error('Source keyframe preservation failed');
   ready=true;
@@ -531,10 +525,10 @@ function drawMapping(){
  if(!sources.length)return;
  const g=M,dw=g.canvas.width,dh=g.canvas.height;
  g.fillStyle='#101619';g.fillRect(0,0,dw,dh);
- const scale=Math.min((dw-22)/camera.w,(dh-22)/camera.h);
- const w=camera.w*scale,h=camera.h*scale,dx=(dw-w)/2,dy=(dh-h)/2;
- g.drawImage(sources[editPose],camera.x,camera.y,camera.w,camera.h,dx,dy,w,h);
- const toScreen=p=>[dx+(p[0]-camera.x)*scale,dy+(p[1]-camera.y)*scale];
+ const scale=Math.min((dw-22)/mapCamera.w,(dh-22)/mapCamera.h);
+ const w=mapCamera.w*scale,h=mapCamera.h*scale,dx=(dw-w)/2,dy=(dh-h)/2;
+ g.drawImage(sources[editPose],mapCamera.x,mapCamera.y,mapCamera.w,mapCamera.h,dx,dy,w,h);
+ const toScreen=p=>[dx+(p[0]-mapCamera.x)*scale,dy+(p[1]-mapCamera.y)*scale];
  for(const [a,b] of BONES){
   const x=toScreen(jointPos(editPose,a)),y=toScreen(jointPos(editPose,b));
   g.beginPath();g.moveTo(...x);g.lineTo(...y);g.strokeStyle='rgba(89,195,238,.35)';g.lineWidth=2;g.stroke();
@@ -555,8 +549,8 @@ function drawMapping(){
 function pointerToMap(e){
  const r=M.canvas.getBoundingClientRect();
  const dx=(e.clientX-r.left)*(M.canvas.width/r.width),dy=(e.clientY-r.top)*(M.canvas.height/r.height);
- const sc=Math.min((M.canvas.width-22)/camera.w,(M.canvas.height-22)/camera.h);
- return [camera.x+(dx-(M.canvas.width-camera.w*sc)/2)/sc,camera.y+(dy-(M.canvas.height-camera.h*sc)/2)/sc];
+ const sc=Math.min((M.canvas.width-22)/mapCamera.w,(M.canvas.height-22)/mapCamera.h);
+ return [mapCamera.x+(dx-(M.canvas.width-mapCamera.w*sc)/2)/sc,mapCamera.y+(dy-(M.canvas.height-mapCamera.h*sc)/2)/sc];
 }
 M.canvas.addEventListener('pointerdown',e=>{
  if(!sources.length)return;
@@ -587,7 +581,7 @@ $('mapApply').onclick=async()=>{
    const n=i*8+j;out[n]=j===0?sources[i]:tween(i,j/8);
    if(j%3===0)await new Promise(requestAnimationFrame);
   }
-  frames=out;camera=bound([...sources,...frames]);ready=true;
+  frames=out;camera=bound([...sources,...frames]);mapCamera=bound(sources);ready=true;
   editDirty=false;persistMap();
   $('status').textContent='Mapping applied · 64 rig frames rebuilt';
  }catch(e){error=String(e);$('status').textContent=error}
