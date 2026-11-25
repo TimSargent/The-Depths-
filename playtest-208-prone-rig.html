@@ -1,0 +1,1756 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"><meta name="theme-color" content="#080a0c"><title>The Depths — 208 Prone Rig</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;background:#080a0c;color:#e9e0d3;font-family:system-ui,-apple-system,Arial,sans-serif;overflow-x:hidden}body{min-height:100dvh;overscroll-behavior:none}main{max-width:920px;margin:auto;padding:12px 12px max(18px,env(safe-area-inset-bottom))}.top{display:flex;align-items:center;justify-content:space-between;gap:8px}h1{margin:3px 0 0;font-size:21px}.eyebrow{font-size:10px;letter-spacing:2px;color:#bda889}.sub{font-size:12px;color:#b3a99a}.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:12px 0}.stat{background:#181b1d;border:1px solid #343537;border-radius:9px;padding:8px 7px}.stat span{font-size:10px;color:#aaa097;display:block}.stat b{font-size:14px;display:block;margin-top:2px}.view{position:relative;border:1px solid #4a443d;border-radius:12px;overflow:hidden;background:#070809;touch-action:none}canvas{width:100%;display:block;aspect-ratio:960/450;touch-action:none}.progress{position:absolute;bottom:0;left:0;height:4px;width:0;background:#e0ae67;transition:width .08s}.modes,.heights,.controls{display:flex;gap:8px;margin-top:10px}.modes button,.heights button{flex:1}.controls button{flex:1;min-height:65px;font-size:19px}button{background:#25282b;color:#f2e7d8;border:1px solid #555048;padding:12px 8px;border-radius:10px;font-size:13px;font-weight:700;touch-action:none;-webkit-user-select:none;user-select:none;cursor:pointer}button.selected{background:#725032;border-color:#d9ac72}button:disabled{opacity:.4}.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;min-width:0}.actions button{flex:1 1 118px;min-width:0;overflow-wrap:break-word}.message{font-size:13px;line-height:1.45;color:#e7d4ba;border:1px solid #49443e;background:#181b1d;border-radius:10px;padding:11px;margin-top:10px;min-height:57px}.help{font-size:12px;line-height:1.55;color:#aaa097;margin:10px 2px}.meter{height:5px;border-radius:9px;background:#353739;overflow:hidden;margin-top:5px}.meter div{height:100%;background:#dfb47d;width:0;transition:width .15s}#phase{font-size:11px;color:#d7b27c;margin:8px 0 0}@media (max-width:500px){main{padding:8px 8px max(10px,env(safe-area-inset-bottom))}.stat{padding:7px 5px}.stat b{font-size:12px}.controls button{min-height:70px;font-size:18px}.modes button,.heights button{padding:11px 3px;font-size:12px}.actions button{font-size:12px}.eyebrow{font-size:9px}h1{font-size:18px}}
+.lab{margin-top:14px;border:1px solid #49443e;background:#171a1c;border-radius:10px;padding:10px}
+.lab summary{cursor:pointer;font-size:14px;font-weight:700;color:#e6c79d;list-style-position:inside}
+.lab-controls{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
+.lab-controls select,.lab-controls button{flex:1;min-width:120px;padding:10px;border-radius:8px;border:1px solid #59544b;background:#25282b;color:#f4e7d3}
+#labCanvas{display:block;width:100%;height:auto;aspect-ratio:600/280;border-radius:9px;background:#0c1012;margin-top:9px}
+#labStatus{font-size:12px;color:#cbb28b;padding-top:7px}
+/* Dedicated QA layout: legacy controls stay mounted for engine compatibility. */
+.stats{grid-template-columns:1fr;margin:5px 0}.stats .stat:not(:first-child),.actions,.modes,.heights,.lab,.help,#phase,#debug,#prone107status{display:none!important}
+main{max-width:960px;padding:8px 10px max(8px,env(safe-area-inset-bottom))}
+.top{margin-bottom:5px}.top button{padding:8px 14px}.controls{margin-top:7px}.controls button{min-height:54px}
+.message{min-height:0;padding:7px 10px;margin-top:7px;font-size:12px}
+#originalStatus{font-size:10px!important;margin:4px 0!important}
+#artRecovery{font-size:11px;color:#bca98f;margin:4px 0}#artRecovery button{font-size:11px;padding:5px 8px}
+@media(orientation:landscape) and (max-height:550px){main{max-width:760px;padding:4px 8px}.top h1{font-size:15px}.eyebrow{font-size:8px}.stats{margin:3px 0}.stat{padding:3px 6px}.stat span,.stat b{display:inline;margin-right:8px}.view canvas{height:min(57dvh,350px);width:100%;object-fit:contain;aspect-ratio:auto}.controls button{min-height:40px;padding:6px}.message{margin-top:3px;padding:4px}.top button{padding:5px 10px}}
+</style></head><body><main>
+<div class="top"><div><div class="eyebrow">THE DEPTHS / PLAYTEST 208</div><h1>Crouch ↔ prone skin check</h1></div><button id="reset">↻ Reset</button></div>
+<div class="stats"><div class="stat"><span>Posture</span><b id="pose">Standing</b></div><div class="stat"><span>Bag</span><b id="bag">0 / 8</b><div class="meter"><div id="bagbar"></div></div></div><div class="stat"><span>Strips mined</span><b id="mined">0</b></div><div class="stat"><span>Dump trips</span><b id="trips">0</b></div></div>
+<div class="view"><canvas id="world" width="960" height="450" aria-label="Playable mining tunnel with automatic spoil bag and horizontal excavation"></canvas><div class="progress" id="progress"></div></div>
+<div id="phase">Crouch → prone → crouch → prone → crouch</div>
+<div id="debug" style="font:12px ui-monospace,SFMono-Regular,monospace;color:#e1b778;background:#14171a;border:1px solid #393a38;padding:7px 10px;border-radius:8px;margin-top:7px">State: IDLE | X: 6 | Pose: 0 | Camera: stable</div>
+<div id="prone107status" style="font:12px system-ui;color:#e6c38e;margin:7px 0">Loading 107 prone rig…</div>
+<div class="actions"><button id="originalArt">💀 Load ORIGINAL artwork ZIP</button><input id="originalFile" type="file" accept=".zip,application/zip" hidden /></div>
+<div id="artRecovery" hidden>Original art unavailable. <button onclick="document.getElementById('originalFile').click()">Restore artwork ZIP</button></div><div id="originalStatus" role="status" style="font:12px system-ui;color:#e4bf8e;margin:6px 0 0">Full-detail source not loaded — compressed fallback active</div>
+<div class="actions"><button id="zoom" class="selected">🔍 Close-up camera ON</button><button id="sprite" class="selected">🎞 Video animations ON</button><button id="walkDirection">🚶 Walk cycle: reversed</button><button id="walkGround" class="selected">🥾 Ground lock ON</button><button id="walkSeam">🔗 Seam blend OFF</button><button id="walkPolish">👣 Fast cadence OFF</button><button id="footPlant" class="selected">🥾 Foot plant ON</button><button id="stanceLock">⚓ Foot lock OFF</button><button id="swingBlend">🧪 Experimental rig OFF</button></div>
+<div class="actions"><button id="gameRigWalk" class="selected">💀 Approved rig walk ON</button><button id="walkCourse" class="selected">🚶 Long walk test ON · 40 cells</button></div>
+<div class="modes"><button id="explore">↗ Explore</button><button id="excavate" class="selected">⛏ Excavate</button></div>
+<div class="heights"><button id="crawl" class="selected">1 tile · Crawl</button><button id="crouch">2 tiles · Crouch</button><button id="stand">3 tiles · Stand</button></div>
+<div class="actions"><button id="widen">⛏ Widen pocket: OFF</button><button id="mineScoot" class="selected">🐾 Mining scoot ON</button></div>
+<div class="controls"><button id="left">◀ HOLD LEFT</button><button id="right">HOLD RIGHT ▶</button></div>
+<div class="actions"><button id="brace">▥ Install support</button><button id="dump">◩ Dump at ledge</button></div>
+<div class="message" id="message">Hold RIGHT in Excavate mode. The miner will chip forward through the wall, collect rubble in his duffle bag, and automatically return to the shaft ledge when the bag is full.</div>
+<div class="help"><b>201:</b> Direct-video Prone Crawl plays only while moving fully prone, at 24 FPS, from a self-contained atlas. Existing 107 crouch-prone transitions, approved walking and mining remain available. <b>107:</b> 106's smooth crouch-to-prone rig drives the real posture transition in this playable build (57 frames). It leaves walking, mining, collisions, and camera locks untouched. The locally approved 16-frame artwork GIF is not hosted in GitHub; this integration uses the approved 106 motion style and original artist poses. <b>050F:</b> The approved 049A articulated gait drives upright walking in this playable tunnel. Toggle <b>Approved rig walk</b> OFF to compare the previous walk. 050F makes walking brisker while keeping the approved gait synchronized, caps crawling below walking speed, and sizes stand-to-crouch artwork smoothly from upright height to crouched height. Scoot timing remains deliberate. Use Load ORIGINAL artwork ZIP if source artwork is missing. Digging, crawling, headlamp and movement logic are unchanged. <a href="rig-studio-049a.html">Open Rig Studio 049A</a>.</div><div class="help"><b>Try the new transition:</b> turn Long walk test OFF to use the mining map, select Crawl, then excavate a low tunnel and move from a crouching section into it. The rig runs while posture is changing; the old motion remains as fallback until artwork has loaded.</div>
+<div class="help"><b>NEW:</b> Drag anywhere on the game screen. Drag left/right to move; drag up or diagonally up to cast an aiming beam. The miner targets the first rock tile intersected by that beam. Hold to mine it. A faint beam marks the target. The LEFT/RIGHT buttons still work. Keep holding your aiming direction to automatically mine the next rock section; the miner approaches forward faces where clearance allows. Each thin horizontal section takes <b>4 seconds</b> to mine. Four sections make one full tunnel-length tile. New crawl tunnels need the least excavation; crouch tunnels need twice as much. Standing tunnels require supports. The miner cannot dig downward. Eight aligned video-derived animation clips cover walking, crouch walking, prone crawling, posture transitions, and all three mining stances. The toggle switches between video-derived animation and the original articulated rig. Seven anatomical poses still shift weight from feet to knees to hands before lowering fully prone. World X and camera remain locked throughout standing/crawling transitions; watch the State/X debug readout. Use Close-up camera to inspect the joints. Controls: hold left or right (keyboard A/D or arrow keys on a computer). When the bag fills, he automatically returns to the ledge, empties it, and resumes.</div>
+<details class="lab"><summary>🎬 Animation Studio — preview all 8 motions</summary>
+<div class="lab-controls"><select id="labSelect" aria-label="Choose miner animation"></select>
+<button id="labPause">⏸ Pause</button><button id="labReverse">↩ Reverse OFF</button><input id="labFrame" type="range" min="0" max="6" value="0" step="1" aria-label="Scrub the selected animation frame" style="min-width:130px;flex:1;accent-color:#d4ab73"/>
+<select id="labSpeed" aria-label="Animation playback speed"><option value="0.5">0.5× speed</option><option value="1" selected>1× speed</option><option value="2">2× speed</option></select></div>
+<canvas id="labCanvas" width="600" height="280" aria-label="Video-derived miner animation preview"></canvas>
+<div id="labStatus">Loading animation library…</div>
+<div class="help">Original PNG walk studio: check foot contact and the loop transition. Ground-lock and seam-blend buttons above toggle gameplay for A/B comparison. All other actions retain the existing animation logic.</div>
+</details>
+</main>
+<script src="assets/motion-ink14-data.js"></script>
+<script src="assets/motion-ink14-engine.js"></script>
+<script src="assets/full-detail-037.js?v=037W6"></script>
+<script src="assets/original-skeleton-rig.js?v=029b"></script>
+<script src="assets/miner-walk-rig-050d.js?v=050d"></script>
+<script>
+/* The Depths gameplay rig 050D, extracted directly from the approved 049A walker.
+   Only upright locomotion uses this renderer; gameplay position is authoritative.
+   Sprite art is loaded from the existing DepthsFullArt importer. */
+(()=>{
+'use strict';
+const W=245,H=418,clamp=(n,a,b)=>Math.max(a,Math.min(b,n)),radians=d=>d*Math.PI/180;
+const V=(x,y)=>({x,y}),add=(a,b)=>V(a.x+b.x,a.y+b.y),rot=(p,a)=>V(p.x*Math.cos(a)-p.y*Math.sin(a),p.x*Math.sin(a)+p.y*Math.cos(a));
+let ctx=null;
+const parts={
+ head:{poly:[[130,5],[170,7],[179,32],[178,59],[162,78],[134,70],[122,46],[123,20]],start:[141,67],end:[148,26]},
+ neck:{poly:[[127,63],[147,65],[140,95],[123,98]],start:[133,80],end:[137,70]},
+ torso:{poly:[[114,80],[141,74],[137,117],[127,154],[114,158],[107,130],[109,98]],start:[123,96],end:[114,153]},
+ pelvis:{poly:[[80,177],[104,186],[103,216],[84,225],[72,205]],start:[86,195],end:[90,207]},
+ upper_arm:{poly:[[108,84],[133,90],[127,109],[121,137],[114,162],[97,147],[96,121]],start:[121,94],end:[110,155]},
+ forearm:{poly:[[108,143],[118,148],[118,216],[107,223],[104,179]],start:[110,154],end:[114,220]},
+ hand:{poly:[[109,211],[125,214],[130,244],[122,266],[109,254],[105,226]],start:[114,218],end:[119,246]},
+ thigh:{poly:[[77,186],[98,190],[103,232],[105,292],[93,302],[85,256]],start:[86,200],end:[98,294]},
+ shin:{poly:[[92,285],[107,289],[101,354],[98,381],[85,389],[84,342]],start:[98,294],end:[93,379]},
+ foot:{poly:[[83,374],[100,371],[112,385],[140,389],[141,402],[82,403]],start:[93,379],end:[126,396]}
+};
+let sprites={},originalFrame=null,loaded=false;
+function attachSource(){
+ const lib=window.DepthsFullArt;if(!lib?.state?.ready)return false;
+ const frame=lib.get('standCrouch',0);if(!frame)return false;originalFrame=frame;
+ for(const [name,def] of Object.entries(parts)){
+  const c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d');
+  g.beginPath();def.poly.forEach((p,i)=>i?g.lineTo(...p):g.moveTo(...p));g.closePath();g.clip();
+  g.drawImage(frame,frame.sourceX||0,frame.sourceY||0);sprites[name]=c;
+ }
+ loaded=true;
+ return true;
+}
+
+function drawPart(name,start,end,alpha=1){
+ const d=parts[name],im=sprites[name];if(!im)return;
+ const a=V(...d.start),b=V(...d.end),source=Math.atan2(b.y-a.y,b.x-a.x),target=Math.atan2(end.y-start.y,end.x-start.x);
+ const natural=Math.hypot(b.x-a.x,b.y-a.y),required=Math.hypot(end.x-start.x,end.y-start.y);
+ ctx.save();ctx.globalAlpha=alpha;ctx.translate(start.x,start.y);ctx.rotate(target-source);
+ const k=natural>1?required/natural:1;
+ ctx.scale(clamp(k,.6,1.35),clamp(k,.6,1.35));ctx.drawImage(im,-a.x,-a.y);ctx.restore();
+}
+function drawUpperArm(start,end,alpha=1){
+ // The upper-arm crop contains duplicate rib-cage art. Draw an independent
+ // graphite bone with fixed length and two fine chalk contour strokes.
+ const dx=end.x-start.x,dy=end.y-start.y,len=Math.max(1,Math.hypot(dx,dy));
+ const nx=-dy/len,ny=dx/len;
+ ctx.save();ctx.globalAlpha=alpha;ctx.lineCap='round';ctx.lineJoin='round';
+ function stroke(offset,width,color){
+  ctx.beginPath();ctx.moveTo(start.x+nx*offset,start.y+ny*offset);
+  ctx.quadraticCurveTo((start.x+end.x)/2+nx*(offset+1),(start.y+end.y)/2+ny*(offset+1),end.x+nx*offset,end.y+ny*offset);
+  ctx.strokeStyle=color;ctx.lineWidth=width;ctx.stroke();
+ }
+ stroke(-2.5,1.9,'#dfd7c9');stroke(2.5,1.5,'#eae2d4');stroke(0,.8,'rgba(238,229,211,.55)');
+ for(const p of [start,end]){ctx.beginPath();ctx.arc(p.x,p.y,3.5,0,Math.PI*2);ctx.fillStyle='#171a1a';ctx.fill();ctx.strokeStyle='#e0d5c0';ctx.lineWidth=1.4;ctx.stroke()}
+ ctx.restore();
+}
+function ik(hip,ankle,len1,len2,sign){
+ const dx=ankle.x-hip.x,dy=ankle.y-hip.y;
+ const magnitude=Math.max(.001,Math.hypot(dx,dy)),distance=clamp(magnitude,Math.abs(len1-len2)+.01,len1+len2-.01);
+ const ux=dx/magnitude,uy=dy/magnitude,along=(distance*distance+len1*len1-len2*len2)/(2*distance);
+ const height=Math.sqrt(Math.max(0,len1*len1-along*along));
+ return V(hip.x+ux*along+sign*(-uy)*height,hip.y+uy*along+sign*ux*height);
+}
+// Authored contact/down/passing/up key poses, with two steps in each full cycle.
+const WALK_POSES=[
+ {t:0,    lx:.55,ly:0,   rx:-.55,ry:0,   bob:0,  arm:-1},
+ {t:.125, lx:.28,ly:0,   rx:-.40,ry:-16, bob:3,  arm:-.72},
+ {t:.25,  lx:0,  ly:0,   rx:0,   ry:-34, bob:-1, arm:0},
+ {t:.375, lx:-.28,ly:0,  rx:.40, ry:-16, bob:-4, arm:.72},
+ {t:.50,  lx:-.55,ly:0,  rx:.55, ry:0,   bob:0,  arm:1},
+ {t:.625, lx:-.40,ly:-16,rx:.28,ry:0,   bob:3,  arm:.72},
+ {t:.75,  lx:0,  ly:-34,rx:0,   ry:0,   bob:-1, arm:0},
+ {t:.875, lx:.40,ly:-16,rx:-.28,ry:0,   bob:-4, arm:-.72},
+ {t:1,    lx:.55,ly:0,   rx:-.55,ry:0,   bob:0,  arm:-1}
+];
+function walkPose(p){
+ const t=((p%1)+1)%1;
+ let i=0;while(i<WALK_POSES.length-2&&WALK_POSES[i+1].t<t)i++;
+ const a=WALK_POSES[i],b=WALK_POSES[i+1];
+ let u=(t-a.t)/(b.t-a.t);
+ u=u*u*(3-2*u);
+ const result={};for(const key of ['lx','ly','rx','ry','bob','arm'])result[key]=a[key]+(b[key]-a[key])*u;
+ return result;
+}
+// Independent ankle timing per leg. Left contact is at phase 0,
+// right contact is at phase .5. Toe lift happens only near the next
+// contact; push-off occurs immediately after the foot trails behind.
+const FOOT_ROLL_KEYS=[
+ {t:0,angle:-12},   // heel strike: toe raised
+ {t:.06,angle:0},   // foot settles
+ {t:.36,angle:0},   // flat for most of planted stance
+ {t:.45,angle:13},  // trailing foot begins pushing off
+ {t:.53,angle:24},  // toe-down push-off
+ {t:.62,angle:10},  // foot relaxes after toe-off
+ {t:.72,angle:0},   // neutral in mid-swing
+ {t:.88,angle:0},   // stay neutral until nearly full extension
+ {t:.94,angle:-7},  // late toe lift, close to contact
+ {t:1,angle:-12}
+];
+function ankleRollAt(footPhase){
+ const t=((footPhase%1)+1)%1;
+ let i=0;while(i<FOOT_ROLL_KEYS.length-2&&FOOT_ROLL_KEYS[i+1].t<t)i++;
+ const a=FOOT_ROLL_KEYS[i],b=FOOT_ROLL_KEYS[i+1];
+ let u=(t-a.t)/(b.t-a.t);u=u*u*(3-2*u);
+ return a.angle+(b.angle-a.angle)*u;
+}
+// Foot sprite is anchored at the ankle. Turn its toe vector instead of
+// rotating the whole leg or altering the planted ankle position.
+function toeTarget(ankle,rollDeg){
+ const baseline=Math.atan2(11,31);
+ const angle=baseline+radians(rollDeg);
+ const length=Math.hypot(31,11);
+ return V(ankle.x+Math.cos(angle)*length,ankle.y+Math.sin(angle)*length);
+}
+
+const DEFAULTS=Object.freeze({stride:104,knee:0,lean:0,posture:6,arm:.75,elbow:.55,footroll:1,weight:5});
+function ready(){return loaded||attachSource()}
+function draw(context,{phase=0,x=0,y=0,dir=1,settings=DEFAULTS,lowering=null,entryPhase=0,prone=null,crawlPhase=0}={}){
+ if(!ready())return null;
+ ctx=context;
+ ctx.save();
+ ctx.translate(x,y);
+ // Rig source uses a 381px floor datum and a 350px character height.
+ // Gameplay character target height is about 176px.
+ // Match the original art's 176px standing-character height instead of
+ // using the former oversized 0.50 scale. Shared scale is independent of gait phase.
+ const GAMEPLAY_SCALE=.44;
+ ctx.scale((dir>=0?1:-1)*GAMEPLAY_SCALE,GAMEPLAY_SCALE);
+ ctx.translate(-100,-381);
+  const c=settings,walk=walkPose(phase);
+ const transitioning=lowering!==null;
+ const u=transitioning?clamp(lowering,0,1):1;
+ const ease=u*u*(3-2*u);
+ const mix=(a,b,t=ease)=>a+(b-a)*t;
+ const entry=walkPose(entryPhase);
+ // Shift the hips over the planted foot during each half-stride.
+ const hipTravel=transitioning?mix(11*Math.sin(entryPhase*2*Math.PI),0):0;
+ const low=prone===null?0:clamp(prone,0,1);
+ const lowEase=low*low*(3-2*low);
+ const blendLow=(a,b)=>a+(b-a)*lowEase;
+ const cycle=crawlPhase*2*Math.PI;
+ const hipX=blendLow(90+hipTravel,-5+3*Math.sin(cycle*2));
+ function footAt(p){
+ const u=((p%1)+1)%1;
+ if(u<.5)return V(94+40-160*u,365);
+ const k=(u-.5)*2;
+ return V(94-40+80*(k*k*(3-2*k)),365-20*Math.sin(Math.PI*k)**2);
+ }
+ const targetL=footAt(phase),targetR=footAt(phase+.5);
+ // During lowering, keep both ankle targets grounded; only a short stance
+ // adjustment reconciles the two approved gait endpoints.
+ const baseL=transitioning?V(mix(94+entry.lx*c.stride,targetL.x),mix(381,targetL.y)):targetL;
+ const baseR=transitioning?V(mix(94+entry.rx*c.stride,targetR.x),mix(381,targetR.y)):targetR;
+ const footL=V(blendLow(baseL.x,-166+28*Math.cos(cycle)),blendLow(baseL.y,359-8*Math.max(0,Math.sin(cycle))));
+ const footR=V(blendLow(baseR.x,-166-28*Math.cos(cycle)),blendLow(baseR.y,359-8*Math.max(0,-Math.sin(cycle))));
+ const leftGround=walk.ly>=-0.1,rightGround=walk.ry>=-0.1;
+ // Solve leg extension from actual grounded-foot reach. Bone lengths = 103+95.
+ const groundedReach=Math.max(0,
+    leftGround?Math.abs(footL.x-(hipX-3)):0,
+    rightGround?Math.abs(footR.x-(hipX+3)):0);
+ const targetLength=196;
+ const stanceHeight=Math.sqrt(Math.max(100,targetLength*targetLength-groundedReach*groundedReach));
+ const sink=walk.bob*c.weight/5;
+ const crouchedHip=253+2*Math.cos(phase*4*Math.PI);
+ const standReach=Math.max(Math.abs(94+entry.lx*c.stride-(90+11*Math.sin(entryPhase*2*Math.PI)-3)),Math.abs(94+entry.rx*c.stride-(90+11*Math.sin(entryPhase*2*Math.PI)+3)));
+ const standHip=381-Math.sqrt(Math.max(100,196*196-standReach*standReach))+entry.bob;
+ const hipY=blendLow(transitioning?mix(standHip,crouchedHip):crouchedHip,345+2*Math.sin(cycle*2));
+ const hip=V(hipX,hipY),root=V(hipX-2,hipY-7);
+ const tilt=radians(blendLow(transitioning?45*ease:45,84));
+ const shoulder=add(root,rot(V(c.posture,-103),tilt)),neck=add(shoulder,rot(V(12,-18),tilt*(1-lowEase*.65))),headBase=add(neck,rot(V(4,-14),tilt*(1-lowEase*.65)));
+ // Forward-folding knee in recovery, naturally almost straight at contact.
+ const kneeL=ik(V(hip.x-3,hip.y),footL,103,95,-1);
+ const kneeR=ik(V(hip.x+3,hip.y),footR,103,95,-1);
+ // Synchronize opposing arms to current foot separation. All limb sections rotate at joints.
+ const legSeparation=walk.arm;
+ const shoulderL=add(shoulder,rot(V(-5,2),tilt)),shoulderR=add(shoulder,rot(V(5,2),tilt));
+ function armChain(origin,travel,side){
+   const angle=blendLow(transitioning?mix(travel*c.arm*.66,.18+travel*.20):.18+travel*.20,-.95+side*.48*Math.sin(cycle));
+   const elbow=add(origin,V(Math.sin(angle)*60,Math.cos(angle)*60));
+   // Flex isn't fixed: recover during the backswing, bend as the hand comes forward.
+   const cycle=Math.max(0,Math.min(1,(travel+1)/2));
+   const flex=(.08+c.elbow*(.25+1.05*cycle))*(1+.08*Math.sin(phase*4*Math.PI));
+   const lowerAngle=blendLow(angle+(transitioning?mix(flex,1.05+flex*.25):1.05+flex*.25),1.62+side*.32*Math.sin(cycle));
+   const wrist=add(elbow,V(Math.sin(lowerAngle)*60,Math.cos(lowerAngle)*60));
+   const hand=add(wrist,V(Math.sin(lowerAngle)*24,Math.cos(lowerAngle)*24));
+   return {elbow,wrist,hand};
+ }
+ const leftArm=armChain(shoulderL,legSeparation,1),rightArm=armChain(shoulderR,-legSeparation,-1);
+ const elbowL=leftArm.elbow,elbowR=rightArm.elbow;
+ const wristL=leftArm.wrist,wristR=rightArm.wrist;
+ // Draw arm layers first, then place the clean chest/ribcage over them.
+ // This hides source-polygon overlap that previously made ribs blob into arms.
+ drawPart('thigh',V(hip.x+3,hip.y),kneeR,.60);drawPart('shin',kneeR,footR,.60);
+ drawPart('foot',footR,toeTarget(footR,(transitioning?mix(ankleRollAt(entryPhase+.5),ankleRollAt(phase+.5)*.3):ankleRollAt(phase+.5)*.3)),.60);
+ drawUpperArm(shoulderR,elbowR,.57);drawPart('forearm',elbowR,wristR,.57);drawPart('hand',wristR,rightArm.hand,.57);
+ drawPart('thigh',V(hip.x-3,hip.y),kneeL);drawPart('shin',kneeL,footL);drawPart('foot',footL,toeTarget(footL,(transitioning?mix(ankleRollAt(entryPhase),ankleRollAt(phase)*.3):ankleRollAt(phase)*.3)));
+ drawPart('pelvis',root,V(root.x+2,root.y+12));
+ drawPart('torso',shoulder,V(root.x+2+lowEase*27,root.y-43+lowEase*43));
+ drawUpperArm(shoulderL,elbowL);drawPart('forearm',elbowL,wristL);drawPart('hand',wristL,leftArm.hand);
+ drawPart('neck',neck,headBase);
+ drawPart('head',headBase,V(headBase.x+7,headBase.y-41));
+
+ ctx.restore();
+ return {head:{x:x+(dir>=0?1:-1)*(headBase.x-100)*.44,y:y+(headBase.y-381)*.44},
+ hip:{x:x+(dir>=0?1:-1)*(hip.x-100)*.44,y:y+(hip.y-381)*.44}};
+}
+window.DepthsCrouch205={draw,ready,defaults:DEFAULTS,version:'205 crouched IK gait'};
+})();
+
+</script>
+<script>
+/* Depths 107 integrated 106 smooth hand-ownership rig, isolated from
+   all physics, existing mining motions and approved walking code.
+   No modification to 050F source files. */
+window.DepthProne107=(()=>{
+const W=440,H=270,STEP=8,COUNT=57;
+const K=[[[192,204],[228,148],[244,122],[250,181],[290,158],[226,149],[284,166],[251,193],[235,221],[252,249],[223,221],[188,234],[190,248],[237,137]],[[199,201],[235,147],[251,118],[252,181],[301,184],[235,149],[290,164],[254,193],[237,226],[250,248],[234,226],[191,234],[190,249],[243,135]],[[216,192],[267,154],[289,130],[267,187],[310,186],[267,160],[291,234],[267,210],[244,237],[247,249],[246,235],[187,231],[188,251],[276,144]],[[215,191],[273,158],[298,136],[266,201],[270,245],[278,161],[329,213],[254,226],[232,242],[177,250],[228,241],[180,235],[180,250],[286,150]],[[209,187],[270,161],[297,142],[253,210],[259,243],[288,204],[324,244],[220,242],[165,230],[163,251],[216,239],[170,230],[163,251],[283,154]],[[211,186],[280,169],[307,157],[283,212],[307,239],[246,189],[273,232],[217,242],[160,227],[160,249],[198,239],[147,223],[135,237],[295,168]],[[213,189],[281,181],[310,168],[270,220],[318,243],[278,219],[312,242],[184,236],[133,230],[123,242],[190,238],[128,230],[119,243],[295,183]],[[214,208],[281,208],[307,184],[268,243],[330,246],[270,244],[328,245],[164,228],[117,226],[99,236],[169,229],[121,227],[99,236],[291,205]]];
+const SWITCHES=[[4,4,4,4,3,4,4,4,4,4,4,4,4,4,4],[4,4,4,4,4,3,4,4,4,4,4,4,4,4,4],[4,4,4,4,4,4,4,3,2,4,5,4,4,4,4],[4,4,4,5,3,4,4,4,7,5,4,4,4,4],[4,4,4,4,4,4,4,4,4,4,4,4,4,4,4],[4,4,4,2,4,4,4,5,7,4,4,5,4,4,4],[4,6,4,4,4,4,4,4,2,4,6,4,4,4,4]];
+const BONES=[[0,1],[1,13],[1,3],[3,4],[1,5],[5,6],[0,7],[7,8],[8,9],[0,10],[10,11],[11,12]];
+const ORDER=[6,7,8,9,10,11,0,1,4,5,2,3,13,12,14];
+const HANDS={3:[12,3,4],5:[13,5,6]};
+const make=()=>{const c=document.createElement('canvas');c.width=W;c.height=H;return c};
+const ctx=(c)=>c.getContext('2d',{willReadFrequently:true});
+const smooth=t=>t*t*(3-2*t);
+let sources=[],sourceData=[],pieces=[],tips={},donor={},tipRepair={},frames=[],ready=false,busy=false,error='';
+function hypot(a,b){return Math.hypot(a,b)}
+function pchip(k,t){
+ if(t<=0)return K[0][k];if(t>=7)return K[7][k];
+ const i=Math.floor(t),u=t-i,res=[];
+ for(let axis=0;axis<2;axis++){
+  const val=j=>K[j][k][axis];
+  const slope=j=>{if(j===0)return val(1)-val(0);if(j===7)return val(7)-val(6);
+   const a=val(j)-val(j-1),b=val(j+1)-val(j);return a*b>0?2*a*b/(a+b):0};
+  res.push((2*u*u*u-3*u*u+1)*val(i)+(u*u*u-2*u*u+u)*slope(i)+(-2*u*u*u+3*u*u)*val(i+1)+(u*u*u-u*u)*slope(i+1));
+ }
+ return res;
+}
+function labelDistance(j,x,y,landmarks){
+ if(j===14)return (Math.hypot((x-landmarks[2][0])*.8,(y-landmarks[2][1])*1.05)-2)*.65;
+ if(j===12||j===13){const k=j===12?4:6;return Math.hypot(x-landmarks[k][0],y-landmarks[k][1])*.62}
+ const [a,b]=BONES[j],A=landmarks[a],B=landmarks[b],vx=B[0]-A[0],vy=B[1]-A[1];
+ const t=Math.max(0,Math.min(1,((x-A[0])*vx+(y-A[1])*vy)/Math.max(1,vx*vx+vy*vy)));
+ return Math.hypot(x-A[0]-t*vx,y-A[1]-t*vy)*(j===0?.74:j===1?.8:1);
+}
+function handZone(x,y,k){
+ const landmarks=K[k],result=[];
+ for(const [elbow,wrist] of [[3,4],[5,6]]){
+  const w=landmarks[wrist],e=landmarks[elbow],v=[w[0]-e[0],w[1]-e[1]],len=hypot(...v);
+  const u=len<2?[1,0]:[v[0]/len,v[1]/len],along=(x-w[0])*u[0]+(y-w[1])*u[1],
+   across=Math.abs((x-w[0])*u[1]-(y-w[1])*u[0]);
+  result.push(along>=-6&&along<=22&&across<=10+Math.max(0,along)*.18);
+ }
+ return result;
+}
+function initializePieces(){
+ pieces=[];tips={};donor={};tipRepair={};
+ for(let i=0;i<8;i++){
+  const src=sourceData[i],out=Array.from({length:15},()=>new Uint8ClampedArray(src.length));
+  const marks=K[i],w=4,v=6;
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+   const ds=Array.from({length:15},(_,j)=>labelDistance(j,x,y,marks));
+   let best=0;for(let j=1;j<15;j++)if(ds[j]<ds[best])best=j;
+   const zones=handZone(x,y,i),near=Math.hypot(x-marks[w][0],y-marks[w][1]),far=Math.hypot(x-marks[v][0],y-marks[v][1]);
+   if(zones[0]&&(!zones[1]||near<=far))best=12;
+   if(zones[1]&&(!zones[0]||far<near))best=13;
+   const valid=best===12?(zones[0]||ds[12]<19):best===13?(zones[1]||ds[13]<19):ds[best]<19;
+   if(valid){const q=(y*W+x)*4;
+    for(let c=0;c<4;c++)out[best][q+c]=src[q+c];
+   }
+  }
+  pieces.push(out.map(bytes=>{const c=make(),g=ctx(c),data=g.createImageData(W,H);data.data.set(bytes);g.putImageData(data,0,0);return c}));
+ }
+ // Extract original wrist->farthest-visible-tip anchors and replacement donor mapping.
+ for(let i=0;i<8;i++)for(const part of [3,5]){
+  const hand=part===3?12:13,elbow=part===3?3:5,wrist=part===3?4:6;
+  const buf=sourcePixels(pieces[i][hand]),w=K[i][wrist],e=K[i][elbow];
+  const vx=w[0]-e[0],vy=w[1]-e[1],len=hypot(vx,vy)+1e-6,u=[vx/len,vy/len];
+  let best=-Infinity,tip=[w[0]+u[0]*4,w[1]+u[1]*4],count=0;
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+   if(buf[(y*W+x)*4+3]<=10)continue;count++;
+   const projection=(x-w[0])*u[0]+(y-w[1])*u[1];
+   if(projection>best){best=projection;tip=[x,y]}
+  }
+  tips[i+':'+part]={tip,count,length:Math.hypot(tip[0]-w[0],tip[1]-w[1])};
+ }
+ for(let i=0;i<8;i++)for(const part of [3,5]){
+  const good=j=>{const q=tips[j+':'+part];return q.count>=45&&q.length>=5};
+  const q=tips[i+':'+part],valid=q.count>=40&&q.length>=4;
+  let pick=i;
+  if(!valid){const avail=Array.from({length:8},(_,j)=>j).filter(good);if(avail.length)pick=avail.reduce((a,b)=>Math.abs(a-i)<=Math.abs(b-i)?a:b)}
+  donor[i+':'+part]=pick;
+ }
+ for(let i=0;i<8;i++)for(const part of [3,5]){
+  const src=donor[i+':'+part],w=part===3?4:6,e=part===3?3:5;
+  if(src===i){tipRepair[i+':'+part]=tips[i+':'+part].tip;continue}
+  const A=K[src][e],B=K[src][w],C=K[i][e],D=K[i][w],
+   au=[B[0]-A[0],B[1]-A[1]],bu=[D[0]-C[0],D[1]-C[1]],
+   lenA=hypot(...au),lenB=hypot(...bu),cs=(au[0]*bu[0]+au[1]*bu[1])/(lenA*lenB),
+   sn=(au[0]*bu[1]-au[1]*bu[0])/(lenA*lenB),
+   local=[tips[src+':'+part].tip[0]-B[0],tips[src+':'+part].tip[1]-B[1]],
+   scale=Math.max(.7,Math.min(1.35,lenB/lenA));
+  tipRepair[i+':'+part]=[D[0]+(cs*local[0]-sn*local[1])*scale,D[1]+(sn*local[0]+cs*local[1])*scale];
+ }
+}
+function sourcePixels(c){return ctx(c).getImageData(0,0,W,H).data}
+function affineFrom(source,part,target){
+ if(part>=12){const k=part===12?4:part===13?6:2;return [1,0,0,1,target[k][0]-K[source][k][0],target[k][1]-K[source][k][1]]}
+ const [a,b]=BONES[part],A=K[source][a],B=K[source][b],D=target[a],E=target[b];
+ const ux=B[0]-A[0],uy=B[1]-A[1],vx=E[0]-D[0],vy=E[1]-D[1],la=hypot(ux,uy),lb=hypot(vx,vy);
+ if(la<1||lb<1)return [1,0,0,1,0,0];
+ const scale=Math.max(.65,Math.min(1.55,lb/la)),c=(ux*vx+uy*vy)/(la*lb)*scale,s=(ux*vy-uy*vx)/(la*lb)*scale;
+ return [c,s,-s,c,D[0]-c*A[0]+s*A[1],D[1]-s*A[0]-c*A[1]];
+}
+function warpCanvas(src,affine){
+ const c=make(),g=c.getContext('2d');
+ g.setTransform(...affine);g.drawImage(src,0,0);return c;
+}
+function warp(source,part,target){return warpCanvas(pieces[source][part],affineFrom(source,part,target))}
+function tipAt(part,t){
+ if(t<=0)return tipRepair['0:'+part];if(t>=7)return tipRepair['7:'+part];
+ const i=Math.floor(t),u=t-i,res=[];
+ for(let axis=0;axis<2;axis++){
+  const value=j=>tipRepair[j+':'+part][axis];
+  const slope=j=>{if(j===0)return value(1)-value(0);if(j===7)return value(7)-value(6);
+   const a=value(j)-value(j-1),b=value(j+1)-value(j);return a*b>0?2*a*b/(a+b):0};
+  res.push((2*u**3-3*u*u+1)*value(i)+(u**3-2*u*u+u)*slope(i)+(-2*u**3+3*u*u)*value(i+1)+(u**3-u*u)*slope(i+1));
+ }
+ return res;
+}
+function handWarp(source,part,target,time){
+ const hand=part===3?12:13,wrist=part===3?4:6;
+ const a=K[source][wrist],b=tips[source+':'+part].tip,
+  x=target[wrist],y=tipAt(part,time),
+  va=[b[0]-a[0],b[1]-a[1]],vb=[y[0]-x[0],y[1]-x[1]],la=hypot(...va),lb=hypot(...vb);
+ if(la<1||lb<1)return make();
+ const theta=Math.atan2(vb[1],vb[0])-Math.atan2(va[1],va[0]),
+  scale=Math.max(.74,Math.min(1.24,lb/la)),
+  c=Math.cos(theta)*scale,s=Math.sin(theta)*scale;
+ const orig=pieces[source][hand],bytes=sourcePixels(orig),copy=new Uint8ClampedArray(bytes),
+  ux=va[0]/la,uy=va[1]/la;
+ for(let yy=0;yy<H;yy++)for(let xx=0;xx<W;xx++){
+  const q=(yy*W+xx)*4,along=(xx-a[0])*ux+(yy-a[1])*uy,
+   across=Math.abs((xx-a[0])*uy-(yy-a[1])*ux);
+  if(along< -4||along>la+5||across>14)copy[q+3]=0;
+ }
+ const texture=make(),g=ctx(texture),img=g.createImageData(W,H);img.data.set(copy);g.putImageData(img,0,0);
+ return warpCanvas(texture,[c,s,-s,c,x[0]-c*a[0]+s*a[1],x[1]-s*a[0]-c*a[1]]);
+}
+function trimForearm(sprite,target,part){
+ const e=target[part===3?3:5],w=target[part===3?4:6],
+  vx=w[0]-e[0],vy=w[1]-e[1],len=hypot(vx,vy);
+ if(len<1)return sprite;
+ const u=[vx/len,vy/len],data=ctx(sprite).getImageData(0,0,W,H);
+ for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+  const q=(y*W+x)*4,projection=(x-w[0])*u[0]+(y-w[1])*u[1],
+   across=Math.abs((x-w[0])*u[1]-(y-w[1])*u[0]),
+   a=Math.max(0,Math.min(1,(2-projection)/3)),
+   suppression=Math.max(0,Math.min(1,(projection+1.2)/3.2))*Math.max(0,Math.min(1,(17-across)/4.5));
+  data.data[q+3]=Math.round(data.data[q+3]*a*(1-suppression));
+ }
+ ctx(sprite).putImageData(data,0,0);return sprite;
+}
+function mixPixels(a,b,t){
+ const A=sourcePixels(a),B=sourcePixels(b),out=make(),g=ctx(out),image=g.createImageData(W,H);
+ const d=image.data,wa=1-smooth(t),wb=smooth(t);
+ for(let p=0;p<W*H;p++){
+  const q=p*4,aw=A[q+3]*wa/255,bw=B[q+3]*wb/255,total=aw+bw;
+  if(total<1e-6)continue;
+  for(let k=0;k<3;k++)d[q+k]=Math.round((A[q+k]*aw+B[q+k]*bw)/total);
+  d[q+3]=Math.round(Math.min(255,total*255));
+ }
+ g.putImageData(image,0,0);return out;
+}
+
+function stabilizeSkin(sprite,a,b,halfWidth,overhang=4){
+ // Keep transformed ink near its moving anatomical bone.
+ const context=ctx(sprite),out=context.getImageData(0,0,W,H),d=out.data;
+ const vx=b[0]-a[0],vy=b[1]-a[1],len=Math.hypot(vx,vy);
+ if(len<1)return sprite;
+ const ux=vx/len,uy=vy/len;
+ for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+  const p=(y*W+x)*4;if(d[p+3]===0)continue;
+  const longitudinal=(x-a[0])*ux+(y-a[1])*uy;
+  const lateral=Math.abs((x-a[0])*uy-(y-a[1])*ux);
+  const side=Math.max(0,Math.min(1,(halfWidth+2-lateral)/2));
+  const rear=Math.max(0,Math.min(1,(longitudinal+overhang+2)/2));
+  const front=Math.max(0,Math.min(1,(len+overhang+2-longitudinal)/2));
+  d[p+3]=Math.round(d[p+3]*side*rear*front);
+ }
+ context.putImageData(out,0,0);return sprite;
+}
+function stabilizeHand(sprite,target,part,time){
+ const wrist=target[part===3?4:6],tip=tipAt(part,time);
+ return stabilizeSkin(sprite,wrist,tip,12,5);
+}
+
+function tween(i,local){
+ const t=i+local,target=Array.from({length:14},(_,j)=>pchip(j,t));
+ const c=make(),g=c.getContext('2d');
+ for(const part of ORDER){
+  if(part===12||part===13)continue;
+  if(part===3||part===5){
+   const A=trimForearm(warp(i,part,target),target,part),
+    B=trimForearm(warp(i+1,part,target),target,part);
+   const merged=mixPixels(A,B,local);
+   const elbow=part===3?3:5,wrist=part===3?4:6;
+   g.drawImage(stabilizeSkin(merged,target[elbow],target[wrist],10,4),0,0);
+  }else{
+   const from=local*8<SWITCHES[i][part]?i:i+1;
+   const sprite=warp(from,part,target);
+   if(part===2||part===4){
+    const elbow=part===2?3:5;
+    g.drawImage(stabilizeSkin(sprite,target[1],target[elbow],11,5),0,0);
+   }else{g.drawImage(sprite,0,0)}
+  }
+ }
+ for(const part of [5,3]){
+  // One complete hand drawing per in-between frame: drawing two
+  // different donor hands on top of each other makes ghost fingers.
+  // Keep the nearest high-fidelity donor for this interval; the tip and
+  // wrist remain continuously controlled by the interpolated rig.
+  const from=i+':'+part,to=(i+1)+':'+part;
+  const da=donor[from],db=donor[to];
+  const qa=tips[da+':'+part],qb=tips[db+':'+part];
+  // Same donor -> no hand texture transition.
+  // Distinct donors -> choose the source with more complete finger ink.
+  const chosen=da===db?da:(qa.count>=qb.count?da:db);
+  const stable=handWarp(chosen,part,target,t);
+  g.drawImage(stabilizeHand(stable,target,part,t),0,0);
+ }
+ return c;
+}
+
+function installSources(all){
+ const x0=Math.min(...all.map(c=>c.sourceX||0)),y0=Math.min(...all.map(c=>c.sourceY||0)),
+  x1=Math.max(...all.map(c=>(c.sourceX||0)+c.width)),y1=Math.max(...all.map(c=>(c.sourceY||0)+c.height)),
+  scale=Math.min((W-36)/(x1-x0),(H-34)/(y1-y0)),
+  ox=(W-(x1-x0)*scale)/2-x0*scale,oy=H-16-y1*scale;
+ sources=all.map(im=>{
+  const c=make(),g=c.getContext('2d');
+  g.drawImage(im,(im.sourceX||0)*scale+ox,(im.sourceY||0)*scale+oy,im.width*scale,im.height*scale);
+  return c;
+ });
+ sourceData=sources.map(sourcePixels);
+ initializePieces();
+}
+
+let startAttempted=false;
+async function prepare(){
+ if(busy||ready)return;
+ const art=window.DepthsFullArt;
+ if(!art?.state?.ready)return;
+ const originals=Array.from({length:8},(_,i)=>art.get('crouchProne',i));
+ if(originals.some(x=>!x))return;
+ busy=true;startAttempted=true;error='';
+ const status=document.getElementById('prone107status');
+ try{
+  if(status)status.textContent='Preparing 57 original-art transition frames…';
+  await new Promise(requestAnimationFrame);
+  installSources(originals);
+  const out=Array(COUNT);
+  for(let i=0;i<7;i++)for(let j=0;j<STEP;j++){
+   const n=i*STEP+j;
+   out[n]=j===0?sources[i]:tween(i,j/STEP);
+   if(n%2===0)await new Promise(requestAnimationFrame);
+  }
+  out[56]=sources[7];
+  frames=out;ready=true;
+  if(status)status.textContent='✅ 107 smooth crouch ↔ prone rig ready (57 frames).';
+ }catch(ex){
+  error=String(ex?.message||ex);
+  if(status)status.textContent='⚠ 107 unavailable; existing 050F motion preserved: '+error;
+ }finally{busy=false}
+}
+function draw(g,x,y,dir,rigPose){
+ if(!ready)return false;
+ const t=Math.min(7,Math.max(0,(rigPose-3)/3*7));
+ const n=Math.max(0,Math.min(56,Math.round(t*8)));
+ const frame=frames[n];
+ if(!frame)return false;
+ const hip=pchip(0,t);
+ // A constant source-art scale, same crouched height and prone length.
+ // Hip tracks the locked game cell X; source drawing baseline ~251.
+ const scale=.94;
+ g.save();g.translate(x,y);g.scale(dir,1);
+ g.drawImage(frame,-hip[0]*scale,-251*scale,W*scale,H*scale);
+ g.restore();
+ return true;
+}
+window.addEventListener('depths-art-status',()=>{if(!ready){error='';prepare()}});
+function tick(){
+ if(!ready&&!busy&&!error)prepare();
+ if(!ready)requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+return{ready:()=>ready,draw,status:()=>ready?'ready':busy?'building':error||'waiting'};
+})();
+</script>
+<script>
+/* Prone Crawl 201: Original-video loop. 38 authentic 24fps crawl frames
+   extracted from the user's 145-frame source, not articulated approximations.
+   16-step alpha quantization for a compact, self-contained GitHub Pages file. */
+window.DepthsProne200=(()=>{
+ const atlas=new Image();
+ atlas.src='data:image/png;base64,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';
+ const COLS=10,CW=330,CH=102,COUNT=38;
+ // 202: locomotion clock belongs to this animation, NEVER to the global game clock.
+ // Freeze the actual last crawl drawing on idle; resume without switching sprites.
+ let phase=0,lastDrawTime=null,wasMoving=false;
+ function ready(){return atlas.complete&&atlas.naturalWidth>0}
+ function reset(){phase=0;lastDrawTime=null;wasMoving=false}
+ function frame(){return Math.floor(phase)%COUNT}
+ function draw(g,x,y,dir,clockMs,moving){
+  if(!ready())return false;
+  if(lastDrawTime!==null&&moving){
+   const dt=Math.min(60,Math.max(0,clockMs-lastDrawTime));
+   phase=(phase+dt*24/1000)%COUNT;
+  }
+  lastDrawTime=clockMs;wasMoving=!!moving;
+  const n=frame();
+  g.save();g.translate(x,y);g.scale(dir,1);
+  // Preserve the original frame's physical proportions and floor datum.
+  const w=203,h=203*CH/CW;
+  g.drawImage(atlas,(n%COLS)*CW,Math.floor(n/COLS)*CH,CW,CH,-w*.5,-h,w,h);
+  g.restore();
+  return true;
+ }
+ return{ready,draw,reset,frame};
+})();
+</script>
+
+<script>
+(()=>{
+const $=id=>document.getElementById(id),canvas=$('world'),g=canvas.getContext('2d');
+const CW=28,TH=72,N=130,BASE=365,START=6,EDGE=2;
+// Video-derived 12-frame transparent vector sheet: 4 columns x 3 rows.
+// Sprite is only used for upright walking. The original joint rig remains
+// responsible for every other state (idle, mining, crawling, transitions).
+const walkSheet=new Image();walkSheet.src='assets/miner-walk-vector.svg';
+let walkSheetReady=false,spriteEnabled=true,gameRigWalkEnabled=true,walkFrameTime=0,walkReverse=true,walkCycleSpeed=1,smoothSwing=false,rigBlend=0,walkGrounded=true,walkSeamBlend=false;
+// Pass 1: original full-detail source sprites, but a walk cycle scaled to
+// actual movement distance instead of the legacy 3-cells-per-cycle pace.
+// Keep the old behavior as an A/B option until phone visual approval.
+let walkPolish=false,footPlant=true,uprightPhase=0,uprightWasMoving=false,uprightStopFrame=null;
+// W6 source-derived stance anchoring is rendered independently of collisions.
+// Never change gameplay/world position to force boot planting.
+let stanceLock=false,stanceOffset=0,stanceAnchor=null,stanceSide=null,stanceDir=null,stanceLastFrame=null,stanceLastTime=0;
+const STANCE_MAX_SHIFT=9;
+function walkingStanceOffset(img,ref,frame,dir,worldX,scale,t){
+ if(!stanceLock||!footPlant||!img?.isOriginalArtwork||!Number.isFinite(ref.contactX)){
+  stanceOffset=0;stanceAnchor=null;stanceSide=null;return 0;
+ }
+ const local=(ref.contactX-ref.centerX)*scale;
+ const contact=worldX+dir*local;
+ const side=ref.contactSide||'unknown';
+ const switched=stanceAnchor===null||stanceDir!==dir||stanceSide!==side||
+   (stanceLastFrame!==null&&Math.abs(frame-stanceLastFrame)>2);
+ if(switched){stanceAnchor=contact+stanceOffset;stanceSide=side;stanceDir=dir;}
+ const wanted=clamp(stanceAnchor-contact,-STANCE_MAX_SHIFT,STANCE_MAX_SHIFT);
+ const elapsed=stanceLastTime?Math.min(80,Math.max(0,t-stanceLastTime)):16;
+ const response=1-Math.exp(-elapsed/45);
+ stanceOffset+=(wanted-stanceOffset)*response;
+ stanceLastTime=t;stanceLastFrame=frame;
+ return stanceOffset;
+}
+// The 049A source rig runs at .6 * .65 = .39 cycles/second.
+// At 1.5 world cells/second, 1 cycle spans ~3.85 cells (108 world px).
+const UPRIGHT_CELLS_PER_CYCLE=1.25;
+const APPROVED_WALK_CELLS_PER_CYCLE=1.5/.39;
+const APPROVED_WALK_CELLS_PER_SECOND=3.10; // brisk walk; stride-to-travel timing stays locked
+function uprightFrame(){
+ const n=Math.floor(((uprightPhase%1+1)%1)*7*walkCycleSpeed)%7;
+ return walkReverse?6-n:n;
+}
+// Visual position is continuous; p.x remains integer for excavation and collisions.
+let visualX=START,visualMoving=false,crouchPhase=0,kneelEntryPhase=0,kneelCrouchPhase=0,kneelActive=false,pronePhase=0;
+// Walk-stop staging uses only approved source walk frames, then the established
+// standCrouch frame 0 idle pose. The body never moves in world space while
+// planting its final foot. The ordinary clip-boundary fade handles settling.
+const WALK_STOP_FRAME_SECONDS=.065;
+let walkStop=null,walkStopCount=0;
+function startWalkStop(frame){
+ const target=frame<=3?0:6; // closest end-of-stride source pose
+ walkStop={from:frame,to:target,elapsed:0,frame,done:false};
+}
+function tickWalkStop(dt){
+ if(!walkStop||walkStop.done)return;
+ walkStop.elapsed+=dt;
+ const steps=Math.min(Math.abs(walkStop.to-walkStop.from),
+   Math.floor(walkStop.elapsed/WALK_STOP_FRAME_SECONDS));
+ walkStop.frame=walkStop.from+Math.sign(walkStop.to-walkStop.from)*steps;
+ if(walkStop.frame===walkStop.to){
+  // Hold the final source contact pose long enough to render at least
+  // one real planted frame before switching to the fixed standing idle.
+  const contactAt=Math.abs(walkStop.to-walkStop.from)*WALK_STOP_FRAME_SECONDS;
+  if(walkStop.elapsed>=contactAt+WALK_STOP_FRAME_SECONDS){
+   walkStop.done=true;walkStopCount++;
+  }
+ }
+}
+// Active excavation is specific to one solid-rock cell. Existing openings
+// are always walkable in any mode, even below the selected cut height.
+let activeExcavationCell=null,activeExcavationDir=0,widenArmed=false;
+// Reposition using the APPROVED locomotion sprites rather than switching
+// directly from one mining pose to another. Only mining-to-mining steps scoot.
+// Repositioning while mining is deliberate and heavy, not a rapid teleport.
+// Both the movement interpolation and sprite-frame progression use this clock.
+const SCOOT_SECONDS={stand:1.05,crouch:1.25,prone:1.50};
+let scoot=null,pendingScoot=false,scootsCompleted=0,scootEnabled=true;
+// The original approved locomotion/mine PNGs supply every pose.
+// A scoot is brace (stationary), pull (travel), settle (stationary).
+// Movement and animation sample the SAME three-phase clock.
+const SCOOT_BRACE=.18,SCOOT_PULL=.64;
+function scootPhase(){
+ if(!scoot)return null;
+ const t=clamp(scoot.elapsed/scoot.duration,0,1);
+ if(t<SCOOT_BRACE)return {name:'brace',fraction:t/SCOOT_BRACE};
+ if(t<SCOOT_BRACE+SCOOT_PULL)return {name:'pull',fraction:(t-SCOOT_BRACE)/SCOOT_PULL};
+ return {name:'settle',fraction:(t-SCOOT_BRACE-SCOOT_PULL)/(1-SCOOT_BRACE-SCOOT_PULL)};
+}
+function beginMiningScoot(from,to,pose,dir){
+ const kind=pose>=5?'prone':pose>=2?'crouch':'stand';
+ scoot={from,to,pose,dir,kind,elapsed:0,duration:SCOOT_SECONDS[kind]};
+ digElapsed=0;rigSwing=0;
+}
+// One pointer works anywhere on the canvas; gestures are relative to the
+// initial touch so the thumb never needs to reach an on-screen joystick.
+let canvasDrag=null,aimTarget=null;
+// Raycast through the tunnel geometry from the miner toward the dragged direction.
+// The first rock tile intersecting the ray is the target; thumb location does
+// not need to line up with the tile. Existing open cells do not block the ray.
+function aimOrigin(){
+ return {x:(visualX+.5)*CW,
+         y:BASE-(rigPose<1?115:rigPose<4?91:30)};
+}
+function traceAim(dx,dy){
+ const origin=aimOrigin(),length=Math.hypot(dx,dy)||1;
+ const vx=dx/length,vy=dy/length;
+ const reach=7*CW; // ray can traverse multiple open cells
+ const end={x:origin.x+vx*reach,y:origin.y+vy*reach};
+ const startLayer=Math.floor((BASE-origin.y)/TH);
+ let lastColumn=-1,lastLayer=-1;
+ for(let dist=2;dist<=reach;dist+=2){
+  const x=origin.x+vx*dist,y=origin.y+vy*dist;
+  const col=Math.floor(x/CW),layer=Math.floor((BASE-y)/TH);
+  if(col<EDGE||col>=N||y<BASE-3*TH||y>=BASE)break;
+  if(col===lastColumn&&layer===lastLayer)continue;
+  lastColumn=col;lastLayer=layer;
+  if(layer>=0&&layer<3&&layer>=hAt(col)){
+   return {x:col,layer,hitX:x,hitY:y,rayX:origin.x,rayY:origin.y,dir:vx>=0?1:-1};
+  }
+ }
+ return {x:null,layer:null,hitX:end.x,hitY:end.y,rayX:origin.x,rayY:origin.y,dir:vx>=0?1:-1};
+}
+function normalizeForwardAim(hit,dx,dy){
+ // Shallow forward beams follow the chosen tunnel clearance so the miner
+ // cuts the next LOWER strip rather than stalling on rock high above his route.
+ // Steeper diagonal/upward beams keep precise raycast ceiling selection.
+ if(hit.x!==null&&Math.abs(dx)>Math.abs(dy)*2.5&&
+    hAt(hit.x)<target){
+   return {...hit,layer:hAt(hit.x),
+     hitY:BASE-(hAt(hit.x)+.5)*TH};
+ }
+ return hit;
+}
+function heldAimHit(){
+ if(!canvasDrag||canvasDrag.action!=='aim'||mode!=='excavate'||phase!=='manual')return null;
+ const {dx,dy}=canvasDrag;
+ if(Math.hypot(dx,dy)<19)return null;
+ const hit=normalizeForwardAim(traceAim(dx,dy),dx,dy);
+ return {...hit,pose:poseFor(p.x),done:false};
+}
+function retargetHeldAim(){
+ const next=heldAimHit();
+ if(!next)return false;
+ aimTarget=next;
+ digElapsed=0;rigSwing=0;
+ return true;
+}
+function shouldApproachAimedFace(){
+ if(!aimTarget||!canvasDrag||canvasDrag.action!=='aim'||aimTarget.x===null)return false;
+ const {dx,dy}=canvasDrag;
+ // Only a predominantly FORWARD aiming gesture advances the miner.
+ // Upward pocket aiming stays planted and never forces a prone crawl.
+ if(Math.abs(dx)<Math.abs(dy)*2.5||aimTarget.layer!==0)return false;
+ const dir=Math.sign(dx);
+ if(!dir||aimTarget.x*dir<=(p.x+dir)*dir)return false;
+ const next=p.x+dir;
+ if(next<EDGE||next>=N||hAt(next)===0)return false;
+ // Do not enter a passage lower than the present one while overhead mining.
+ if(hAt(next)<hAt(p.x))return false;
+ return true;
+}
+function validAimTile(t){
+ return !!t&&t.x!==null&&t.layer!==null&&
+ t.x>=EDGE&&t.x<N&&t.layer===hAt(t.x)&&
+ t.layer<target&&t.layer<3&&(t.layer!==2||supported(t.x));
+}
+function aimReady(){
+ return phase==='manual'&&mode==='excavate'&&aimTarget&&!aimTarget.done&&
+ !transitionHold&&pendingStepTo===null&&pendingRise===null&&pendingLower===null&&
+ Math.abs(visualX-p.x)<.0001&&poseReady(aimTarget.pose)&&validAimTile(aimTarget);
+}
+// Short crossfades only when the animation STATE changes (never on frame advances).
+let lastDrawnMotion=null,blendFromMotion=null,blendStartMs=0;
+const MOTION_BLEND_MS=145;
+const WALK_CELLS_PER_SECOND=5,WALK_CELLS_PER_CYCLE=3.0;
+// Distinct locomotion rates, in world cells/sec. Low crawling is never faster
+// than upright walking and uses the same continuous world-position clock.
+const CROUCH_CELLS_PER_SECOND=2.15,CRAWL_CELLS_PER_SECOND=1.45;
+function travelSpeedForPose(pose){
+ return pose>=4.5?CRAWL_CELLS_PER_SECOND:pose>=1?CROUCH_CELLS_PER_SECOND:
+   gameRigWalkEnabled?APPROVED_WALK_CELLS_PER_SECOND:WALK_CELLS_PER_SECOND;
+}
+// Heavy pickaxe: one deliberate wind-up, contact, and recovery every two seconds.
+const SWING_SECONDS=2.0,SWING_IMPACT_FRAME=5;
+const MINING_FRAME_ORDER={
+ standMine:[4,7,0,1,2,3,4,4],
+ crouchMine:[0,1,3,4,5,6,7,7],
+ proneMine:[1,1,2,0,3,4,7,7]
+};
+// Slow wind-up, rapid impact, and recovery in each two-second heavy swing.
+function swingPhase(t){
+ const p=((t%1)+1)%1;
+ const timeline=[[0,0],[.40,.27],[.55,.40],[.675,.625],[.83,.83],[1,1]];
+ for(let i=1;i<timeline.length;i++){
+  if(p<=timeline[i][0]){
+   const [a,b]=timeline[i-1],[c,d]=timeline[i];
+   let k=(p-a)/(c-a);k=k*k*(3-2*k);
+   return b+(d-b)*k;
+  }
+ }
+ return 1;
+}
+function miningTween(name){
+ const order=MINING_FRAME_ORDER[name]||MINING_FRAME_ORDER.standMine;
+ const pos=swingPhase(rigSwing)*7;
+ const i=Math.min(7,Math.floor(pos)),j=Math.min(7,i+1);
+ const mix=Math.max(0,Math.min(1,pos-i));
+ return {from:order[i],to:order[j],mix:mix*mix*(3-2*mix)};
+}
+// Retain the original video frames in their recorded sequence.
+// Do not scramble poses or superimpose semi-transparent duplicates.
+function miningFrame(name){return Math.min(7,Math.floor(swingPhase(rigSwing)*8));}
+walkSheet.onload=()=>{walkSheetReady=true};walkSheet.onerror=()=>{walkSheetReady=false;$('sprite').textContent='⚠ Sprite unavailable'};
+let heights,braces,p,mode,target,bag,mined,trips,phase,returnX,moveDir=0,holding=false,last=0,digElapsed=0,fx=[],cam=0,showTime=0,notice='',elapsed=0,roofTarget=-1,shake=0,rigPose=0,rigStride=0,rigSwing=0,zoomed=true,transitionGoal=null,transitionHold=false,animState="IDLE",lockedX=null,lockedCam=null,lockViolations=0,pendingStepTo=null,pendingRise=null,pendingLower=null;
+const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
+let activeMotion='RIG';
+function needsExcavation(x,dir){
+ if(phase!=='manual'||mode!=='excavate'||!dir||x<EDGE||x>=N)return false;
+ const open=hAt(x);
+ return open===0||(x===activeExcavationCell&&dir===activeExcavationDir&&open<target)||
+  (widenArmed&&open>0&&open<target);
+}
+function nextDigPose(){
+ if(aimTarget)return null;
+ if(phase!=='manual'||mode!=='excavate'||!moveDir)return null;
+ const x=p.x+moveDir;
+ if(!needsExcavation(x,moveDir))return null;
+ const targetPose=target===1?6:target===2?3:0;
+ return Math.max(poseFor(p.x),targetPose);
+}
+// Every animation is drawn at the SAME character scale. The sprite atlas
+// contains per-frame art at different source pixel sizes, so each frame is
+// trimmed to its visible bounds before fitting to an anatomical height.
+// One physical pixel scale for every frame of an animation. Pose changes
+// happen inside the source artwork instead of stretching every frame.
+// Source-derived anatomy calibration (Prototype 020).
+// All 9 animation sets are compared to the SAME miner:
+// upright height 176; crouch height 119; fully prone length 203 / height 65.
+// Dimensions below are measured from the 8-frame decoded source atlas,
+// excluding the damaged crouchWalk frames. Their scale is never recomputed
+// from the active frame, so movement cannot cause body-size pulsing.
+const CHARACTER_SIZE={standH:176,crouchH:119,proneW:203,proneH:65};
+const MOTION_CALIBRATION={
+ // x and y scale are distinct only where source video anatomy changes.
+ walk:{sx:176/169.5,sy:176/169.5},
+ standMine:{sx:176/167,sy:176/167},
+ standCrouch:{sx:176/172,sy:176/172},
+ crouchWalk:{sx:119/102,sy:119/102},
+ crouchMine:{sx:119/102.5,sy:119/102.5},
+ crouchProne:{sx:119/110,sy:119/110},
+ proneCrawl:{sx:203/157.5,sy:65/44},
+ proneMine:{sx:203/100.5,sy:65/30},
+ // Stand-to-prone source ends unusually tall (84px rather than 60px).
+ // Interpolate corrections smoothly across its *transition sequence*;
+ // do not use a frame's changing bounds to compute its scale.
+ standProne:{sx:176/172,sy:176/172,endX:203/182,endY:65/84}
+};
+function motionScale(name,frame){
+ const cal=MOTION_CALIBRATION[name]||MOTION_CALIBRATION.walk;
+ if(name!=='standProne')return {sx:cal.sx,sy:cal.sy};
+ const t=Math.max(0,Math.min(1,frame/7));
+ const smooth=t*t*(3-2*t);
+ return {sx:cal.sx+(cal.endX-cal.sx)*smooth,sy:cal.sy+(cal.endY-cal.sy)*smooth};
+}
+// The selected excavation clearance determines the mining pose. Never start
+// mining until that pose is fully reached and the previous step is complete.
+function miningReady(){
+ if(scoot)return false;
+ if(aimTarget)return !!aimReady();
+ if(phase!=='manual'||mode!=='excavate'||!moveDir||transitionHold||
+    pendingRise!==null||pendingLower!==null||pendingStepTo!==null||
+    Math.abs(visualX-p.x)>0.0001)return false;
+ const face=p.x+moveDir;
+ if(!needsExcavation(face,moveDir))return false;
+ const required=Math.max(poseFor(p.x),target===1?6:target===2?3:0);
+ return poseReady(required);
+}
+function animationChoice(moving,digging,poseValue){
+ if(transitionHold)return poseValue<3?['standCrouch',Math.round(clamp(poseValue/3,0,1)*7)]:['crouchProne',Math.round(clamp((poseValue-3)/3,0,1)*7)];
+ if(scoot){
+  const phase=scootPhase();
+  const mine=scoot.kind==='prone'?'proneMine':scoot.kind==='crouch'?'crouchMine':'standMine';
+  const travel=scoot.kind==='prone'?'proneCrawl':scoot.kind==='crouch'?'crouchWalk':'walk';
+  // Keep both bookends anchored in the original mining pose.
+  // During the middle, advance only through a short sequence of actual
+  // source travel frames. Never blend ghost images or scale the skeleton.
+  if(phase.name==='brace')return [mine,0];
+  if(phase.name==='settle')return [mine,0];
+  const frame=Math.min(6,1+Math.floor(phase.fraction*6));
+  return [travel,frame];
+ }
+ if(digging){
+  const name=poseValue<1?'standMine':poseValue<4?'crouchMine':'proneMine';
+  return [name,miningFrame(name)];
+ }
+ if(moving){
+  const name=poseValue<1?'walk':poseValue<4?'crouchWalk':'proneCrawl';
+  if(name==='walk'){
+   // An upright stride cycle is driven only by upright distance travelled.
+   // Do not spend walk frames while crawling, scooting, or changing posture.
+   if(walkPolish)return ['walk',uprightFrame()];
+   const n=Math.floor(walkFrameTime*7*walkCycleSpeed)%7;
+   return ['walk',walkReverse?6-n:n];
+  }
+  const n=Math.floor(walkFrameTime*8*walkCycleSpeed)%8;
+  return [name,n];
+ }
+ // Every upright stop resolves to ONE definite, feet-down standing pose.
+ // The approved source standCrouch frame 0 shows both boots grounded;
+ // freezing an arbitrary walk frame left a leg raised indefinitely.
+ // Existing clip-boundary interpolation supplies the short settle.
+ if(poseValue<1&&walkStop&&!walkStop.done)return ['walk',walkStop.frame];
+ if(poseValue<1)return ['standCrouch',0];
+ return poseValue<1?['standCrouch',0]:poseValue<4?['crouchProne',0]:['proneCrawl',0];
+}
+function say(s){notice=s;$('message').textContent=s}
+function hAt(x){return x<0||x>=N?0:heights[x]}
+function supported(x){return [...braces].some(i=>Math.abs(x-i)<=4)}
+function status(){return p.x<=EDGE+1?'At shaft ledge':phase==='return'?'Returning with full bag':phase==='dump'?'Dumping spoil':phase==='resume'?'Returning to excavation':'Excavating'};
+function posture(){let h=hAt(p.x);return h>=3?'Standing':h>=2?'Crouching':'Crawling'}
+const poseFor=x=>hAt(x)>=3?0:hAt(x)===2?3:6;
+function poseReady(goal){return Math.abs(rigPose-goal)<0.0001}
+function holdForPose(goal){
+ if(poseReady(goal))return false;
+ transitionGoal=goal;transitionHold=true;animState="TRANSITION";
+ kneelActive=(goal===0||goal===3)&&rigPose<=3;
+ if(kneelActive){kneelEntryPhase=uprightPhase;kneelCrouchPhase=Math.round(crouchPhase*2)/2;if(goal===3)crouchPhase=kneelCrouchPhase;}
+ lockedX=p.x;
+ // Camera follows world between steps, but must not scroll during body movement.
+ // Snap once at the boundary and freeze for the entire posture animation.
+ lockedCam=(p.x+.5)*CW;cam=lockedCam;
+ visualMoving=false;
+ elapsed=0;
+ return true;
+}
+function visibleTransition(){return transitionHold||!poseReady(poseFor(p.x))}
+function transitionName(){return rigPose>transitionGoal?'Getting up':'Lowering down'}
+// The test course is a world preset, not a change to excavation behavior.
+let longWalkCourse=true;
+const WALK_COURSE_LAST=35;
+function reset(){
+heights=Array(N).fill(0);
+for(let x=EDGE;x<=WALK_COURSE_LAST;x++)heights[x]=x<=7?2:x<=15?1:x<=21?2:x<=29?1:2;
+braces=new Set();p={x:START,dir:1};mode='explore';target=3;bag=0;mined=0;trips=0;phase='manual';returnX=START;moveDir=0;holding=false;last=0;digElapsed=0;fx=[];cam=0;showTime=0;roofTarget=-1;shake=0;rigPose=3;rigStride=0;rigSwing=0;transitionGoal=null;transitionHold=false;animState="IDLE";lockedX=null;lockedCam=null;lockViolations=0;pendingStepTo=null;pendingRise=null;pendingLower=null;pendingScoot=false;scoot=null;scootsCompleted=0;activeExcavationCell=null;activeExcavationDir=0;widenArmed=false;canvasDrag=null;aimTarget=null;walkFrameTime=0;uprightPhase=0;uprightWasMoving=false;uprightStopFrame=null;walkStop=null;walkStopCount=0;stanceOffset=0;stanceAnchor=null;stanceSide=null;stanceDir=null;stanceLastFrame=null;stanceLastTime=0;visualX=START;visualMoving=false;lastDrawnMotion=null;blendFromMotion=null;blendStartMs=0;elapsed=0;crouchPhase=0;pronePhase=0;kneelEntryPhase=0;kneelCrouchPhase=0;kneelActive=false;cam=(START+.5)*CW;window.DepthsProne200?.reset();
+$('progress').style.width='0%';
+$('walkCourse').textContent=longWalkCourse?'🚶 Long walk test ON · 40 cells':'🚶 Long walk test OFF · mining map';
+$('walkCourse').classList.toggle('selected',longWalkCourse);
+say('Hold RIGHT into the prone tunnel, stop and reverse, then repeat. Check the skin and both transitions.');
+update();
+}
+function update(){
+$('pose').textContent=visibleTransition()?(transitionGoal!==null&&rigPose>transitionGoal?'Standing up…':'Lowering down…'):(rigPose>=5.5?'Prone':rigPose>=2.5?'Crouching':'Standing');$('bag').textContent=bag+' / 8';$('mined').textContent=mined;$('trips').textContent=trips;$('bagbar').style.width=(bag/8*100)+'%';
+for(const k of ['explore','excavate'])$(k).classList.toggle('selected',mode===k);
+$('widen').textContent=widenArmed?'⛏ Widen pocket: ARMED':'⛏ Widen pocket: OFF';
+$('widen').classList.toggle('selected',widenArmed);
+for(const [k,n] of [['crawl',1],['crouch',2],['stand',3]])$(k).classList.toggle('selected',target===n);
+$('brace').disabled=hAt(p.x)<2||supported(p.x)||phase!=='manual';
+$('dump').disabled=phase!=='manual'||bag===0;
+$('phase').textContent=transitionHold?(transitionName()+' · position locked'):(status()+' · '+(phase==='manual'&&moveDir&&mode==='excavate'?'Mining '+Math.floor(digElapsed/4*100)+'%':'4 sec per strip'));
+$('debug').textContent='Animation: '+activeMotion+' ('+(window.DepthMotions?.stats().ready||0)+'/9 loaded) | State: '+animState+' | Cell: '+p.x.toFixed(2)+' | Visual X: '+visualX.toFixed(2)+(lockedX!==null?' (lock '+lockedX.toFixed(2)+')':'')+' | Pose: '+rigPose.toFixed(2)+'/6 | Camera: '+(transitionHold?'LOCKED':'FOLLOW')+(lockViolations?' | ⚠ X changed during transition':'');
+}
+// World-space contact point for the next layer of unbroken rock.
+function rockImpactPoint(){
+ const face=aimTarget?.x??p.x+moveDir;
+ const layer=aimTarget?.layer??Math.max(0,hAt(face));
+ return aimTarget?{x:(face+.5)*CW,y:BASE-(layer+.47)*TH}:
+  {x:(moveDir>0?face*CW+4:(face+1)*CW-4),y:BASE-(layer+.47)*TH};
+}
+function emitImpact(strength=1){
+ if(!miningReady())return;
+ const point=rockImpactPoint();
+ const now=performance.now();
+ fx.push({kind:'impact',x:point.x,y:point.y,t:now,strength,dir:moveDir,
+          seed:(mined*17+Math.floor(rigSwing*11))*13});
+ // Small strike feedback; the actual rock break is more pronounced.
+ shake=Math.max(shake,.9);
+}
+function mineAt(x,aimed=false){
+const ceiling=aimed?aimTarget.layer+1:target;
+if(x<EDGE||x>=N||hAt(x)>=ceiling)return false;
+if(ceiling===3&&hAt(x)>=2&&!supported(x)){say('⚠ Standing height needs structural support. Stand in a crouch tunnel and install a brace.');return false}
+if(ceiling===3&&!supported(x)&&hAt(x)===0){ // allow making first two levels; third level will need support
+}
+// Emit the fracture before the layer disappears so debris originates at
+// the impact plane rather than suddenly appearing out of the empty tunnel.
+const breakPoint=rockImpactPoint();
+heights[x]++;bag++;mined++;shake=3.2;digElapsed=0;rigSwing=0;
+if(heights[x]>=ceiling){activeExcavationCell=null;activeExcavationDir=0;}
+fx.push({kind:'break',x:breakPoint.x,y:breakPoint.y,t:performance.now(),
+         strength:1,dir:moveDir,seed:mined*37});
+say('CRACK! A thin horizontal section breaks free. The loose rock goes into the duffle bag ('+bag+'/8).');
+if(bag>=8){returnX=p.x;phase='return';moveDir=0;aimTarget=null;canvasDrag=null;say('Duffel full! The miner packs up, heads back through the tunnel, and dumps the spoil over the shaft ledge.')}
+return true;
+}
+function setMode(v){if(phase!=='manual')return;mode=v;digElapsed=0;moveDir=0;if(v!=='excavate'){activeExcavationCell=null;activeExcavationDir=0;widenArmed=false;aimTarget=null;}say(v==='explore'?'Pickaxe stowed. Hold LEFT or RIGHT to travel through the tunnel.':'Pickaxe ready. Hold a direction and the miner excavates the selected tunnel height.');update()}
+function setTarget(v){target=v;digElapsed=0;aimTarget=null;say(v===1?'Prospecting: one tile tall, four narrow sections per full tunnel-length tile.':v===2?'Working passage: two tiles of height. More excavation, easier travel.':'Standing tunnel: three tiles of height, supports required before widening above two.');update()}
+function step(d,miningScoot=false){
+p.dir=d;const x=p.x+d;if(x<EDGE||x>=N||hAt(x)===0)return false;
+// Lower BEFORE entering a low ceiling. Rise only after entering high space.
+const nextPose=poseFor(x),currentPose=poseFor(p.x);
+if(nextPose>currentPose&&!poseReady(nextPose)){
+ pendingStepTo=x;pendingScoot=miningScoot;
+ // Do not begin kneeling while the previous tile movement is unfinished.
+ if(Math.abs(visualX-p.x)>0.0001){pendingLower=nextPose;return false;}
+ holdForPose(nextPose);return false;
+}
+p.x=x;
+if(miningScoot&&scootEnabled)beginMiningScoot(visualX,x,nextPose,d);
+if(nextPose<currentPose)pendingRise=nextPose;
+return true;
+}
+function action(dt){
+if(scoot)return; // no new cut until the small forward movement is complete
+if(transitionHold){if(p.x!==lockedX){lockViolations++;p.x=lockedX}return;}
+// Finish approaching the boundary before changing posture. This prevents
+// snapping the rendered miner forward when entering taller clearance.
+if(pendingRise!==null||pendingLower!==null){
+ if(Math.abs(visualX-p.x)>0.0001)return;
+ const next=pendingRise!==null?pendingRise:pendingLower;
+ pendingRise=null;pendingLower=null;
+ holdForPose(next);return;
+}
+const prepPose=nextDigPose();
+if(prepPose!==null&&!poseReady(prepPose)){if(Math.abs(visualX-p.x)>0.0001)return;holdForPose(prepPose);digElapsed=0;return;}
+if((phase==='return'||phase==='resume')&&!poseReady(poseFor(p.x))){if(Math.abs(visualX-p.x)>0.0001)return;holdForPose(poseFor(p.x));return;}
+if(phase==='return'||phase==='resume'){
+// On the 050B walking A/B test, let the visible feet catch up before
+// scheduling the next tile, so collision position never outruns the rig.
+// Do not schedule another crawl tile before the visible body has traversed
+// the preceding one. This prevents world movement outrunning prone animation.
+const continuousRigTravel=gameRigWalkEnabled;
+if(continuousRigTravel&&Math.abs(visualX-p.x)>.001)return;
+if(!continuousRigTravel){elapsed+=dt;if(elapsed<0.20)return;elapsed-=0.20;}
+const destination=phase==='return'?EDGE:returnX;
+if(p.x===destination){
+ // Finish the last visible walking step before dumping or ending auto-travel.
+ if(Math.abs(visualX-p.x)>0.0001)return;
+ if(phase==='return'){phase='dump';showTime=1.8;say('The miner reaches the shaft, swings the duffle bag over the ledge, and pours the rubble into the darkness.')}
+ else{phase='manual';say('Back at the mining face. Hold RIGHT to continue excavating.')}
+ return;
+}
+step(destination>p.x?1:-1);
+return;
+}
+if(phase==='dump'){
+showTime-=dt;if(showTime<=0){bag=0;trips++;phase='resume';elapsed=0;say('Spoil dumped into the abyss. Returning to the tunnel face.')}
+return;
+}
+// Aimed cuts use the drag target rather than moveDir. The miner can stand
+// motionless in a pocket and raise one specific ceiling section to the left.
+if(aimTarget){
+ moveDir=0;
+ if(bag>=8){returnX=p.x;aimTarget=null;canvasDrag=null;phase='return';return;}
+ if(aimTarget.done){
+  if(!retargetHeldAim()){digElapsed=0;return;}
+ }
+ if(shouldApproachAimedFace()){
+  // Complete each small step before attempting the next excavation;
+  // preserve the existing smooth walking and posture transition system.
+  if(Math.abs(visualX-p.x)>.0001){digElapsed=0;return;}
+  elapsed+=dt;
+  if(elapsed>=.2){
+   elapsed-=.2;
+   if(step(Math.sign(canvasDrag.dx),
+      Math.abs(aimTarget.x-(p.x+Math.sign(canvasDrag.dx)))===1)) retargetHeldAim();
+  }
+  digElapsed=0;return;
+ }
+ if(!aimReady()){digElapsed=0;return;}
+ digElapsed+=dt;
+ if(digElapsed>=4){
+  const finished=mineAt(aimTarget.x,true);
+  if(finished&&phase==='manual'&&canvasDrag?.action==='aim'){
+   // Keep holding to follow the beam. The next hit is selected automatically.
+   retargetHeldAim();
+   if(aimTarget?.x===null) say('Tunnel clear along this beam. Drag to redirect or release.');
+  }
+ }
+ return;
+}
+if(!moveDir){digElapsed=0;return}
+if(activeExcavationCell!==null&&moveDir!==activeExcavationDir){
+ activeExcavationCell=null;activeExcavationDir=0;digElapsed=0;
+}
+p.dir=moveDir;const x=p.x+moveDir;
+if(mode==='explore'){
+ // Both upright and low-crawl travel schedule only after visible arrival,
+ // avoiding tile-distance overshoot with the slow crawling speed.
+ if(gameRigWalkEnabled){
+  if(Math.abs(visualX-p.x)>.001)return;
+  if(!step(moveDir)&&!transitionHold)say('End of course. Reverse direction or reset.');
+  return;
+ }
+ elapsed+=dt;if(elapsed>=0.20){elapsed-=0.20;if(!step(moveDir)&&!transitionHold)say('End of course. Reverse direction or reset.')}return}
+if(x<EDGE||x>=N)return;
+// Movement is identical in Explore and Excavate on open passages.
+ // Only an actual solid-rock face, or the SAME cell we are already cutting,
+ // triggers excavation. This allows retreat through lower-clearance tunnels.
+if(hAt(x)>0&&!needsExcavation(x,moveDir)){
+ if(gameRigWalkEnabled){
+  if(Math.abs(visualX-p.x)<=.001)step(moveDir);
+ }else{
+  elapsed+=dt;if(elapsed>=0.20){elapsed-=0.20;step(moveDir)}
+ }
+ digElapsed=0;return;
+}
+if(bag>=8){returnX=p.x;phase='return';moveDir=0;return}
+if(target===3&&hAt(x)>=2&&!supported(x)){digElapsed=0;say('Support needed before raising the roof to standing height. Install one from a crouch-height passage.');moveDir=0;return}
+if(!miningReady()){digElapsed=0;return;}
+if(activeExcavationCell===null){
+ activeExcavationCell=x;activeExcavationDir=moveDir;
+}
+digElapsed+=dt;
+if(digElapsed>=4){
+ const wasWidening=widenArmed&&hAt(x)>0;
+ const completed=mineAt(x);
+ if(completed&&wasWidening&&hAt(x)>=target){
+  // Make a pocket, not an unwanted step. User must press movement again.
+  widenArmed=false;activeExcavationCell=null;activeExcavationDir=0;
+  moveDir=0;holding=false;digElapsed=0;elapsed=0;
+  if(phase==='manual')say('Pocket widened to '+target+' tiles. Hold a direction to move freely again.');
+ }else if(completed&&phase==='manual'&&hAt(x)>=target)step(moveDir,true);
+}
+}
+function draw(t){
+const w=960,h=450,zoom=zoomed?1.42:1;const targetCam=(visualX+.5)*CW;
+if(transitionHold){cam=lockedCam}else{cam+=(targetCam-cam)*.13}
+g.clearRect(0,0,w,h);g.fillStyle='#050607';g.fillRect(0,0,w,h);
+g.save();g.translate(w*.41,h*.79);g.scale(zoom,zoom);g.translate(-Math.round(cam)+(shake&&!transitionHold?(Math.random()-.5)*shake:0),-BASE);shake*=.82;if(shake<.2)shake=0;
+const viewLeft=cam-w*.41/zoom,viewRight=cam+w*.59/zoom;
+const first=Math.max(0,Math.floor(viewLeft/CW)-2),end=Math.min(N-1,Math.ceil(viewRight/CW)+2);
+for(let x=first;x<=end;x++){
+let xx=x*CW,open=hAt(x),lit=clamp(1-Math.abs(p.x-x)/26,.26,1),v=47+40*lit+(Math.sin(x*13.6)*6|0);
+g.fillStyle='rgb('+Math.round(v+5)+','+Math.round(v+2)+','+Math.round(v)+')';g.fillRect(xx,0,CW,h);
+g.fillStyle='#0f1012';g.fillRect(xx,BASE-open*TH,CW,open*TH);
+g.fillStyle='#4e4a45';g.fillRect(xx,BASE,CW,h-BASE);
+for(let j=0;j<5;j++){const yy=(j*83+x*19)%h;g.strokeStyle='rgba(204,188,159,.10)';g.lineWidth=1;g.beginPath();g.moveTo(xx+3,yy);g.lineTo(xx+14,yy-7);g.lineTo(xx+24,yy-6);g.stroke()}
+g.strokeStyle='rgba(217,190,142,.14)';g.lineWidth=1;g.strokeRect(xx,BASE-open*TH,CW,open*TH);
+if(x===EDGE){g.fillStyle='#171817';g.fillRect(xx-6,BASE-3*TH,9,3*TH);g.strokeStyle='#93816a';g.lineWidth=3;g.beginPath();g.moveTo(xx-5,BASE-3*TH);g.lineTo(xx-5,BASE+65);g.stroke()}
+if(braces.has(x)&&open>=2){
+const top=BASE-open*TH;g.strokeStyle='#9a8469';g.lineWidth=6;
+g.beginPath();g.moveTo(xx+2,BASE);g.lineTo(xx+2,top+5);g.lineTo(xx+CW-2,top+5);g.lineTo(xx+CW-2,BASE);g.stroke();
+g.lineWidth=3;g.beginPath();g.moveTo(xx+2,BASE-8);g.lineTo(xx+CW-2,top+10);g.stroke();
+}
+}
+// Progressive fractures appear INSIDE the currently unbroken rock section.
+// They grow through the four-second excavation interval and fade instantly
+// when the strip breaks away. This effect is independent of sprite artwork.
+if(miningReady()&&digElapsed>0){
+ const face=aimTarget?.x??p.x+moveDir,open=aimTarget?.layer??hAt(face),progress=clamp(digElapsed/4,0,1);
+ const edge=aimTarget?(face+.5)*CW:(moveDir>0?face*CW:(face+1)*CW);
+ const sign=aimTarget?1:moveDir;
+ const rockTop=BASE-(open+1)*TH;
+ g.save();g.beginPath();g.rect(face*CW+1,rockTop+1,CW-2,TH-2);g.clip();
+ g.lineCap='round';
+ const cracks=[
+  [[0,0],[5,-6],[9,-14],[16,-18]],
+  [[0,0],[7,3],[10,10],[19,13]],
+  [[5,-6],[9,-8],[16,-6],[22,-9]],
+  [[7,3],[13,5],[20,2],[26,4]],
+  [[9,-14],[13,-21],[19,-25],[24,-28]]
+ ];
+ const stages=[.12,.28,.47,.64,.80];
+ for(let i=0;i<cracks.length;i++){
+  const grow=clamp((progress-stages[i])/.32,0,1);
+  if(grow<=0)continue;
+  const pts=cracks[i],p0=pts[0],p1=pts[pts.length-1];
+  const px2=p0[0]+(p1[0]-p0[0])*grow;
+  const py2=p0[1]+(p1[1]-p0[1])*grow;
+  g.strokeStyle='rgba(6,7,9,'+(.46+.43*progress)+')';
+  g.lineWidth=1.1+i%2*.35;g.beginPath();
+  g.moveTo(edge+sign*p0[0],BASE-(open+.48)*TH+p0[1]);
+  g.lineTo(edge+sign*px2,BASE-(open+.48)*TH+py2);g.stroke();
+  g.strokeStyle='rgba(193,169,128,'+(.17+.16*progress)+')';
+  g.lineWidth=.75;g.beginPath();
+  g.moveTo(edge+sign*(p0[0]+1),BASE-(open+.48)*TH+p0[1]+1);
+  g.lineTo(edge+sign*(px2+1),BASE-(open+.48)*TH+py2+1);g.stroke();
+ }
+ g.restore();
+}
+
+// Raycast visualization: a thin beam stops at the *first* rock hit.
+if(canvasDrag&&canvasDrag.action!=='waiting'){
+ const origin=aimOrigin();
+ let tx=origin.x+Math.sign(canvasDrag.dx||1)*CW*2.1,ty=origin.y;
+ let valid=true;
+ if(canvasDrag.action==='aim'&&aimTarget){
+  tx=aimTarget.hitX;ty=aimTarget.hitY;
+  valid=validAimTile(aimTarget);
+  if(aimTarget.x!==null){
+   const by=BASE-(aimTarget.layer+1)*TH;
+   g.fillStyle=valid?'rgba(245,190,99,.21)':'rgba(193,85,67,.18)';
+   g.strokeStyle=valid?'rgba(255,207,114,.94)':'rgba(224,106,89,.85)';
+   g.lineWidth=1.6;
+   g.fillRect(aimTarget.x*CW+1,by+1,CW-2,TH-2);
+   g.strokeRect(aimTarget.x*CW+1.5,by+1.5,CW-3,TH-3);
+  }
+ }
+ const color=valid?'rgba(255,196,107,.82)':'rgba(222,102,83,.8)';
+ g.save();g.strokeStyle=color;g.fillStyle=color;g.lineWidth=2;g.setLineDash([7,6]);
+ g.beginPath();g.moveTo(origin.x,origin.y);g.lineTo(tx,ty);g.stroke();g.setLineDash([]);
+ const ang=Math.atan2(ty-origin.y,tx-origin.x);
+ g.beginPath();g.moveTo(tx,ty);
+ g.lineTo(tx-11*Math.cos(ang-.46),ty-11*Math.sin(ang-.46));
+ g.lineTo(tx-11*Math.cos(ang+.46),ty-11*Math.sin(ang+.46));
+ g.closePath();g.fill();g.restore();
+}
+const px=(visualX+.5)*CW,foot=BASE,d=p.dir;
+const moving=!transitionHold&&visualMoving;
+const digging=miningReady();
+const nearFace=(p.x+moveDir>=EDGE&&p.x+moveDir<N);
+// Seven keyframes blend between upright and prone; intermediate states are visible during transitions.
+// Coordinates in screen pixels, anchored at the miner's floor contact.
+// Positive local X means forward. In the prone keyframe, knees sit ahead
+// of the hips while shins extend back behind knees (human low crawl).
+const poses=[
+// 0 — Upright: both feet stable; relaxed arms.
+{hip:[0,-65],shoulder:[0,-139],head:[3,-171],elbow:[16,-111],hand:[16,-88],farElbow:[-14,-113],farHand:[-12,-88],knee:[12,-34],ankle:[12,-6],toe:[24,0],farKnee:[-12,-34],farAnkle:[-12,-6],farToe:[-3,0]},
+// 1 — Lean at hips: feet remain planted; upper-body weight moves forward.
+{hip:[-2,-63],shoulder:[13,-132],head:[22,-164],elbow:[27,-105],hand:[33,-82],farElbow:[0,-108],farHand:[5,-85],knee:[12,-34],ankle:[12,-6],toe:[24,0],farKnee:[-12,-34],farAnkle:[-12,-6],farToe:[-3,0]},
+// 2 — Bend the knees: hips travel backwards/down while heels stay put.
+{hip:[-13,-51],shoulder:[17,-117],head:[28,-149],elbow:[34,-91],hand:[37,-67],farElbow:[5,-94],farHand:[11,-68],knee:[14,-31],ankle:[12,-6],toe:[24,0],farKnee:[-18,-29],farAnkle:[-12,-6],farToe:[-3,0]},
+// 3 — Kneel: knees touch first and take the weight; shins trail back.
+{hip:[-26,-40],shoulder:[16,-86],head:[29,-116],elbow:[36,-62],hand:[44,-36],farElbow:[0,-61],farHand:[16,-32],knee:[14,-7],ankle:[-17,-5],toe:[-29,0],farKnee:[-33,-7],farAnkle:[-62,-5],farToe:[-71,0]},
+// 4 — Reach: torso hinges down, palms approach the floor while knees hold.
+{hip:[-30,-36],shoulder:[21,-64],head:[44,-89],elbow:[37,-33],hand:[52,-3],farElbow:[8,-34],farHand:[24,-3],knee:[11,-6],ankle:[-19,-5],toe:[-31,0],farKnee:[-37,-7],farAnkle:[-64,-5],farToe:[-73,0]},
+// 5 — All fours: palms planted below shoulders; hips over bent knees.
+{hip:[-33,-34],shoulder:[15,-46],head:[43,-65],elbow:[31,-26],hand:[40,-3],farElbow:[1,-25],farHand:[12,-3],knee:[-4,-7],ankle:[-36,-4],toe:[-49,0],farKnee:[-43,-7],farAnkle:[-72,-4],farToe:[-84,0]},
+// 6 — Military low crawl: elbows under shoulders, chest and hips lowered;
+//     thighs angle toward the knees, shins/feet trail BACK behind them.
+{hip:[-38,-17],shoulder:[12,-25],head:[43,-38],elbow:[29,-12],hand:[40,-3],farElbow:[-3,-12],farHand:[9,-3],knee:[-8,-8],ankle:[-52,-4],toe:[-69,0],farKnee:[-43,-8],farAnkle:[-76,-4],farToe:[-89,0]}
+];
+// Visual posture blends continuously, independent of the collision grid.
+const poseValue=clamp(rigPose,0,6),i0=Math.floor(poseValue),i1=Math.min(6,i0+1),alpha=poseValue-i0;
+// Ease between anatomical support poses; planted toes/palms hold their positions
+// in neighboring poses instead of drifting as the torso shifts weight.
+const smooth=alpha*alpha*(3-2*alpha);
+const pose={};
+for(const key of Object.keys(poses[0])){
+ pose[key]=[poses[i0][key][0]+(poses[i1][key][0]-poses[i0][key][0])*smooth,
+            poses[i0][key][1]+(poses[i1][key][1]-poses[i0][key][1])*smooth];
+}
+// Never apply gait offsets while lowering or standing up.
+const stride=Math.sin(rigStride)*(moving?1:0);
+const gaitScale=poseValue>=5?.38:poseValue>=3?.32:1;
+pose.knee[0]+=stride*8*gaitScale;pose.farKnee[0]-=stride*8*gaitScale;
+pose.toe[0]+=stride*9*gaitScale;pose.farToe[0]-=stride*9*gaitScale;
+pose.hand[0]-=stride*5*gaitScale;pose.farHand[0]+=stride*5*gaitScale;
+// Procedural joint motion: genuine continuous in-between positions rather than
+// crossfading whole drawings. All joints interpolate at the render frame rate.
+// Keep the original 2-second swing cycle and impact time.
+if(digging&&smoothSwing){
+ const t=((rigSwing%1)+1)%1;
+ const frames=[
+  [0,0,0],[.36,-1,-1],[.53,-1.14,-1.15],[.675,1,1],
+  [.83,.24,.30],[1,0,0]
+ ];
+ let ux=0,uy=0;
+ for(let i=1;i<frames.length;i++)if(t<=frames[i][0]){
+  const a=frames[i-1],b=frames[i];
+  const k0=(t-a[0])/(b[0]-a[0]);
+  const k=k0*k0*(3-2*k0);
+  ux=a[1]+(b[1]-a[1])*k;
+  uy=a[2]+(b[2]-a[2])*k;
+  break;
+ }
+ const low=poseValue>=5.5,mid=poseValue>=2.5&&!low;
+ const swingX=low?17:mid?27:34;
+ const swingY=low?7:mid?13:25;
+ const lift=low?8:mid?16:25;
+ const back=low?10:mid?18:25;
+ const shiftX=ux>=0?ux*swingX:ux*back;
+ const shiftY=uy>=0?uy*swingY:uy*lift;
+ pose.hand[0]+=shiftX;pose.hand[1]+=shiftY;
+ pose.elbow[0]+=shiftX*.64;pose.elbow[1]+=shiftY*.65;
+ // Standing and crouched miners grip with both hands; prone braces one arm.
+ if(!low){
+  pose.farHand[0]+=shiftX*.72;pose.farHand[1]+=shiftY*.73;
+  pose.farElbow[0]+=shiftX*.43;pose.farElbow[1]+=shiftY*.43;
+ }
+}
+// Face both directions by mirroring the rig about the character's origin.
+const at=k=>[px+d*pose[k][0],foot+pose[k][1]];
+function strokeBone(a,b,width=4,color='#ead2a7'){
+ const A=at(a),B=at(b);g.strokeStyle=color;g.lineWidth=width;g.lineCap='round';g.beginPath();g.moveTo(A[0],A[1]);g.lineTo(B[0],B[1]);g.stroke();
+}
+function node(k,r=3){const A=at(k);g.fillStyle='#dbad72';g.beginPath();g.arc(A[0],A[1],r,0,Math.PI*2);g.fill()}
+const head=at('head'),hand=at('hand'),hip=at('hip'),fhand=at('farHand');
+const [motionName,motionFrame]=animationChoice(moving,digging,poseValue);
+// Only the ORIGINAL PNG artwork is preferred when imported. Never use a
+// reconstructed skeleton as the default character.
+const motionImage=spriteEnabled&&(window.DepthsFullArt?.get(motionName,motionFrame)||
+ window.DepthMotions?.get(motionName,motionFrame));
+// Tweened joint rig is the primary animation for mining and changing posture.
+// Old video sprites remain available as a comparison when Smooth swing is OFF.
+// Original approved character artwork is authoritative by default.
+// The reconstructed joint rig is strictly opt-in and never replaces walking.
+const rigOpacity=smoothSwing&&!moving&&window.OriginalSkeletonRig?.ready()?rigBlend:0;
+// A retained frame provides a visual bridge at walk/idle, crawl/mine, and
+// posture-animation boundaries. The movement system and posture locks do not change.
+if(!smoothSwing&&motionImage&&lastDrawnMotion&&lastDrawnMotion.name!==motionName&&lastDrawnMotion.dir===d){
+ blendFromMotion=lastDrawnMotion;blendStartMs=t;
+}
+if(!motionImage||smoothSwing){blendFromMotion=null;lastDrawnMotion=null;}
+// Keep visual style consistent while the new atlases load: fall back to the joint rig, not 012 vector artwork.
+const legacyWalk=false;
+const useGameRigWalking=gameRigWalkEnabled&&moving&&!scoot&&!transitionHold&&poseValue<.5&&!!window.DepthsGameWalk050?.ready();
+const spriteWalking=!useGameRigWalking&&(!!motionImage||legacyWalk);
+let gameRigHead=null,gameRigHip=null;
+let spriteDraw=null;
+let customBodyDrawn=false;
+activeMotion=motionImage?motionName:(legacyWalk?'OLD WALK':'RIG');
+if(spriteEnabled&&!digging&&!scoot&&((transitionHold&&!kneelActive&&poseValue>=3)||(!transitionHold&&poseValue>=5.5))&&window.DepthsCrouch205?.ready()){
+ const geometry=window.DepthsCrouch205.draw(g,{phase:crouchPhase,prone:Math.max(0,Math.min(1,(poseValue-3)/3)),crawlPhase:pronePhase,x:px,y:BASE,dir:d});
+ if(geometry){customBodyDrawn=true;gameRigHead=geometry.head;gameRigHip=geometry.hip;activeMotion='208 · SHARED PRONE RIG';}
+ lastDrawnMotion=null;blendFromMotion=null;stanceOffset=0;
+}else if(spriteEnabled&&!digging&&!transitionHold&&poseValue>=5.5&&window.DepthsProne200?.ready()){
+ customBodyDrawn=window.DepthsProne200.draw(g,px,BASE,d,t,moving);
+ activeMotion='203 · SOURCE CRAWL (SKIN ONLY / LOCAL CLOCK)';
+ lastDrawnMotion=null;blendFromMotion=null;stanceOffset=0;
+}else if(spriteEnabled&&transitionHold&&kneelActive&&window.DepthsCrouch205?.ready()){
+ const geometry=window.DepthsCrouch205.draw(g,{phase:kneelCrouchPhase,entryPhase:kneelEntryPhase,lowering:poseValue/3,x:px,y:BASE,dir:d});
+ if(geometry){customBodyDrawn=true;gameRigHead=geometry.head;gameRigHip=geometry.hip;activeMotion='206 · STAND / KNEEL IK';}
+ lastDrawnMotion=null;blendFromMotion=null;stanceOffset=0;
+}else if(spriteEnabled&&transitionHold&&poseValue>=3&&window.DepthProne107?.ready()){
+ // Reset the crawl phase while using the approved crouch-to-prone transition.
+ window.DepthsProne200?.reset();
+ customBodyDrawn=window.DepthProne107.draw(g,px,BASE,d,poseValue);
+ activeMotion='107 · APPROVED SMOOTH CROUCH/PRONE MOTION';
+ lastDrawnMotion=null;blendFromMotion=null;stanceOffset=0;
+}else if(spriteEnabled&&!digging&&!transitionHold&&!scoot&&poseValue>=2.5&&poseValue<3.5&&window.DepthsCrouch205?.ready()){
+ const geometry=window.DepthsCrouch205.draw(g,{phase:crouchPhase,x:px,y:BASE,dir:d});
+ if(geometry){customBodyDrawn=true;gameRigHead=geometry.head;gameRigHip=geometry.hip;activeMotion='205 · CROUCH IK';}
+ lastDrawnMotion=null;blendFromMotion=null;stanceOffset=0;
+}else if(useGameRigWalking){
+ const geometry=window.DepthsGameWalk050.draw(g,{phase:uprightPhase,x:px,y:BASE,dir:d});
+ if(geometry){gameRigHead=geometry.head;gameRigHip=geometry.hip;activeMotion='APPROVED RIG 049A';}
+ lastDrawnMotion=null;blendFromMotion=null;stanceOffset=0;
+}else if(spriteWalking){
+ let spriteWorldX=px;
+ if(motionImage&&motionName==='walk'&&!scoot){
+  const mr=motionImage.motionReference;
+  if(mr) spriteWorldX+=walkingStanceOffset(motionImage,mr,motionFrame,d,px,(motionImage.fullDetailScale||motionScale(motionName,motionFrame)).sx,t);
+ }else{stanceAnchor=null;stanceSide=null;stanceLastFrame=null;stanceOffset=0;}
+ g.save();g.translate(spriteWorldX,BASE);g.scale(d,1);
+ if(motionImage){
+  const b=motionImage.bodyBox||{x:0,y:0,w:256,h:208};
+  const reference=motionImage.motionReference||{height:b.h,centerX:b.x+b.w/2};
+  let {sx,sy}=motionImage.fullDetailScale||motionScale(motionName,motionFrame);
+  if(motionImage.isOriginalArtwork&&(motionName==='standCrouch'||motionName==='crouchProne')){
+   // The legacy importer treats every stand-to-crouch frame as standing-sized.
+   // Calibrate each original frame to the intended changing BODY height, with
+   // both endpoints matching the gameplay standing/crouch/prone standards.
+   const progress=clamp(motionFrame/7,0,1);
+   const ease=progress*progress*(3-2*progress);
+   const startH=motionName==='standCrouch'?CHARACTER_SIZE.standH:CHARACTER_SIZE.crouchH;
+   const endH=motionName==='standCrouch'?CHARACTER_SIZE.crouchH:CHARACTER_SIZE.proneH;
+   const desiredH=startH+(endH-startH)*ease;
+   const actualH=Math.max(1,motionImage.height);
+   const uniform=desiredH/actualH;
+   sx=uniform;sy=uniform;
+  }
+  const x=-reference.centerX*sx;
+  // All original walk frames share a floor datum, preventing per-frame bob.
+  // W3: fix the boot baseline from the approved source image itself.
+  // This is a small Y-only correction. We do not shift the torso sideways
+  // or reinterpret body joints, which would risk changing his silhouette.
+  const usePlant=footPlant&&walkGrounded&&motionName==='walk'&&motionImage.isOriginalArtwork;
+  const footOffset=usePlant&&Number.isFinite(reference.plantedFootY)?
+    reference.plantedFootY:
+    (walkGrounded&&motionName==='walk'&&motionImage.isOriginalArtwork&&Number.isFinite(reference.footY))?reference.footY:(b.y+b.h);
+  const y=-footOffset*sy;
+  spriteDraw={x,y,sx,sy};
+  g.imageSmoothingEnabled=true;
+  const rawBlend=blendFromMotion?Math.max(0,Math.min(1,(t-blendStartMs)/MOTION_BLEND_MS)):1;
+  const spriteOpacity=smoothSwing?1-rigOpacity:1;
+  const easeBlend=rawBlend*rawBlend*(3-2*rawBlend);
+  const outgoingWeight=blendFromMotion&&rawBlend<1?1-easeBlend:0;
+  if(rawBlend>=1)blendFromMotion=null;
+  // One calibrated world-space size across all nine animation sequences.
+  // Ground contact is locked; only actual anatomy in the source can move.
+  // The walking source is not a perfect closed cycle. Blend the last frame
+  // into the first over a short distance-based interval to avoid a hard pop.
+  let seamFrame=null,seamBlend=0;
+  if(motionName==='walk'&&moving&&walkSeamBlend){
+   const phaseSource=walkPolish?uprightPhase:walkFrameTime;
+   const phase01=((phaseSource*walkCycleSpeed)%1+1)%1;
+   const slot=phase01*7;
+   if(slot>=6){
+    seamBlend=Math.max(0,Math.min(1,(slot-6)));
+    seamBlend=seamBlend*seamBlend*(3-2*seamBlend);
+    seamFrame=window.DepthsFullArt?.get('walk',walkReverse?6:0)||window.DepthMotions?.get('walk',walkReverse?6:0)||null;
+   }
+  }
+  if(seamFrame&&seamBlend>0){
+   g.globalAlpha=spriteOpacity*(1-outgoingWeight)*(1-seamBlend);
+   g.drawImage(motionImage,x,y,motionImage.width*sx,motionImage.height*sy);
+   const sb=seamFrame.bodyBox||{x:0,y:0,w:256,h:208};
+   const sr=seamFrame.motionReference||reference;
+   g.globalAlpha=spriteOpacity*(1-outgoingWeight)*seamBlend;
+   const seamFoot=(walkGrounded&&seamFrame.isOriginalArtwork&&Number.isFinite(sr.footY))?sr.footY:(sb.y+sb.h);
+   g.drawImage(seamFrame,-sr.centerX*sx,-seamFoot*sy,seamFrame.width*sx,seamFrame.height*sy);
+   g.globalAlpha=1;
+  }else{
+   // Continuous visual blending of adjacent existing mining poses at render FPS.
+   // This creates interpolated appearances, not new anatomical 2D rig frames.
+   // No frame crossfading: it caused double arms and flashing.
+   const interp=null;
+   const nextImage=interp&&interp.from!==interp.to?
+     window.DepthsFullArt?.get(motionName,interp.to)||window.DepthMotions?.get(motionName,interp.to):null;
+   if(nextImage&&interp.mix>0){
+    g.globalAlpha=spriteOpacity*(1-outgoingWeight)*(1-interp.mix);
+    g.drawImage(motionImage,x,y,motionImage.width*sx,motionImage.height*sy);
+    const nb=nextImage.bodyBox||{x:0,y:0,w:256,h:208};
+    const nr=nextImage.motionReference||reference;
+    g.globalAlpha=spriteOpacity*(1-outgoingWeight)*interp.mix;
+    g.drawImage(nextImage,-nr.centerX*sx,-(nb.y+nb.h)*sy,nextImage.width*sx,nextImage.height*sy);
+   }else{
+    g.globalAlpha=spriteOpacity*(1-outgoingWeight);
+    g.drawImage(motionImage,x,y,motionImage.width*sx,motionImage.height*sy);
+   }
+   g.globalAlpha=1;
+  }
+  if(outgoingWeight>0&&blendFromMotion){
+   const previous=blendFromMotion;
+   const prevBox=previous.img.bodyBox||{x:0,y:0,w:256,h:208};
+   const prevRef=previous.img.motionReference||{centerX:prevBox.x+prevBox.w/2};
+   const prevScale=previous.img.fullDetailScale||motionScale(previous.name,previous.frame);
+   g.globalAlpha=spriteOpacity*outgoingWeight;
+   g.drawImage(previous.img,-prevRef.centerX*prevScale.sx,
+     -(prevBox.y+prevBox.h)*prevScale.sy,previous.img.width*prevScale.sx,previous.img.height*prevScale.sy);
+   g.globalAlpha=1;
+  }
+  lastDrawnMotion={name:motionName,frame:motionFrame,img:motionImage,dir:d};
+ }else{
+  const frame=Math.floor(walkFrameTime*12)%12;
+  g.drawImage(walkSheet,(frame%4)*80,Math.floor(frame/4)*120,80,120,-60,-180,120,180);
+ }
+ g.restore();
+}
+// Duffel is attached to the hip; visibly sways and grows with spoil load.
+const bagSway=moving?Math.sin(rigStride-0.8)*4:0;
+const bagHip=gameRigHip?[gameRigHip.x,gameRigHip.y]:hip;
+g.fillStyle='#51483f';g.strokeStyle='#a58e71';g.lineWidth=2;
+g.beginPath();g.ellipse(bagHip[0]-d*(13+bag*.3)+bagSway,bagHip[1]+6,10+bag*.65,11+bag*.65,-d*.17,0,Math.PI*2);g.fill();g.stroke();
+g.strokeStyle='#b3a08a';g.lineWidth=1.7;g.beginPath();
+g.moveTo(bagHip[0]-d*3,bagHip[1]-4);g.lineTo(bagHip[0]-d*13+bagSway,bagHip[1]-8);g.stroke();
+// Detailed articulated graphite character, fitted to the SAME joints as the
+// existing rig. First production test: standing mining only (other states
+// retain their proven sprite playback/temporary rig).
+// Keep the skinned body during the fade into/out of standing mining as well.
+const proneSkinFallback=!customBodyDrawn&&!spriteWalking&&!useGameRigWalking&&poseValue>=3&&!!window.OriginalSkeletonRig?.ready();
+const useOriginalRig=!customBodyDrawn&&(proneSkinFallback||(rigOpacity>.001&&!!window.OriginalSkeletonRig));
+if(useOriginalRig){
+ g.save();g.translate(px,BASE);g.scale(d,1);
+ window.OriginalSkeletonRig.draw(g,{...pose,_poseValue:poseValue},1);
+ g.restore();
+}else if(!customBodyDrawn&&((!spriteWalking&&!useGameRigWalking)||rigOpacity>0.001)){
+g.save();g.globalAlpha=motionImage?rigOpacity:1;
+strokeBone('hip','farKnee',3,'#8e8b81');strokeBone('farKnee','farAnkle',3,'#8e8b81');strokeBone('farAnkle','farToe',3,'#8e8b81');
+strokeBone('shoulder','farElbow',3,'#8e8b81');strokeBone('farElbow','farHand',3,'#8e8b81');
+strokeBone('hip','shoulder',6);strokeBone('hip','knee',4);strokeBone('knee','ankle',4);strokeBone('ankle','toe',3);
+strokeBone('shoulder','elbow',4);strokeBone('elbow','hand',4);
+for(const k of ['hip','shoulder','knee','ankle','elbow','hand','farKnee','farElbow'])node(k,k==='hip'?3.4:2.7);
+// Subtle floor-contact marks show weight changing from boots to knees to palms.
+// They are attached to the grounded joints rather than sliding with the torso.
+if(transitionHold){
+ const contactKeys=poseValue<2.9?['toe','farToe']:
+                   poseValue<3.9?['knee','farKnee','toe']:
+                   poseValue<5.5?['knee','farKnee','hand','farHand']:
+                   ['elbow','farElbow','toe','farToe'];
+ for(const k of contactKeys){
+  const A=at(k);const cy=BASE;
+  if(Math.abs(A[1]-cy)<15){
+   g.strokeStyle='rgba(226,183,117,.37)';g.lineWidth=2;
+   g.beginPath();g.moveTo(A[0]-7,cy+2);g.lineTo(A[0]+7,cy+2);g.stroke();
+  }
+ }
+}
+g.fillStyle='#202326';g.strokeStyle='#ead2a7';g.lineWidth=3;
+g.beginPath();g.arc(head[0],head[1],11,0,Math.PI*2);g.fill();g.stroke();
+// Helmet shell and headlamp move with the head (independent of torso pose).
+g.strokeStyle='#a6aba9';g.lineWidth=4;g.beginPath();
+g.arc(head[0],head[1]-2,13,d>0?Math.PI*1.12:Math.PI*1.08,d>0?Math.PI*1.87:Math.PI*1.88);g.stroke();
+g.restore();
+}
+const spriteHead=motionImage?.headPoint;
+const spriteHeadX=spriteHead&&spriteDraw?(px+(motionName==='walk'&&!scoot?stanceOffset:0))+d*(spriteDraw.x+spriteHead.x*spriteDraw.sx):head[0];
+const spriteHeadY=spriteHead&&spriteDraw?BASE+spriteDraw.y+spriteHead.y*spriteDraw.sy:head[1];
+const headX=gameRigHead?gameRigHead.x:spriteHeadX+(head[0]-spriteHeadX)*rigOpacity;
+const headY=gameRigHead?gameRigHead.y:spriteHeadY+(head[1]-spriteHeadY)*rigOpacity;
+const lx=headX+d*13,ly=headY-3;
+const beam=g.createLinearGradient(lx,ly,lx+d*225,ly);beam.addColorStop(0,'rgba(255,210,140,.23)');beam.addColorStop(1,'rgba(255,210,140,0)');
+g.fillStyle=beam;g.beginPath();g.moveTo(lx,ly);g.lineTo(lx+d*225,ly-66);g.lineTo(lx+d*225,ly+66);g.closePath();g.fill();
+g.fillStyle='#ffe3b0';g.shadowColor='#f5cb88';g.shadowBlur=17;g.beginPath();g.arc(lx,ly,5,0,Math.PI*2);g.fill();g.shadowBlur=0;
+// Draw a single rigid pickaxe tied directly to animated wrist/hand joints.
+// No overlaid pickaxe images, no rapidly flashing video poses.
+if(mode==='excavate'&&phase==='manual'&&(rigOpacity>.001||!motionImage)){
+ const cycle=((rigSwing%1)+1)%1;
+ const low=poseValue>=5.5;
+ const len=low?24:poseValue>=2.5?35:43;
+ let ang=-.72;
+ if(digging){
+  // Slowly raise, accelerate downward and forward to hit, then recover.
+  const keys=[[0,-.70],[.36,-1.82],[.53,-1.94],[.675,-.15],[.83,-.58],[1,-.70]];
+  for(let i=1;i<keys.length;i++)if(cycle<=keys[i][0]){
+   const a=keys[i-1],b=keys[i];
+   let k=(cycle-a[0])/(b[0]-a[0]);k=k*k*(3-2*k);
+   ang=a[1]+(b[1]-a[1])*k;break;
+  }
+ }
+ const cx=hand[0],cy=hand[1],tipx=cx+d*len*Math.cos(ang),tipy=cy+len*Math.sin(ang);
+ g.save();g.globalAlpha=motionImage?rigOpacity:1;
+ g.strokeStyle='#9b7246';g.lineWidth=low?3.4:4.1;g.lineCap='round';
+ g.beginPath();g.moveTo(cx-d*7*Math.cos(ang),cy-7*Math.sin(ang));
+ g.lineTo(tipx,tipy);g.stroke();
+ g.strokeStyle='#b8bebd';g.lineWidth=4.4;g.beginPath();
+ const v=low?8:13;
+ g.moveTo(tipx-d*v*Math.sin(ang),tipy+v*Math.cos(ang));
+ g.lineTo(tipx+d*v*Math.sin(ang),tipy-v*Math.cos(ang));g.stroke();
+ g.restore();
+}
+if(phase==='dump'){
+g.fillStyle='#bca68a';for(let i=0;i<18;i++){const yy=BASE+((t/14+i*31)%160);const xx=EDGE*CW-15+(Math.sin(i*8+t/180)*13);g.fillRect(xx,yy,3+i%3,3+i%4)}
+}
+for(let i=fx.length-1;i>=0;i--){
+ const f=fx[i],age=(performance.now()-f.t)/1000;
+ const life=f.kind==='break'?.95:.52;
+ if(age>life){fx.splice(i,1);continue}
+ const fade=Math.max(0,1-age/life);
+ const count=f.kind==='break'?17:7;
+ for(let k=0;k<count;k++){
+  // Reproducible chips: varied direction, falling under gravity.
+  const direction=Math.sin((f.seed+k*17.13)*1.71);
+  const height=Math.cos((f.seed+k*5.72)*1.11);
+  const velocity=(f.kind==='break'?65:30);
+  const x=f.x+direction*velocity*age-f.dir*12*age;
+  const y=f.y+height*velocity*.6*age+age*age*130;
+  const size=k%4===0?3:2;
+  g.fillStyle=k%5===0?'rgba(218,186,122,'+fade*.85+')':
+    'rgba(112,104,92,'+fade*.8+')';
+  g.fillRect(x,y,size,size);
+ }
+ if(f.kind==='impact'&&age<.12){
+  const flare=1-age/.12;
+  g.strokeStyle='rgba(245,201,130,'+flare*.75+')';
+  g.lineWidth=1.3;g.beginPath();
+  g.moveTo(f.x-5,f.y);g.lineTo(f.x+5,f.y);
+  g.moveTo(f.x,f.y-5);g.lineTo(f.x,f.y+5);g.stroke();
+ }
+}
+g.restore();
+if(phase==='manual'&&mode==='excavate'&&(aimReady()||(moveDir&&hAt(p.x+moveDir)<target))){
+g.fillStyle='rgba(220,178,103,.10)';g.fillRect(w-165,12,145,22);g.fillStyle='#dec08d';g.font='14px system-ui';g.fillText('Rock '+Math.floor(digElapsed/4*100)+'%',w-152,28)
+}
+}
+function loop(t){const dt=last?Math.min(.06,(t-last)/1000):0;last=t;
+advanceDragIntent();
+const desired=transitionHold?transitionGoal:(pendingRise!==null||pendingLower!==null?rigPose:(aimTarget?aimTarget.pose:(nextDigPose()??poseFor(p.x))));
+const delta=desired-rigPose;
+rigPose+=Math.sign(delta)*Math.min(Math.abs(delta),dt*6/1.8);
+if(transitionHold&&poseReady(transitionGoal)){
+ if(p.x!==lockedX){lockViolations++;p.x=lockedX}
+ transitionHold=false;transitionGoal=null;lockedX=null;lockedCam=null;elapsed=0;kneelActive=false;
+ // Complete the boundary step only AFTER finishing the lowering animation.
+ if(pendingStepTo!==null){
+  const from=visualX,to=pendingStepTo;
+  p.x=to;pendingStepTo=null;
+  if(pendingScoot&&scootEnabled)beginMiningScoot(from,to,rigPose,p.dir);
+  pendingScoot=false;
+ }
+}
+animState=transitionHold?'TRANSITION':scoot?'SCOOT '+scootPhase().name.toUpperCase():(phase==='dump'?'DUMP':phase==='return'||phase==='resume'?'AUTO TRAVEL':moveDir?'MOVING':'IDLE');
+action(dt);
+// Move the rendered character smoothly towards each gameplay tile center.
+// During posture changes both world position and visual position remain locked.
+let moved=0;
+if(scoot){
+ // Game position and sprite progression share a single easing clock.
+ // This avoids moonwalking or snapping forward before the animation plays.
+ const from=visualX;
+ scoot.elapsed=Math.min(scoot.duration,scoot.elapsed+dt);
+ const stage=scootPhase();
+ // No world translation during brace or settle; only the pull moves.
+ const t=stage.name==='brace'?0:stage.name==='settle'?1:stage.fraction;
+ const eased=t*t*(3-2*t);
+ visualX=scoot.from+(scoot.to-scoot.from)*eased;
+ moved=visualX-from;
+ if(scoot.elapsed>=scoot.duration){visualX=scoot.to;scoot=null;scootsCompleted++;}
+}else if(!transitionHold){
+ const diff=p.x-visualX;
+ const walkTravelSpeed=travelSpeedForPose(rigPose);
+ moved=Math.sign(diff)*Math.min(Math.abs(diff),walkTravelSpeed*dt);
+ visualX+=moved;
+}else visualX=p.x;
+visualMoving=!transitionHold&&Math.abs(moved)>1e-5;
+// W7: upright idle now resolves to source standCrouch frame 0 rather than
+// freezing arbitrary mid-stride walking artwork. Stride clocks continue to
+// track travel distance, but don't determine the final resting body pose.
+const uprightNow=visualMoving&&!scoot&&rigPose<.5&&!transitionHold;
+if(visualMoving&&rigPose>=2.5&&rigPose<3.5&&!scoot)crouchPhase+=Math.abs(moved)*CW/(160*.44);
+if(visualMoving&&rigPose>=5.5&&!scoot)pronePhase+=Math.abs(moved)*CW/64;
+if(visualMoving){
+ rigStride+=Math.abs(moved)*2.9;
+ walkFrameTime+=Math.abs(moved)/WALK_CELLS_PER_CYCLE;
+}
+if(uprightNow){
+ uprightPhase+=Math.abs(moved)/(gameRigWalkEnabled?APPROVED_WALK_CELLS_PER_CYCLE:UPRIGHT_CELLS_PER_CYCLE);
+ const legacyFrame=Math.floor(walkFrameTime*7*walkCycleSpeed)%7;
+ uprightStopFrame=walkPolish?uprightFrame():(walkReverse?6-legacyFrame:legacyFrame);
+}
+// When an upright walk ends, roll through up to three actual nearby
+// source poses to an end-of-stride frame, then settle into feet-down idle.
+// Avoid mid-step frozen feet, a teleport, and a new stride during rest.
+if(uprightNow){walkStop=null;}
+else if(uprightWasMoving&&!uprightNow&&!transitionHold&&!scoot&&rigPose<.5){
+ startWalkStop(uprightStopFrame??0);
+}else if(walkStop){
+ if(transitionHold||scoot||rigPose>=.5||miningReady()){walkStop=null;}
+ else tickWalkStop(dt);
+}
+uprightWasMoving=uprightNow;
+if(miningReady()){
+ const before=rigSwing;
+ rigSwing+=dt/SWING_SECONDS;
+ // One impact event per cycle at the accelerated portion of the downstroke.
+ const startCycle=Math.floor(before-.675),endCycle=Math.floor(rigSwing-.675);
+ for(let k=startCycle+1;k<=endCycle;k++)emitImpact();
+}else rigSwing=0;
+// Fade once at state boundaries; no repeatedly overlapping mining sprite poses.
+const wantRig=!!(smoothSwing&&!visualMoving&&
+  (transitionHold||miningReady()));
+const blendTarget=wantRig?1:0;
+rigBlend+=(blendTarget-rigBlend)*Math.min(1,dt*13);
+if(Math.abs(rigBlend-blendTarget)<.001)rigBlend=blendTarget;
+draw(t);update();$('progress').style.width=(phase==='manual'&&mode==='excavate'&&moveDir?clamp(digElapsed/4,0,1)*100:0)+'%';requestAnimationFrame(loop)}
+function bindHold(id,d){
+const b=$(id);
+const end=()=>{holding=false;moveDir=0;digElapsed=0};
+b.addEventListener('pointerdown',e=>{e.preventDefault();if(phase!=='manual')return;b.setPointerCapture(e.pointerId);holding=true;moveDir=d;p.dir=d});
+b.addEventListener('pointerup',end);b.addEventListener('pointercancel',end);b.addEventListener('lostpointercapture',end);
+}
+bindHold('left',-1);bindHold('right',1);
+// Canvas is a full-screen-relative touch surface, not a draggable joystick.
+// Diagonal-up targets the next unbroken ceiling tile in the adjacent column;
+// straight-up targets the miner's own overhead tile.
+const playCanvas=$('world');
+// Drag intent is deliberately separated from player movement. Diagonal
+// drags must never accidentally walk the miner into a low tunnel.
+function setGesture(e){
+ if(!canvasDrag||canvasDrag.id!==e.pointerId||phase!=='manual')return;
+ const dx=e.clientX-canvasDrag.x,dy=e.clientY-canvasDrag.y;
+ const distance=Math.hypot(dx,dy);
+ const min=19;
+ if(distance<min)return;
+ const drag=canvasDrag;
+ drag.dx=dx;drag.dy=dy;
+ // A slightly upward diagonal (including long horizontal reach) means aim.
+ // Earlier builds demanded a steep angle, incorrectly causing LEFT movement.
+ // A shallow upward aim still casts a beam through open rock columns;
+ // keep a minimum vertical commitment to distinguish ordinary LEFT/RIGHT travel.
+ const upward=mode==='excavate'&&dy<-18&&(-dy>=Math.abs(dx)*.12);
+ if(upward||drag.action==='aim'){
+  // Once aim has begun, it is latched until finger release. No movement.
+  moveDir=0;elapsed=0;
+  const hit=normalizeForwardAim(traceAim(dx,dy),dx,dy);
+  // Keep a continuous held mining path, not a one-and-done tile lock.
+  const changed=!aimTarget||aimTarget.x!==hit.x||
+    aimTarget.layer!==hit.layer||drag.action!=='aim';
+  drag.action='aim';
+  if(changed){
+   aimTarget={...hit,pose:poseFor(p.x),done:false};
+   digElapsed=0;rigSwing=0;widenArmed=false;
+  }else Object.assign(aimTarget,{hitX:hit.hitX,hitY:hit.hitY,
+    rayX:hit.rayX,rayY:hit.rayY});
+  p.dir=hit.dir; // face the target, without stepping
+  return;
+ }
+ // Allow a brief intent window for the vertical component of a diagonal
+ // gesture to arrive before the first horizontal gameplay step.
+ if(Math.abs(dx)>=22){
+  const direction=Math.sign(dx);
+  drag.candidate=direction;
+  const elapsedMs=performance.now()-drag.startedAt;
+  const clearlyHorizontal=Math.abs(dx)>=85&&Math.abs(dy)<14;
+  if(elapsedMs<145&&!clearlyHorizontal)return;
+  if(drag.action!=='move'||moveDir!==direction){
+   aimTarget=null;digElapsed=0;rigSwing=0;
+   activeExcavationCell=null;activeExcavationDir=0;
+  }
+  drag.action='move';
+  moveDir=direction;p.dir=direction;
+ }else{
+  moveDir=0;
+ }
+}
+playCanvas.addEventListener('pointerdown',e=>{
+ if(phase!=='manual'||canvasDrag||mode==='explore')return;
+ e.preventDefault();
+ playCanvas.setPointerCapture(e.pointerId);
+ canvasDrag={id:e.pointerId,x:e.clientX,y:e.clientY,dx:0,dy:0,action:'waiting',startedAt:performance.now(),candidate:0};
+ moveDir=0;aimTarget=null;digElapsed=0;
+});
+playCanvas.addEventListener('pointermove',e=>{if(canvasDrag){e.preventDefault();setGesture(e)}});
+// The finger may stop moving before the intent window expires; resolve its
+// held drag on each frame rather than requiring another pointermove event.
+function advanceDragIntent(){
+ if(!canvasDrag||canvasDrag.action!=='waiting'||!canvasDrag.candidate)return;
+ if(performance.now()-canvasDrag.startedAt<145)return;
+ const dir=canvasDrag.candidate;
+ canvasDrag.action='move';moveDir=dir;p.dir=dir;
+}
+function endCanvasGesture(e){
+ if(!canvasDrag||canvasDrag.id!==e.pointerId)return;
+ canvasDrag=null;aimTarget=null;moveDir=0;digElapsed=0;rigSwing=0;
+}
+for(const name of ['pointerup','pointercancel','lostpointercapture'])
+ playCanvas.addEventListener(name,endCanvasGesture);
+
+$('widen').onclick=()=>{
+ if(phase!=='manual')return;
+ if(target<2){say('Choose 2-tile crouch or 3-tile standing height before widening a pocket.');return;}
+ if(mode!=='excavate'){mode='excavate';moveDir=0;digElapsed=0;}
+ widenArmed=!widenArmed;
+ activeExcavationCell=null;activeExcavationDir=0;digElapsed=0;
+ say(widenArmed?'Widen ARMED: hold LEFT or RIGHT toward an existing lower tunnel section to raise its roof. Movement remains free when widening is OFF.':'Widening off. Walk freely through open passages in either direction.');
+ update();
+};
+$('explore').onclick=()=>setMode('explore');$('excavate').onclick=()=>setMode('excavate');
+$('crawl').onclick=()=>setTarget(1);$('crouch').onclick=()=>setTarget(2);$('stand').onclick=()=>setTarget(3);
+$('brace').onclick=()=>{if(phase!=='manual')return;if(hAt(p.x)<2){say('Raise the passage to crouching height before installing a support.');return}braces.add(p.x);say('Support placed. It reinforces nearby tunnel sections so you can enlarge them to standing height.');update()};
+$('dump').onclick=()=>{if(phase!=='manual'||bag===0)return;returnX=p.x;phase='return';moveDir=0;say('Carrying the partly filled duffle bag to the ledge for dumping.')};
+$('originalArt').onclick=()=>$('originalFile').click();
+$('originalFile').addEventListener('change',async()=>{
+ const file=$('originalFile').files?.[0];if(!file)return;
+ $('originalArt').disabled=true;
+ try{await window.DepthsFullArt.install(file)}catch(e){say('Original artwork could not load: '+e.message)}
+ finally{$('originalArt').disabled=false;$('originalFile').value=''}
+});
+function refreshOriginalStatus(){
+ const state=window.DepthsFullArt?.state;
+ $('artRecovery').hidden=!!state?.ready;
+ $('originalStatus').textContent=state?.message||'Original artwork not loaded';
+ $('originalArt').textContent=state?.ready?'💀 Original artwork ACTIVE · Replace ZIP':'💀 Load ORIGINAL artwork ZIP';
+ $('originalArt').classList.toggle('selected',!!state?.ready);
+}
+window.addEventListener('depths-art-status',refreshOriginalStatus);
+refreshOriginalStatus();
+$('reset').onclick=reset;
+$('walkCourse').onclick=()=>{longWalkCourse=!longWalkCourse;reset()};
+$('gameRigWalk').onclick=()=>{gameRigWalkEnabled=!gameRigWalkEnabled;$('gameRigWalk').textContent=gameRigWalkEnabled?'💀 Approved rig walk ON':'🎞 Legacy sprite walk ON';$('gameRigWalk').classList.toggle('selected',gameRigWalkEnabled)};
+$('zoom').onclick=()=>{zoomed=!zoomed;$('zoom').textContent=zoomed?'🔍 Close-up camera ON':'🔭 Wide camera ON';$('zoom').classList.toggle('selected',zoomed)};
+$('sprite').onclick=()=>{spriteEnabled=!spriteEnabled;$('sprite').textContent=spriteEnabled?'🎞 Video animations ON':'🦴 Rig animations ON';$('sprite').classList.toggle('selected',spriteEnabled)};
+$('walkDirection').onclick=()=>{walkReverse=!walkReverse;walkFrameTime=0;$('walkDirection').textContent=walkReverse?'🚶 Walk cycle: reversed':'🚶 Walk cycle: original'};
+$('walkGround').onclick=()=>{walkGrounded=!walkGrounded;$('walkGround').textContent=walkGrounded?'🥾 Ground lock ON':'🥾 Ground lock OFF';$('walkGround').classList.toggle('selected',walkGrounded)};
+$('walkSeam').onclick=()=>{walkSeamBlend=!walkSeamBlend;$('walkSeam').textContent=walkSeamBlend?'🔗 Seam blend ON':'🔗 Seam blend OFF';$('walkSeam').classList.toggle('selected',walkSeamBlend)};
+$('walkPolish').onclick=()=>{walkPolish=!walkPolish;$('walkPolish').textContent=walkPolish?'👣 Fast cadence ON':'👣 Fast cadence OFF';$('walkPolish').classList.toggle('selected',walkPolish);
+ // Switching cadence must not change ground contact, seam setting or idle pose.
+ // Both clocks count full walk cycles; copy the current phase to avoid a
+ // discontinuous frame when changing only the walking cadence.
+ if(walkPolish)uprightPhase=walkFrameTime;
+ else walkFrameTime=uprightPhase;
+ uprightStopFrame=null;};
+$('footPlant').onclick=()=>{footPlant=!footPlant;$('footPlant').textContent=footPlant?'🥾 Foot plant ON':'🥾 Foot plant OFF';$('footPlant').classList.toggle('selected',footPlant);stanceAnchor=null;stanceOffset=0};
+$('stanceLock').onclick=()=>{stanceLock=!stanceLock;$('stanceLock').textContent=stanceLock?'⚓ Foot lock ON':'⚓ Foot lock OFF';$('stanceLock').classList.toggle('selected',stanceLock);stanceAnchor=null;stanceOffset=0};
+$('mineScoot').onclick=()=>{scootEnabled=!scootEnabled;$('mineScoot').textContent=scootEnabled?'🐾 Mining scoot ON':'🐾 Mining scoot OFF';$('mineScoot').classList.toggle('selected',scootEnabled);if(!scootEnabled)scoot=null};
+$('swingBlend').onclick=()=>{smoothSwing=!smoothSwing;$('swingBlend').textContent=smoothSwing?'🧪 Experimental rig ON':'🧪 Experimental rig OFF';$('swingBlend').classList.toggle('selected',smoothSwing)};
+const pressed=new Set();$('reset').onclick=()=>{pressed.clear();reset()};document.addEventListener('keydown',e=>{if(e.target.tagName==='BUTTON'||e.target.tagName==='INPUT')return;let dir=e.key==='ArrowLeft'||e.key==='a'?-1:e.key==='ArrowRight'||e.key==='d'?1:0;if(dir){e.preventDefault();pressed.add(e.key);if(phase==='manual'){moveDir=dir;p.dir=dir}}});document.addEventListener('keyup',e=>{pressed.delete(e.key);if(!pressed.size){moveDir=0;digElapsed=0}});window.addEventListener('blur',()=>{pressed.clear();moveDir=0;digElapsed=0});
+reset();requestAnimationFrame(loop);
+})();
+</script>
+<script src="assets/motion-lab.js"></script></body></html>
