@@ -225,6 +225,32 @@ function sizeTest(){
   for(const k of Object.keys(first))out[k]=a[k].map((v,i)=>mix(v,first[k][i],ease(u)));
   return out
  }
+ // Keep the near palm at the floor while the knee advances under the pelvis.
+ // All points are in the fixed side-view source coordinate system.
+ const pushPose=lower(1);
+ const palmAnchor=[pushPose.redWrist[0]+5,95];
+ function rise(frame){
+  const p=frame<268?join(1-(frame-250)/18):lower(1-(frame-268)/36);
+  const weight=ease(Math.min(1,Math.max(0,(frame-256)/10)))*
+               (1-ease(Math.min(1,Math.max(0,(frame-278)/10))));
+  if(weight===0)return p;
+  const shoulder=p.redShoulder;
+  const handLength=lengths[6];
+  const wristGoal=[palmAnchor[0]-handLength,palmAnchor[1]-2];
+  const dx=mix(p.redWrist[0],wristGoal[0],weight)-shoulder[0];
+  const dy=mix(p.redWrist[1],wristGoal[1],weight)-shoulder[1];
+  const reach=Math.max(.001,Math.hypot(dx,dy));
+  const distance=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
+  const upper=mix(distance(shoulder,p.redElbow),lengths[4],weight);
+  const fore=mix(distance(p.redElbow,p.redWrist),lengths[5],weight);
+  const d=Math.max(Math.abs(upper-fore)+.001,Math.min(reach,upper+fore-.001));
+  const along=(upper*upper-fore*fore+d*d)/(2*d);
+  const bend=Math.sqrt(Math.max(0,upper*upper-along*along));
+  const ux=dx/reach,uy=dy/reach;
+  const wrist=[shoulder[0]+ux*d,shoulder[1]+uy*d];
+  const hand=p.redHand.map((v,i)=>wrist[i]+mix(v-p.redWrist[i],palmAnchor[i]-wristGoal[i],weight));
+  return {...p,redElbow:[shoulder[0]+ux*along-uy*bend,shoulder[1]+uy*along+ux*bend],redWrist:wrist,redHand:hand}
+ }
  // Timeline in 24 fps frames. Crawl uses the original 38-frame renderer twice.
  function at(f){
   if(f<60)return ['Walk',pose(sample(walk,f/30%1,true))];
@@ -234,8 +260,7 @@ function sizeTest(){
   if(f<156)return ['Crouch → prone',lower((f-120)/36)];
   if(f<174)return ['Settle into crawl',join((f-156)/18)];
   if(f<250)return ['Crawl',null,(f-174)%38/38];
-  if(f<268)return ['Prone → crouch',join(1-(f-250)/18)];
-  if(f<304)return ['Prone → crouch',lower(1-(f-268)/36)];
+  if(f<304)return ['Prone → crouch',rise(f)];
   if(f<316)return ['Crouch',pose(between(prone[0],stand.at(-1),ease((f-304)/12)))];
   if(f<352)return ['Crouch → stand',pose(sample(stand,1-(f-316)/36))];
   if(f<366)return ['Stand',pose(stand[0])];
@@ -250,7 +275,7 @@ function sizeTest(){
   pair.clearRect(0,0,720,130);floor(pair,109,720);miner(pair,173,180,108);miner(pair,174,540,108);
   pair.fillStyle='#e3e7df';pair.font='18px system-ui';pair.fillText('Last transition frame',50,24);pair.fillText('First crawl frame',425,24)
  }
- let f=0,playing=true,last=null;
+ let f=new URLSearchParams(location.search).get('start')==='rise'?254:0,playing=true,last=null;
  function toggle(on){playing=on;el('sizePlay').textContent=on?'Pause':'Play';last=null}
  el('sizePlay').onclick=()=>toggle(!playing);
  el('sizeTime').oninput=e=>{toggle(false);f=Number(e.target.value)};
@@ -270,5 +295,6 @@ else if(new URLSearchParams(location.search).get('test')==='tunnel')tunnelTrial(
 else requestAnimationFrame(loop);
 
 </script></html>
+
 
 
