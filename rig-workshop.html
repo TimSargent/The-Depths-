@@ -1,8 +1,8 @@
 <!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>The Depths · Rig workshop</title>
 <style>
 *{box-sizing:border-box}body{margin:0;background:#101719;color:#e3e7df;font:16px "DM Sans",system-ui,sans-serif}main{max-width:1040px;margin:auto;padding:clamp(18px,4vw,44px)}header{display:flex;align-items:baseline;gap:18px;border-bottom:1px solid #40504d}h1{font:normal clamp(30px,6vw,56px) Georgia,serif;margin:0 0 16px}h2{font:normal 22px Georgia,serif;margin:0 0 16px}small,output{color:#a8c4b5}section{background:#1a2425;padding:18px;border-radius:6px;margin-top:16px}.work{display:grid;grid-template-columns:2fr 1fr;gap:16px}canvas{width:100%;background:#263032;display:block;border-radius:4px}label{display:block;margin:12px 0}input[type=range]{width:100%;accent-color:#e9ab55}button,select,input::file-selector-button{font:inherit;background:#32403f;color:#ebeee6;border:1px solid #50625c;border-radius:4px;padding:7px 10px;cursor:pointer}button.primary{background:#e5ad61;color:#211d16}input[type=file]{max-width:100%}video,img{max-width:100%;max-height:260px;margin-top:10px}.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px}output{float:right;font:13px monospace}p{color:#b8c6be;line-height:1.5} @media(max-width:680px){.work{display:block}}
-</style>
-<main><header><h1>The Depths</h1><small>Rig workshop</small></header><div class="work"><div><section><h2>Prone crawl</h2><label>Motion <select id="motion"><option value="source">Reference poses</option><option value="original">Original workshop loop</option></select></label><canvas id="stage" width="720" height="320" aria-label="Animated miner preview"></canvas><div class="row"><button id="play">Pause</button><select id="view" aria-label="Camera"><option value=".19">Game camera</option><option value="0">Side</option><option value="1.571">Overhead</option></select></div><label>Cycle position<input type="range" id="phase" min="0" max="999" value="0"></label></section><section><h2>Source crawl <small id="frameNum"></small></h2><canvas width="330" height="102" id="sourceImage" aria-label="Matching frame of the original crawl"></canvas><label>Additional reference</label><input id="ref" type="file" aria-label="Load reference image or video" accept="image/*,video/*"><div id="media"></div></section></div><section><h2>Miner &amp; motion</h2><div id="controls"></div><label>Work shirt <input type="color" id="shirt" value="#617a73"></label><button class="primary" id="sheet">Export sprite sheet</button><p>24 frames · 6 columns × 4 rows · 160 × 96 px per frame. Export uses the game camera.</p><small id="status" role="status"></small></section></div></main>
+#trial button{touch-action:none;user-select:none;-webkit-user-select:none;min-height:48px}#trial a,#studio a{color:#e5ad61}#tunnel{aspect-ratio:960/450} [hidden]{display:none!important}</style>
+<main id="trial" hidden><header><h1>The Depths</h1><small>Crawl playtest</small></header><section><h2>One-tile tunnel</h2><canvas id="tunnel" width="960" height="450" aria-label="Miner in a one-tile tunnel with a fixed camera"></canvas><div class="row"><button id="left">◀ Crawl left</button><button id="right">Crawl right ▶</button><button id="reset">Restart</button></div><label><input type="checkbox" id="contact" checked> Show wrist and floor marker</label><small id="readout"></small><p>Hold a direction to crawl. Release to pause. The floor marker stays where the supporting wrist began its pull.</p><a href="?">Rig workshop</a></section></main><main id="studio"><header><h1>The Depths</h1><small>Rig workshop</small></header><div class="work"><div><section><h2>Prone crawl</h2><a href="?test=tunnel">Play the one-tile tunnel</a><label>Motion <select id="motion"><option value="source">Reference poses</option><option value="original">Original workshop loop</option></select></label><canvas id="stage" width="720" height="320" aria-label="Animated miner preview"></canvas><div class="row"><button id="play">Pause</button><select id="view" aria-label="Camera"><option value=".19">Game camera</option><option value="0">Side</option><option value="1.571">Overhead</option></select></div><label>Cycle position<input type="range" id="phase" min="0" max="999" value="0"></label></section><section><h2>Source crawl <small id="frameNum"></small></h2><canvas width="330" height="102" id="sourceImage" aria-label="Matching frame of the original crawl"></canvas><label>Additional reference</label><input id="ref" type="file" aria-label="Load reference image or video" accept="image/*,video/*"><div id="media"></div></section></div><section><h2>Miner &amp; motion</h2><div id="controls"></div><label>Work shirt <input type="color" id="shirt" value="#617a73"></label><button class="primary" id="sheet">Export sprite sheet</button><p>24 frames · 6 columns × 4 rows · 160 × 96 px per frame. Export uses the game camera.</p><small id="status" role="status"></small></section></div></main>
 <script src="assets/prone-motion-017.js"></script><script>
 'use strict';
 const el=id=>document.getElementById(id);
@@ -116,5 +116,64 @@ el('phase').oninput=e=>{running=false;el('play').textContent='Play';t=e.target.v
 let url;el('ref').onchange=e=>{const file=e.target.files[0];if(!file)return;el('media').replaceChildren();if(url)URL.revokeObjectURL(url);url=URL.createObjectURL(file);const m=document.createElement(file.type.startsWith('video/')?'video':'img');m.controls=true;m.loop=true;m.playsInline=true;m.alt='Motion reference';m.src=url;el('media').append(m)};
 el('sheet').onclick=()=>{const c=document.createElement('canvas');c.width=960;c.height=384;const ctx=c.getContext('2d');for(let i=0;i<24;i++)render(ctx,i/24,.19,1.25,i%6*160+82,Math.floor(i/6)*96+71);
  const a=document.createElement('a');a.download='depths-crawl-24.png';a.href=c.toDataURL();a.click();el('status').textContent='Sprite sheet generated.'};
-requestAnimationFrame(loop);
+
+function tunnelTrial(){
+ const canvas=el('tunnel'),ctx=canvas.getContext('2d');
+ const floor=257,roof=floor-72,scale=1.88,minX=116,maxX=844;
+ const cycle=sourceFrames.length/window.DepthsProneMotion017.fps;
+ const speed=28/.64; // Live prototype: one 28 px cell per prone scoot.
+ // Start with the approved baseline, independent of workshop experiments.
+ Object.assign(settings,{chest:16,roll:16,sweep:16,build:10,helmet:9});
+ el('shirt').value='#617a73';el('studio').hidden=true;el('trial').hidden=false;
+ let x=210,phase=0,facing=1,moving=0,anchor=null,plant='',last=null,held=null;
+ function restart(){x=210;phase=0;facing=1;moving=0;held=null;anchor=null;plant='';last=null}
+ function stop(){held=null;moving=0}
+ function start(dir,id){
+  if(held!==null&&held!==id)return;
+  if(facing!==dir){plant='';anchor=null}
+  facing=dir;held=id;moving=dir;
+ }
+ for(const [id,dir] of [['left',-1],['right',1]]){
+  const button=el(id);
+  button.onpointerdown=e=>{if(e.button!==0)return;e.preventDefault();button.setPointerCapture(e.pointerId);start(dir,e.pointerId)};
+  button.onpointerup=button.onpointercancel=button.onlostpointercapture=e=>{if(held===e.pointerId)stop()};
+  button.oncontextmenu=e=>e.preventDefault();
+ }
+ window.addEventListener('keydown',e=>{if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();start(e.key==='ArrowLeft'?-1:1,e.key)}});
+ window.addEventListener('keyup',e=>{if(held===e.key)stop()});
+ window.addEventListener('blur',stop);document.addEventListener('visibilitychange',()=>{if(document.hidden)stop();last=null});
+ el('reset').onclick=restart;
+ function update(now){
+  const dt=last===null?0:Math.min((now-last)/1000,.08);last=now;
+  const next=Math.min(maxX,Math.max(minX,x+moving*speed*dt));
+  phase=(phase+Math.abs(next-x)/speed/cycle)%1;x=next;
+  ctx.fillStyle='#1b2527';ctx.fillRect(0,0,960,450);
+  ctx.fillStyle='#353e3e';ctx.fillRect(0,0,960,roof);ctx.fillRect(0,floor,960,450-floor);
+  ctx.strokeStyle='#47504e';ctx.lineWidth=1;ctx.beginPath();
+  for(let k=0;k<960;k+=28){ctx.moveTo(k,roof-8);ctx.lineTo(k,roof);ctx.moveTo(k,floor);ctx.lineTo(k,floor+10)}
+  ctx.moveTo(0,roof);ctx.lineTo(960,roof);ctx.moveTo(0,floor);ctx.lineTo(960,floor);ctx.stroke();
+  ctx.save();ctx.translate(x,floor-1);ctx.scale(facing,1);tracked(ctx,phase,0,scale,0,0);ctx.restore();
+  const f=phase*sourceFrames.length,i=Math.floor(f),blend=f-i;
+  // Approximate support intervals from the low, retreating wrist in the source.
+  const hand=i>=8&&i<=29?'redWrist':i>=30||i<=6?'blueWrist':'';
+  if(hand){
+   const a=sourceFrames[i].joints[hand],b=sourceFrames[(i+1)%sourceFrames.length].joints[hand];
+   const px=x+facing*((a[0]+(b[0]-a[0])*blend)-165)*.34*scale;
+   const py=floor-1+((a[1]+(b[1]-a[1])*blend)-98)*.34*scale;
+   if(hand!==plant||anchor===null)anchor=px;
+   if(el('contact').checked){
+    ctx.strokeStyle='#efba6b';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(anchor,floor+1);ctx.lineTo(anchor,floor+14);ctx.stroke();
+    ctx.beginPath();ctx.arc(px,py,4,0,Math.PI*2);ctx.stroke();
+   }
+  }else{anchor=null}
+  plant=hand;
+  const msg='Frame '+(i+1)+' / 38 · '+(moving&&next!==minX&&next!==maxX?'Crawling':'Paused');
+  if(el('readout').textContent!==msg)el('readout').textContent=msg;
+  requestAnimationFrame(update);
+ }
+ requestAnimationFrame(update);
+}
+if(new URLSearchParams(location.search).get('test')==='tunnel')tunnelTrial();
+else requestAnimationFrame(loop);
+
 </script></html>
