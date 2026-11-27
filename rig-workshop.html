@@ -198,8 +198,30 @@ function sizeTest(){
   return out
  }
  const first=sourceFrames[0].joints;
+ // The source crawl already includes side-view foreshortening. Introduce
+ // that projection as the knee turns outward during the descent.
+ function lower(u){
+  const angles=sample(prone,u),out=pose(angles);
+  const weight=ease(Math.max(0,(u-.22)/.78));
+  if(!weight)return out;
+  const sourcePoint=k=>k==='shoulder'?
+   first.redShoulder.map((v,i)=>(v+first.blueShoulder[i])*.5):first[k];
+  const projected={pelvis:[...out.pelvis]};
+  for(let i=1;i<keys.length;i++){
+   const key=keys[i],parent=keys[parents[i]],a=sourcePoint(parent),b=sourcePoint(key);
+   const targetLength=Math.hypot(b[0]-a[0],b[1]-a[1]);
+   const length=mix(lengths[i],targetLength,weight),angle=angles[i-1];
+   projected[key]=[projected[parent][0]+length*Math.cos(angle),projected[parent][1]+length*Math.sin(angle)];
+  }
+  const contacts=['redHand','blueHand','pinkToe','orangeToe','pinkAnkle','orangeAnkle','redWrist','blueWrist'];
+  const dy=95-Math.max(...contacts.map(k=>projected[k][1]));
+  for(const key of keys){out[key]=[projected[key][0],projected[key][1]+dy]}
+  out.pinkHip=out.orangeHip=out.pelvis;out.redShoulder=out.blueShoulder=out.shoulder;
+  out.chest=out.pelvis.map((v,i)=>mix(v,out.shoulder[i],.78));
+  return out
+ }
  function join(u){
-  const a=pose(prone.at(-1)),out={};
+  const a=lower(1),out={};
   for(const k of Object.keys(first))out[k]=a[k].map((v,i)=>mix(v,first[k][i],ease(u)));
   return out
  }
@@ -209,11 +231,11 @@ function sizeTest(){
   if(f<72)return ['Settle into stance',pose(between(walk[0],stand[0],ease((f-60)/12)))];
   if(f<108)return ['Stand → crouch',pose(sample(stand,(f-72)/36))];
   if(f<120)return ['Crouch',pose(between(stand.at(-1),prone[0],ease((f-108)/12)))];
-  if(f<156)return ['Crouch → prone',pose(sample(prone,(f-120)/36))];
+  if(f<156)return ['Crouch → prone',lower((f-120)/36)];
   if(f<174)return ['Settle into crawl',join((f-156)/18)];
   if(f<250)return ['Crawl',null,(f-174)%38/38];
   if(f<268)return ['Prone → crouch',join(1-(f-250)/18)];
-  if(f<304)return ['Prone → crouch',pose(sample(prone,1-(f-268)/36))];
+  if(f<304)return ['Prone → crouch',lower(1-(f-268)/36)];
   if(f<316)return ['Crouch',pose(between(prone[0],stand.at(-1),ease((f-304)/12)))];
   if(f<352)return ['Crouch → stand',pose(sample(stand,1-(f-316)/36))];
   if(f<366)return ['Stand',pose(stand[0])];
@@ -248,4 +270,5 @@ else if(new URLSearchParams(location.search).get('test')==='tunnel')tunnelTrial(
 else requestAnimationFrame(loop);
 
 </script></html>
+
 
