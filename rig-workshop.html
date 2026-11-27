@@ -1,0 +1,61 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>The Depths · Rig workshop</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#101719;color:#e3e7df;font:16px "DM Sans",system-ui,sans-serif}main{max-width:1040px;margin:auto;padding:clamp(18px,4vw,44px)}header{display:flex;align-items:baseline;gap:18px;border-bottom:1px solid #40504d}h1{font:normal clamp(30px,6vw,56px) Georgia,serif;margin:0 0 16px}h2{font:normal 22px Georgia,serif;margin:0 0 16px}small,output{color:#a8c4b5}section{background:#1a2425;padding:18px;border-radius:6px;margin-top:16px}.work{display:grid;grid-template-columns:2fr 1fr;gap:16px}canvas{width:100%;background:#263032;display:block;border-radius:4px}label{display:block;margin:12px 0}input[type=range]{width:100%;accent-color:#e9ab55}button,select,input::file-selector-button{font:inherit;background:#32403f;color:#ebeee6;border:1px solid #50625c;border-radius:4px;padding:7px 10px;cursor:pointer}button.primary{background:#e5ad61;color:#211d16}input[type=file]{max-width:100%}video,img{max-width:100%;max-height:260px;margin-top:10px}.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px}output{float:right;font:13px monospace}p{color:#b8c6be;line-height:1.5} @media(max-width:680px){.work{display:block}}
+</style>
+<main><header><h1>The Depths</h1><small>Rig workshop</small></header><div class="work"><div><section><h2>Prone crawl</h2><canvas id="stage" width="720" height="320" aria-label="Animated miner preview"></canvas><div class="row"><button id="play">Pause</button><select id="view" aria-label="Camera"><option value=".19">Game camera</option><option value="0">Side</option><option value="1.571">Overhead</option></select></div><label>Cycle position<input type="range" id="phase" min="0" max="999" value="0"></label></section><section><h2>Reference</h2><input id="ref" type="file" aria-label="Load reference image or video" accept="image/*,video/*"><div id="media"></div></section></div><section><h2>Miner &amp; motion</h2><div id="controls"></div><label>Work shirt <input type="color" id="shirt" value="#617a73"></label><button class="primary" id="sheet">Export sprite sheet</button><p>24 frames · 6 columns × 4 rows · 160 × 96 px per frame. Export uses the game camera.</p><small id="status" role="status"></small></section></div></main>
+<script>
+'use strict';
+const el=id=>document.getElementById(id);
+const specs=[['chest','Chest height',13,23,16],['roll','Chest roll (°)',0,30,16],['sweep','Knee swing',0,24,16],['build','Torso width',7,14,10],['helmet','Helmet size',7,12,9],['tempo','Seconds per cycle',1,4,2.4]];
+const settings={}; let saved={};try{saved=JSON.parse(localStorage.depthsRig||'{}')||{}}catch{}
+function persist(){try{localStorage.depthsRig=JSON.stringify({...settings,shirt:el('shirt').value})}catch{}}
+for(const [id,title,min,max,initial] of specs){
+ const label=document.createElement('label'),input=document.createElement('input'),out=document.createElement('output');
+ input.type='range'; input.min=min; input.max=max; input.step=id==='tempo'?0.1:1; input.value=saved[id]??initial;
+ function update(){settings[id]=Number(input.value);out.value=input.value}
+ update();input.oninput=()=>{update();persist()};label.append(title,out,input);el('controls').append(label);
+}
+if(/^#[0-9a-f]{6}$/i.test(saved.shirt))el('shirt').value=saved.shirt;
+el('shirt').oninput=persist;
+const add=(a,b)=>a.map((v,i)=>v+b[i]),sub=(a,b)=>a.map((v,i)=>v-b[i]),mul=(a,s)=>a.map(v=>v*s),dot=(a,b)=>a.reduce((n,v,i)=>n+v*b[i],0);
+const unit=a=>mul(a,1/(Math.hypot(...a)||1));
+// Solve two fixed-length bones in the plane defined by the bend direction.
+function limb(start,goal,bend,l1,l2){
+ const axis=unit(sub(goal,start)),d=Math.min(l1+l2-.001,Math.max(Math.abs(l1-l2)+.001,Math.hypot(...sub(goal,start))));
+ const along=(l1*l1-l2*l2+d*d)/(2*d), perpendicular=unit(sub(bend,mul(axis,dot(bend,axis))));
+ return [start,add(add(start,mul(axis,along)),mul(perpendicular,Math.sqrt(Math.max(0,l1*l1-along*along)))),add(start,mul(axis,d))];
+}
+function draw(ctx,t,angle,scale,cx,cy){
+ const w=t*Math.PI*2,roll=Math.sin(w)*settings.roll*Math.PI/180,h=settings.chest,body=settings.build;
+ const project=([x,y,z])=>[x,-y*Math.cos(angle)+z*Math.sin(angle)];
+ ctx.save();ctx.translate(cx,cy);ctx.scale(scale,scale);
+ function bar(a,b,width,color){let A=project(a),B=project(b);ctx.beginPath();ctx.moveTo(...A);ctx.lineTo(...B);ctx.lineWidth=width;ctx.lineCap='round';ctx.strokeStyle=color;ctx.stroke()}
+ function oval(p,rx,ry,color){ctx.beginPath();ctx.ellipse(...project(p),rx,ry,0,0,2*Math.PI);ctx.fillStyle=color;ctx.fill()}
+ function legs(s){
+ const f=w+(s===1?0:Math.PI),hip=[-6,12,s*5],boot=[-42+9*Math.cos(f),3+3*Math.max(0,Math.sin(f)),s*6];
+ const [a,b,c]=limb(hip,boot,[.2,.04,s*(.15+settings.sweep/9)],24,23);
+ const col=s===1?'#465657':'#303e41';bar(a,b,9,col);bar(b,c,7,col);bar(c,add(c,[-6,0,0]),6,'#343632')}
+ function arms(s){
+ const f=w+(s===1?Math.PI:0),lift=Math.max(0,Math.sin(f)),a=[17+2*Math.cos(f),h+s*body*Math.sin(roll),s*body*Math.cos(roll)];
+ const [root,joint,tip]=limb(a,[36+8*Math.cos(f),3+5*lift,s*8],[-1,-1,s*.4],16,17);
+ bar(root,joint,7,s===1?el('shirt').value:'#425453');bar(joint,tip,5,s===1?'#ad8868':'#766959');bar(tip,add(tip,[3,0,0]),4,'#514c40')}
+ legs(-1);arms(-1);
+ bar([-8,12,0],[3,h-1,0],body*1.5,'#495957');
+ bar([0,h-1,0],[16,h,0],body*1.65,el('shirt').value);
+ bar([0,h+2,body*.65],[15,h+2+body*Math.sin(roll),body*Math.cos(roll)],2,'#80918a');
+ oval([25,h+4,0],7,7,'#af8e70');oval([24,h+9,0],settings.helmet,settings.helmet*.65,'#bb893f');
+ bar([16,h+7,0],[33,h+7,0],3,'#dba751');oval([31,h+10,0],2,2,'#ffe4a1');
+ legs(1);arms(1);ctx.restore();
+}
+let running=true,t=0,last=null;
+function loop(now){if(running && last!==null)t=(t+Math.min(now-last,100)/1000/settings.tempo)%1;last=now;
+ const ctx=el('stage').getContext('2d'),angle=Number(el('view').value),base=angle>1?160:222;
+ ctx.clearRect(0,0,720,320);if(angle<1){ctx.fillStyle='#40504c';ctx.fillRect(0,base+5,720,1)}
+ draw(ctx,t,angle,4.5,360,base);el('phase').value=Math.floor(t*999);requestAnimationFrame(loop)}
+el('play').onclick=()=>{running=!running;el('play').textContent=running?'Pause':'Play'};
+el('phase').oninput=e=>{running=false;el('play').textContent='Play';t=e.target.value/999};
+let url;el('ref').onchange=e=>{const file=e.target.files[0];if(!file)return;el('media').replaceChildren();if(url)URL.revokeObjectURL(url);url=URL.createObjectURL(file);const m=document.createElement(file.type.startsWith('video/')?'video':'img');m.controls=true;m.loop=true;m.playsInline=true;m.alt='Motion reference';m.src=url;el('media').append(m)};
+el('sheet').onclick=()=>{const c=document.createElement('canvas');c.width=960;c.height=384;const ctx=c.getContext('2d');for(let i=0;i<24;i++)draw(ctx,i/24,.19,1.25,i%6*160+82,Math.floor(i/6)*96+71);
+ const a=document.createElement('a');a.download='depths-crawl-24.png';a.href=c.toDataURL();a.click();el('status').textContent='Sprite sheet generated.'};
+requestAnimationFrame(loop);
+</script></html>
