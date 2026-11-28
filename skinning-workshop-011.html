@@ -1,0 +1,73 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>The Depths — Skinning Workshop 011</title><style> *{box-sizing:border-box}body{margin:0;background:#151713;color:#e9dfcf;font:15px system-ui}main{max-width:960px;margin:auto;padding:12px}h1{font:26px Georgia;margin:8px 0}small,p{color:#bbb3a4}section{border:1px solid #47443b;border-radius:8px;padding:12px;margin:12px 0;background:#20211d}canvas{width:100%;height:auto;display:block;background:#39372f}button,select,input{font:inherit}button,select{background:#34342c;color:#eee3cd;border:1px solid #666052;border-radius:5px;padding:10px;min-height:44px}button{cursor:pointer}.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0}.controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}label{display:block}input[type=range]{width:100%;accent-color:#d6a25c}input[type=number]{width:100%;background:#10120f;color:#eee;border:1px solid #666;padding:6px}textarea{width:100%;background:#131411;color:#eee;min-height:90px}a{color:#e5b36d}</style><main><h1>Skinning Workshop 011</h1><small>THE DEPTHS / Static illustrated character assembly</small><section><p>Load the approved taller miner concept (1536 × 1024, 3:2). This workshop uses its actual modular illustrations, not a new character design. No animation engine is loaded.</p><input id="file" type="file" accept="image/*"><p id="status">Waiting for approved reference image.</p><div class="row"><select id="view"><option value="compare">Side by side</option><option value="overlay">Onion skin</option><option value="assembly">Assembly only</option><option value="reference">Reference only</option><option value="atlas">Extracted parts</option></select><label>Reference opacity <input id="opacity" type="range" min="0" max="1" step=".05" value=".45"></label><label><input id="joints" type="checkbox"> Joint guides</label></div><canvas id="preview" width="800" height="640"></canvas></section><section><h2>Part calibration</h2><div class="row"><select id="part"></select><button id="reset">Reset part</button><button id="resetAll">Reset all</button></div><div id="controls" class="controls"></div><div class="row"><label><input id="flip" type="checkbox"> Flip horizontally</label><label><input id="visible" type="checkbox"> Visible</label></div><div class="row"><button id="save">Save layout</button><button id="load">Load layout</button><button id="export">Export JSON</button><button id="import">Import JSON</button></div><textarea id="json" placeholder="Layout JSON"></textarea><p>Each part can be calibrated independently; the approved reference is never modified. Default placement is preconfigured, not a requirement to manually assemble the character.</p></section></main><script>
+const $=id=>document.getElementById(id);
+// Coordinates on the user's explicitly approved 1536x1024 concept, modular cells.
+const assets={
+helmet:{box:[565,287,693,405],poly:[[3,66],[12,44],[24,27],[48,18],[78,18],[79,1],[83,1],[83,19],[108,22],[125,35],[127,57],[113,72],[109,81],[91,84],[82,113],[65,114],[43,100],[20,89],[16,76]],pivot:[60,94]},
+torso:{box:[740,288,870,412],poly:[[32,8],[46,1],[67,4],[85,15],[104,30],[117,57],[128,102],[117,110],[113,122],[19,122],[16,111],[3,106],[8,57],[17,25]],pivot:[65,105]},
+pack:{box:[913,263,1037,412],poly:[[3,137],[7,73],[13,55],[22,48],[22,22],[27,22],[27,48],[45,39],[45,2],[50,2],[50,39],[75,39],[94,48],[111,64],[122,128],[115,147],[9,147]],pivot:[112,110]},
+upper:{box:[560,443,659,542],poly:[[47,3],[63,0],[82,3],[98,18],[95,38],[81,56],[65,66],[41,96],[1,91],[14,62],[23,35]],pivot:[70,17]},
+fore:{box:[718,450,787,540],poly:[[38,2],[56,7],[68,21],[59,40],[41,72],[32,89],[15,84],[1,73],[10,45],[24,17]],pivot:[48,16]},
+glove:{box:[906,453,962,541],poly:[[17,2],[40,3],[53,17],[55,45],[48,76],[38,86],[16,83],[3,67],[1,38]],pivot:[29,12]},
+belt:{box:[1077,453,1210,543],poly:[[12,7],[48,1],[96,3],[120,13],[129,42],[123,75],[104,77],[98,69],[83,88],[68,77],[51,67],[28,82],[4,69],[0,44]],pivot:[67,42]},
+thigh:{box:[561,575,655,711],poly:[[35,2],[63,0],[88,11],[93,24],[73,64],[69,80],[48,118],[31,135],[2,126],[11,95],[5,74],[18,40]],pivot:[64,14]},
+shin:{box:[722,575,791,711],poly:[[10,3],[49,0],[64,18],[66,45],[61,74],[65,98],[59,134],[10,135],[5,106],[9,75],[0,47],[3,20]],pivot:[32,18]},
+boot:{box:[847,584,967,711],poly:[[12,5],[47,1],[72,7],[76,17],[70,50],[81,75],[103,82],[117,96],[119,118],[112,126],[0,125],[4,99],[10,65]],pivot:[32,96]},
+pick:{box:[1091,297,1211,417],poly:[[8,11],[24,3],[46,3],[64,8],[81,19],[100,38],[118,65],[115,67],[95,44],[77,31],[65,26],[56,43],[15,118],[2,110],[47,26],[40,17],[24,12]],pivot:[32,78]}
+};
+// Static stage coordinate system: 400 x 600, helmet to sole ~470 px.
+// Each independently authored piece has a position, uniform scale, rotation,
+// layer, opacity and visibility; no skeletal solver changes its proportions.
+const make=(asset,x,y,scale,angle,z,flip=false)=>({asset,x,y,scale,angle,z,alpha:1,flip,visible:true});
+const defaults={
+ 'Far thigh':make('thigh',215,332,.88,-12,1),'Far shin':make('shin',227,430,.82,-7,2),'Far boot':make('boot',240,539,.65,0,3),
+ 'Far upper arm':make('upper',224,186,.84,-20,4),'Far forearm':make('fore',235,255,.82,-12,5),'Far glove':make('glove',246,311,.70,-12,6),
+ 'Backpack':make('pack',185,272,1.16,0,7),'Jacket':make('torso',204,315,1.14,0,8),
+ 'Near thigh':make('thigh',188,334,.93,-13,9),'Near shin':make('shin',173,435,.88,4,10),'Near boot':make('boot',163,539,.69,0,11),
+ 'Belt':make('belt',201,326,.89,0,12),'Helmet':make('helmet',213,148,1.05,0,13),
+ 'Pickaxe':make('pick',243,339,1.57,64,14),
+ 'Near upper arm':make('upper',191,182,.99,-9,15),'Near forearm':make('fore',176,253,1.00,-34,16),'Near glove':make('glove',211,321,.86,-18,17)
+};
+let layout=JSON.parse(JSON.stringify(defaults)),img=null,sprites={},selected=Object.keys(layout)[0];
+function extract(image){
+ img=image; sprites={};
+ for(const [key,d] of Object.entries(assets)){
+ const [x,y,x2,y2]=d.box,w=x2-x,h=y2-y,c=document.createElement('canvas');c.width=w;c.height=h;const g=c.getContext('2d');g.beginPath();d.poly.forEach((p,i)=>i?g.lineTo(...p):g.moveTo(...p));g.closePath();g.clip();g.drawImage(image,x*image.width/1536,y*image.height/1024,w*image.width/1536,h*image.height/1024,0,0,w,h);sprites[key]=c;
+ }
+ $('status').textContent='11 illustrated assets extracted · 17 independently placed parts';render();
+}
+function loadImage(url){const im=new Image();im.onload=()=>{if(Math.abs(im.width/im.height-1.5)>.035){$('status').textContent='Wrong sheet format: select the approved 3:2 taller miner reference (not the later workshop poster).';return}extract(im)};im.onerror=()=>$('status').textContent='Unable to load reference';im.src=url}
+$('file').onchange=()=>{const f=$('file').files[0];if(!f)return;const r=new FileReader();r.onload=()=>{loadImage(r.result);try{localStorage.setItem('depths011ref',r.result)}catch(e){}};r.readAsDataURL(f)};
+function assembly(g,offset,scale){
+ g.save();g.translate(offset,0);g.scale(scale,scale);
+ g.strokeStyle='#928575';g.beginPath();g.moveTo(25,565);g.lineTo(375,565);g.stroke();
+ for(const [name,p] of Object.entries(layout).sort((a,b)=>a[1].z-b[1].z)){
+ if(!p.visible)continue;const d=assets[p.asset],c=sprites[p.asset];if(!c)continue;
+ g.save();g.translate(p.x,p.y);g.rotate(p.angle*Math.PI/180);g.scale(p.scale*(p.flip?-1:1),p.scale);g.globalAlpha=p.alpha;if(name.startsWith('Far'))g.filter='brightness(.72)';g.drawImage(c,-d.pivot[0],-d.pivot[1]);g.restore();
+ if($('joints').checked){g.fillStyle=name===selected?'#ffd080':'#6bd4c2';g.beginPath();g.arc(p.x,p.y,3,0,Math.PI*2);g.fill();}
+ }
+ g.restore();
+}
+function reference(g,offset,scale,alpha=1){if(!img)return;g.save();g.translate(offset,0);g.scale(scale,scale);g.globalAlpha=alpha;
+ // Full portrait, excluding adjacent concept panels and lower animation strip.
+ g.drawImage(img,0,0,510*img.width/1536,820*img.height/1024,35,55,330,510);g.restore();}
+function render(){const g=$('preview').getContext('2d');g.fillStyle='#39372f';g.fillRect(0,0,800,640);const v=$('view').value;
+ if(!img){g.fillStyle='#eee0c8';g.font='20px system-ui';g.fillText('Import the approved concept sheet to begin.',35,65);return}
+ if(v==='compare'){reference(g,0,1);assembly(g,400,1)}
+ if(v==='overlay'){assembly(g,200,1);reference(g,200,1,Number($('opacity').value))}
+ if(v==='assembly')assembly(g,200,1);
+ if(v==='reference')reference(g,200,1);
+ if(v==='atlas'){let i=0;for(const [k,c] of Object.entries(sprites)){const x=20+i%4*195,y=20+Math.floor(i/4)*190,f=Math.min(145/c.width,145/c.height);g.drawImage(c,x,y,c.width*f,c.height*f);g.fillStyle='#eee0c8';g.font='15px system-ui';g.fillText(k,x,y+164);i++}}
+ g.fillStyle='#eee0c8';g.font='16px system-ui';if(v==='compare'){g.fillText('Approved artwork',120,620);g.fillText('Modular assembly',520,620)}
+}
+const fields={x:['X',0,400,1],y:['Y',0,600,1],scale:['Scale',.2,3,.01],angle:['Rotation',-180,180,1],z:['Layer',0,40,1],alpha:['Opacity',0,1,.01]};
+function sync(){const p=layout[selected];for(const k in fields){$(k).value=p[k];$(k+'num').value=p[k]}$('flip').checked=p.flip;$('visible').checked=p.visible;render()}
+for(const name of Object.keys(layout)){const o=document.createElement('option');o.value=o.textContent=name;$('part').appendChild(o)}
+for(const [key,[label,min,max,step]] of Object.entries(fields)){const box=document.createElement('label');box.textContent=label;for(const [id,type] of [[key,'range'],[key+'num','number']]){const e=document.createElement('input');e.id=id;e.type=type;e.min=min;e.max=max;e.step=step;box.appendChild(e);e.oninput=()=>{const n=Number(e.value);if(!Number.isFinite(n))return;layout[selected][key]=Math.max(min,Math.min(max,n));$(id===key?key+'num':key).value=layout[selected][key];render()}}$('controls').appendChild(box)}
+$('part').onchange=()=>{selected=$('part').value;sync()};for(const k of ['flip','visible'])$(k).onchange=()=>{layout[selected][k]=$(k).checked;render()};for(const k of ['view','opacity','joints'])$(k).oninput=render;
+$('reset').onclick=()=>{layout[selected]={...defaults[selected]};sync()};$('resetAll').onclick=()=>{layout=JSON.parse(JSON.stringify(defaults));sync()};
+function validated(data){const out={};for(const [name,d] of Object.entries(defaults)){const p=data[name];if(!p||p.asset!==d.asset)throw Error('Missing or invalid '+name);out[name]={...d};for(const [k,[_,min,max]] of Object.entries(fields)){if(typeof p[k]!=='number'||!Number.isFinite(p[k]))throw Error('Invalid '+k);out[name][k]=Math.max(min,Math.min(max,p[k]))}for(const k of ['flip','visible'])out[name][k]=!!p[k]}return out}
+$('save').onclick=()=>{try{localStorage.setItem('depths011layout',JSON.stringify(layout));$('status').textContent='Layout saved on this device'}catch(e){$('status').textContent='Storage unavailable; export JSON instead'}};
+$('load').onclick=()=>{try{layout=validated(JSON.parse(localStorage.getItem('depths011layout')));sync()}catch(e){$('status').textContent='No valid saved layout'}};
+$('export').onclick=()=>{$('json').value=JSON.stringify(layout,null,2)};$('import').onclick=()=>{try{layout=validated(JSON.parse($('json').value));sync();$('status').textContent='Layout imported'}catch(e){$('status').textContent=e.message}};
+sync();try{const saved=localStorage.getItem('depths011ref');if(saved)loadImage(saved)}catch(e){}
+</script></html>
