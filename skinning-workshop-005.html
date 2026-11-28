@@ -1,0 +1,773 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>The Depths · Skinning Workshop 005</title><style>
+*{box-sizing:border-box}body{margin:0;background:#101719;color:#e3e7df;font:15px system-ui,sans-serif}main{max-width:960px;margin:auto;padding:12px}h1{font:normal 28px Georgia,serif;margin:5px 0}small{color:#a8c4b5}section{background:#1a2425;border:1px solid #34443f;border-radius:8px;padding:12px;margin-top:12px}canvas{display:block;width:100%;height:auto;background:#202a2b;border-radius:5px}button,select{font:inherit;background:#32403f;color:#e3e7df;border:1px solid #53635d;border-radius:5px;padding:9px 12px;min-height:42px}button.active{background:#e5ad61;color:#211d16;border-color:#e5ad61}.row{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:9px 0}input[type=range]{width:100%;accent-color:#e5ad61}h2{font-size:15px;margin:5px 0 9px}p{color:#b8c6be;margin:8px 0;line-height:1.4}output{font:12px monospace;color:#c3d8c9}a{color:#e5ad61}</style></head><body><main><h1>Skinning Workshop 005</h1><small>The Depths · Animation Baseline V1.0 · Reference silhouette · compact expedition miner</small><section><div class="row"><button id="standing" class="active">Standing · 3 tiles</button><button id="crouched">Crouched · 2 tiles</button><button id="prone">Prone · 1 tile</button></div><div class="row"><label for="strike">Strike pattern</label><select id="strike"><option value="auto">Alternate all three</option><option value="0">Overhead</option><option value="1">Body-led cross-body</option><option value="2">Diagonal upward</option></select><button id="skip">Next strike</button></div><p>Illustrated character prototype. Select the approved concept sheet once; the workshop automatically extracts the 11 modular parts and attaches them to the existing rig. Your device caches the sheet where supported.</p><div class="row"><label>Approved concept PNG <input id="atlasFile" type="file" accept="image/png,image/jpeg"></label><small id="atlasStatus">Awaiting concept sheet · vector preview until loaded</small></div><div class="row"><label>Appearance <select id="appearance"><option value="illustrated">Illustrated miner</option><option value="silhouette">Original silhouette</option><option value="previous">Compare Workshop 003</option><option value="detail">Gear detail</option><option value="overlay">Skin + skeleton</option><option value="rig">Original rig</option></select></label><label>Animation <select id="activity"><option value="mining">Mining</option><option value="locomotion">Walk / crouch / crawl / rise</option><option value="idle">Standing idle</option></select></label></div><h2>Game-scale preview</h2><canvas id="game" width="720" height="300"></canvas><div class="row"><button id="play">Pause</button><button id="prev">− Frame</button><button id="next">+ Frame</button><button id="impact">Inspect impact</button><select id="speed" aria-label="Playback speed"><option value="1">Normal</option><option value=".5">Half speed</option><option value=".25">Quarter speed</option></select></div><label>Strike phase <input id="scrub" type="range" min="0" max="1000" value="0"></label><div class="row"><label><input id="markers" type="checkbox"> Contact markers</label><label><input id="trail" type="checkbox"> Pick tip path</label></div><output id="status"></output></section><section><h2>Synchronized close-up</h2><label>Inspection camera angle <input id="camera" type="range" min="-85" max="85" value="0"></label><div class="row"><button id="sideView">Side</button><button id="quarterView">Three-quarter</button><button id="frontView">Front-ish</button></div><small id="cameraLabel">Side view</small><canvas id="zoom" width="720" height="500"></canvas><p id="metrics"></p><small>Modular canvas skin uses original skeletal joints. Helmet, gloves, boots and backpack are independent render attachments. Closed fists rotate with the handle. Wrist alignment is solved per frame, and torso windup and impact recoil are strengthened. Depth-aware FK drives the standing cross-body, crouched side and rising strikes, and all three prone strikes. Crouched overhead and other standing strikes are preserved. Prone keeps its supporting hand fixed. Prone has no overhead option. No damage or full skin-mesh collision checks are implemented. Side-view silhouette is the primary design; camera views are projected 2.5D artwork.</small></section><input id="shirt" type="hidden" value="#617a73"><p><a href="rig-workshop-review-004.html?test=size">Return to locomotion baseline</a></p></main><script src="assets/prone-motion-017.js"></script><script>
+'use strict';const el=id=>document.getElementById(id),settings={chest:16,roll:16,sweep:16,build:10,helmet:9},sourceFrames=window.DepthsProneMotion017.frames;
+ const parents=[-1, 0, 1, 2, 1, 4, 5, 1, 7, 8, 0, 10, 11, 0, 13, 14],lengths=[0, 75.77, 14.892, 10.023, 44.212, 41.306, 16.519, 44.212, 41.302, 16.52, 69.99, 65.395, 22.643, 70.744, 65.397, 22.645];
+ const walk=[[-1.53445,-0.98279,-1.2925,2.11949,1.84832,1.84812,1.0221,0.28084,0.28076,1.12685,1.38521,0.13141,1.63194,2.08733,0.6991],[-1.53445,-0.98279,-1.2925,2.09938,1.80684,1.80709,1.04235,0.29112,0.29118,1.14694,1.43543,0.24284,1.61252,2.10809,0.7596],[-1.53445,-0.98279,-1.2925,2.05478,1.72391,1.7243,1.08681,0.34785,0.3477,1.17964,1.52731,0.34098,1.52665,2.17743,0.68723],[-1.53445,-0.98279,-1.2925,2.01013,1.64203,1.64169,1.13146,0.41227,0.412,1.2146,1.61439,0.34098,1.44543,2.24177,0.56566],[-1.53445,-0.98279,-1.2925,1.98988,1.60497,1.60496,1.15186,0.443,0.44315,1.23556,1.65733,0.34098,1.418,2.26967,0.51424],[-1.53445,-0.98279,-1.2925,1.93751,1.5161,1.51618,1.20423,0.5381,0.53806,1.28095,1.67371,0.34098,1.36181,2.27826,0.46324],[-1.53445,-0.98279,-1.2925,1.82143,1.32396,1.3242,1.32001,0.74792,0.74796,1.37357,1.69385,0.34098,1.22535,2.28423,0.38429],[-1.53445,-0.98279,-1.2925,1.70472,1.13831,1.13827,1.43687,0.95987,0.96014,1.47284,1.70043,0.34098,1.09236,2.27258,0.34127],[-1.53445,-0.98279,-1.2925,1.65127,1.06457,1.06447,1.49033,1.06457,1.06447,1.52361,1.69586,0.34098,1.03292,2.26175,0.34098],[-1.53445,-0.98279,-1.2925,1.5976,0.99278,0.99285,1.54399,1.16726,1.167,1.57177,1.68939,0.34098,1.01633,2.19253,0.34098],[-1.53445,-0.98279,-1.2925,1.47867,0.81698,0.81694,1.66276,1.36945,1.36948,1.67944,1.67065,0.34098,0.99409,2.03346,0.34098],[-1.53445,-0.98279,-1.2925,1.35872,0.63873,0.639,1.78303,1.56513,1.56496,1.72428,1.71543,0.34098,0.99592,1.85809,0.34098],[-1.53445,-0.98279,-1.2925,1.30376,0.5574,0.5575,1.83799,1.65272,1.65255,1.73996,1.73113,0.35781,1.00773,1.76142,0.34098],[-1.53445,-0.98279,-1.2925,1.28217,0.51972,0.51977,1.85942,1.6842,1.6844,1.75413,1.74555,0.45916,1.01891,1.7068,0.29137],[-1.53445,-0.98279,-1.2925,1.23487,0.43315,0.43328,1.90672,1.75315,1.75307,1.78477,1.7977,0.55596,1.05442,1.59585,0.21939],[-1.53445,-0.98279,-1.2925,1.1874,0.33899,0.33888,1.95435,1.82107,1.82093,1.73197,1.94086,0.59466,1.11916,1.45369,0.17784],[-1.53445,-0.98279,-1.2925,1.16568,0.28084,0.28076,1.97591,1.84836,1.84812,1.66325,2.04843,0.6991,1.10668,1.41747,0.13141],[-1.53445,-0.98279,-1.2925,1.18718,0.29112,0.29118,1.95426,1.807,1.80668,1.57546,2.1021,0.7596,1.10342,1.44456,0.24284],[-1.53445,-0.98279,-1.2925,1.23487,0.34785,0.3477,1.90672,1.72391,1.72389,1.45141,2.16782,0.68723,1.11388,1.51435,0.34098],[-1.53445,-0.98279,-1.2925,1.28217,0.41227,0.41239,1.85942,1.64202,1.6421,1.34398,2.21339,0.56566,1.1286,1.58122,0.34098],[-1.53445,-0.98279,-1.2925,1.3036,0.44307,0.44315,1.83783,1.60497,1.60496,1.29024,2.22887,0.51424,1.13195,1.60649,0.34098],[-1.53445,-0.98279,-1.2925,1.35856,0.5381,0.53806,1.78287,1.51627,1.5162,1.21979,2.2143,0.46324,1.16256,1.60902,0.34098],[-1.53445,-0.98279,-1.2925,1.47884,0.74779,0.74768,1.66292,1.32396,1.3237,1.08839,2.17235,0.38429,1.24387,1.61976,0.34098],[-1.53445,-0.98279,-1.2925,1.59761,0.95987,0.96014,1.54399,1.13831,1.13789,0.96584,2.1164,0.34127,1.33604,1.62103,0.34098],[-1.53445,-0.98279,-1.2925,1.65127,1.06457,1.06447,1.49033,1.06457,1.06447,0.9125,2.08677,0.34098,1.38462,1.6146,0.34098],[-1.53445,-0.98279,-1.2925,1.7047,1.16726,1.167,1.43689,0.99287,0.99285,0.91502,2.00996,0.34098,1.43484,1.61049,0.34098],[-1.53445,-0.98279,-1.2925,1.82159,1.36945,1.3694,1.32016,0.81687,0.81692,0.94022,1.83393,0.34098,1.54915,1.59834,0.34098],[-1.53445,-0.98279,-1.2925,1.93736,1.56513,1.56496,1.20409,0.63883,0.63875,1.00203,1.63758,0.34098,1.60434,1.65346,0.34098],[-1.53445,-0.98279,-1.2925,1.98974,1.65272,1.65297,1.15171,0.55749,0.55714,1.04929,1.541,0.34098,1.63399,1.6829,0.35781],[-1.53445,-0.98279,-1.2925,2.0102,1.6842,1.6844,1.1314,0.51981,0.51956,1.07402,1.51013,0.29137,1.66492,1.71398,0.45916],[-1.53445,-0.98279,-1.2925,2.05485,1.75312,1.75307,1.08674,0.43323,0.43346,1.1429,1.40797,0.21939,1.71616,1.78398,0.55596],[-1.53445,-0.98279,-1.2925,2.09924,1.82107,1.82093,1.04222,0.33899,0.33902,1.2607,1.25316,0.17784,1.68309,1.94993,0.59466]],stand=[[-1.25188,-0.93325,-1.29779,1.74921,1.50934,1.50934,1.84259,1.54004,1.54004,1.44382,1.62955,0.4757,1.59253,1.58284,0.81103],[-0.82679,-0.39234,-1.21609,1.92224,1.60064,1.60064,2.00742,1.63043,1.63043,1.26599,1.55917,0.44237,1.37578,1.51708,0.54679],[-0.68856,-0.20902,-1.10715,1.84095,1.1539,1.1539,1.9245,1.17804,1.17804,0.7854,1.92434,0.46365,0.92955,1.73389,0.7854],[-0.72594,-0.14708,-1.19553,1.72821,0.86568,0.86568,1.81951,0.89089,0.89089,0.29925,2.0844,0.51239,0.69288,1.88843,0.56673],[-0.83678,-0.36398,-1.2315,1.52321,0.27179,0.27179,1.61838,0.28054,0.28054,0.05819,1.73595,0.36173,0.35745,2.40958,0.48089],[-0.92898,-0.44237,-1.19553,1.29447,0.0,0.0,1.37915,0.0,0.0,-0.04946,1.81848,0.2606,0.41491,2.64687,0.75315],[-0.98742,-0.65285,-1.2397,1.13744,-0.55329,-0.55329,1.21366,-0.56673,-0.56673,-0.11273,1.85075,0.41549,0.45384,2.67795,0.62549],[-0.97075,-0.81569,-1.22203,1.02293,-0.55712,-0.55712,1.10039,-0.57219,-0.57219,-0.11379,1.82406,0.32175,0.45384,2.70358,0.7299]],prone=[[-0.99946,-0.88507,-1.13417,0.98279,-0.52183,-0.52183,2.67795,0.28512,0.28512,-0.18432,2.08994,1.02514,0.5016,2.78596,1.4289],[-0.98279,-0.98279,-1.13095,1.10715,0.06115,0.06115,1.5708,0.26625,0.26625,-0.14444,2.04649,1.03709,0.62025,2.95765,1.63736],[-0.64036,-0.83798,-0.82242,1.5708,-0.02325,-0.02325,1.5708,1.25718,1.25718,0.33929,2.27636,1.32582,0.96163,-3.0739,1.52084],[-0.51729,-0.55165,-0.86217,1.73217,1.48014,1.48014,0.54042,0.79511,0.79511,0.7314,2.5128,2.99715,1.31643,-3.01724,1.5708],[-0.40291,-0.49394,-0.70863,1.90474,1.39094,1.39094,1.17436,0.83798,0.83798,1.3734,-2.92678,1.66575,1.43699,-2.94838,1.89255],[-0.24157,-0.06657,-0.74195,1.50114,0.84415,0.84415,2.60987,1.01011,1.01011,1.46406,-2.88427,1.5708,1.81133,-2.83759,2.27942],[-0.11711,0.1419,-0.7854,1.84571,0.44684,0.44684,1.64958,0.59476,0.59476,2.12364,-3.02448,2.26553,2.00966,-3.01327,2.17634],[0.0,-0.29146,-0.91972,1.92643,0.04835,0.04835,1.86734,0.01724,0.01724,2.76109,-3.09907,2.63449,2.70497,-3.09995,2.75327]];
+ const keys=['pelvis','shoulder','neck','head','redElbow','redWrist','redHand','blueElbow','blueWrist','blueHand','pinkKnee','pinkAnkle','pinkToe','orangeKnee','orangeAnkle','orangeToe'];
+ const mix=(a,b,t)=>a+(b-a)*t;
+ const turn=(a,b,t)=>a+Math.atan2(Math.sin(b-a),Math.cos(b-a))*t;
+ const ease=t=>t*t*(3-2*t);
+ function between(a,b,t){return a.map((v,i)=>turn(v,b[i],t))}
+ function sample(frames,t,loop=false){
+  const f=t*(loop?frames.length:frames.length-1),i=Math.floor(f);
+  return between(frames[i%frames.length],frames[(i+1)%frames.length],f-i)
+ }
+ function pose(angles){
+  const joints=[[0,0]];
+  angles.forEach((a,k)=>{const i=k+1,p=joints[parents[i]];joints.push([p[0]+lengths[i]*Math.cos(a),p[1]+lengths[i]*Math.sin(a)])});
+  const bottom=Math.max(...[5,6,8,9,11,12,14,15].map(i=>joints[i][1]));
+  const out=Object.fromEntries(keys.map((k,i)=>[k,[joints[i][0]+151,joints[i][1]+95-bottom]]));
+  for(const k of ['pinkHip','orangeHip'])out[k]=out.pelvis;
+  out.redShoulder=out.blueShoulder=out.shoulder;
+  out.chest=out.pelvis.map((v,i)=>mix(v,out.shoulder[i],.78));
+  return out
+ }
+ const first=sourceFrames[0].joints;
+ // The source crawl already includes side-view foreshortening. Introduce
+ // that projection as the knee turns outward during the descent.
+ function lower(u){
+  const angles=sample(prone,u),out=pose(angles);
+  const weight=ease(Math.max(0,(u-.22)/.78));
+  if(!weight)return out;
+  const sourcePoint=k=>k==='shoulder'?
+   first.redShoulder.map((v,i)=>(v+first.blueShoulder[i])*.5):first[k];
+  const projected={pelvis:[...out.pelvis]};
+  for(let i=1;i<keys.length;i++){
+   const key=keys[i],parent=keys[parents[i]],a=sourcePoint(parent),b=sourcePoint(key);
+   const targetLength=Math.hypot(b[0]-a[0],b[1]-a[1]);
+   const length=mix(lengths[i],targetLength,weight),angle=angles[i-1];
+   projected[key]=[projected[parent][0]+length*Math.cos(angle),projected[parent][1]+length*Math.sin(angle)];
+  }
+  const contacts=['redHand','blueHand','pinkToe','orangeToe','pinkAnkle','orangeAnkle','redWrist','blueWrist'];
+  const dy=95-Math.max(...contacts.map(k=>projected[k][1]));
+  for(const key of keys){out[key]=[projected[key][0],projected[key][1]+dy]}
+  out.pinkHip=out.orangeHip=out.pelvis;out.redShoulder=out.blueShoulder=out.shoulder;
+  out.chest=out.pelvis.map((v,i)=>mix(v,out.shoulder[i],.78));
+  return out
+ }
+ function join(u){
+  const a=lower(1),out={};
+  for(const k of Object.keys(first))out[k]=a[k].map((v,i)=>mix(v,first[k][i],ease(u)));
+  return out
+ }
+ // Keep the near palm at the floor while the knee advances under the pelvis.
+ // All points are in the fixed side-view source coordinate system.
+ const pushPose=lower(1);
+ const palmAnchor=[pushPose.redWrist[0]+5,95];
+ function baselineRise(frame){
+  const p=frame<268?join(1-(frame-250)/18):lower(1-(frame-268)/36);
+  const weight=ease(Math.min(1,Math.max(0,(frame-256)/10)))*
+               (1-ease(Math.min(1,Math.max(0,(frame-278)/10))));
+  if(weight===0)return p;
+  const shoulder=p.redShoulder;
+  const handLength=lengths[6];
+  const wristGoal=[palmAnchor[0]-handLength,palmAnchor[1]-2];
+  const dx=mix(p.redWrist[0],wristGoal[0],weight)-shoulder[0];
+  const dy=mix(p.redWrist[1],wristGoal[1],weight)-shoulder[1];
+  const reach=Math.max(.001,Math.hypot(dx,dy));
+  const distance=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
+  const upper=mix(distance(shoulder,p.redElbow),lengths[4],weight);
+  const fore=mix(distance(p.redElbow,p.redWrist),lengths[5],weight);
+  const d=Math.max(Math.abs(upper-fore)+.001,Math.min(reach,upper+fore-.001));
+  const along=(upper*upper-fore*fore+d*d)/(2*d);
+  const bend=Math.sqrt(Math.max(0,upper*upper-along*along));
+  const ux=dx/reach,uy=dy/reach;
+  const wrist=[shoulder[0]+ux*d,shoulder[1]+uy*d];
+  const hand=p.redHand.map((v,i)=>wrist[i]+mix(v-p.redWrist[i],palmAnchor[i]-wristGoal[i],weight));
+  return {...p,redElbow:[shoulder[0]+ux*along-uy*bend,shoulder[1]+uy*along+ux*bend],redWrist:wrist,redHand:hand}
+ }
+
+ // Release the supporting palm only after the knee has advanced under the pelvis.
+ // During release, lift before retracting; solve the arm on the existing projected lengths.
+ function pushRise(frame){
+  const p=baselineRise(frame);
+  if(frame<=278||frame>=294)return p;
+  const u=(frame-278)/16,release=ease(u),lift=ease(Math.min(1,(frame-278)/7)),retract=ease(Math.max(0,(frame-282)/12));
+  const shoulder=p.redShoulder,dist=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
+  const upper=dist(shoulder,p.redElbow),fore=dist(p.redElbow,p.redWrist),hand=dist(p.redWrist,p.redHand);
+  const a0=Math.atan2(2,lengths[6]),a1=Math.atan2(p.redHand[1]-p.redWrist[1],p.redHand[0]-p.redWrist[0]);
+  const angle=turn(a0,a1,release),offset=[hand*Math.cos(angle),hand*Math.sin(angle)];
+  const hx=mix(palmAnchor[0],p.redHand[0],retract);
+  const hy=Math.min(p.redHand[1],palmAnchor[1]-24*lift*(1-release));
+  const goal=[hx-offset[0],hy-offset[1]],dx=goal[0]-shoulder[0],dy=goal[1]-shoulder[1],reach=Math.max(.001,Math.hypot(dx,dy));
+  const d=Math.max(Math.abs(upper-fore)+.001,Math.min(reach,upper+fore-.001)),ux=dx/reach,uy=dy/reach,along=(upper*upper-fore*fore+d*d)/(2*d),bend=Math.sqrt(Math.max(0,upper*upper-along*along));
+  const wrist=[shoulder[0]+ux*d,shoulder[1]+uy*d],elbow=[shoulder[0]+ux*along-uy*bend,shoulder[1]+uy*along+ux*bend];
+  return {...p,redElbow:elbow,redWrist:wrist,redHand:[wrist[0]+offset[0],wrist[1]+offset[1]]};
+ }
+
+ const kneeAnchor=[151,89];
+ function kneeRise(frame){
+  const p=pushRise(frame);
+  if(frame<=272||frame>=290)return p;
+  const w=ease(Math.min(1,(frame-272)/4))*(1-ease(Math.max(0,(frame-282)/8)));
+  const dx=(kneeAnchor[0]-p.pinkKnee[0])*w,dy=(kneeAnchor[1]-p.pinkKnee[1])*w;
+  const out=Object.fromEntries(Object.entries(p).map(([k,v])=>[k,[v[0]+dx,v[1]+dy]]));
+  const distance=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
+  function clearLeg(prefix,rootKey){
+   const a=out[rootKey],keys=rootKey.endsWith('Knee')?[prefix+'Ankle',prefix+'Toe']:[prefix+'Knee',prefix+'Ankle',prefix+'Toe'];
+   const v=keys.map(k=>[out[k][0]-a[0],out[k][1]-a[1]]);
+   const height=t=>Math.max(...v.map(([x,y])=>a[1]+x*Math.sin(t)+y*Math.cos(t)));
+   if(height(0)<=95)return;
+   let best=0;
+   for(let j=1;j<=180;j++){const t=j*Math.PI/360;for(const sign of [1,-1])if(height(t*sign)<=95){best=t*sign;break}if(best)break}
+   if(!best)return;
+   let low=0,high=best;for(let j=0;j<25;j++){const mid=(low+high)/2;if(height(mid)>95)low=mid;else high=mid}
+   for(let i=0;i<keys.length;i++){const [x,y]=v[i];out[keys[i]]=[a[0]+x*Math.cos(high)-y*Math.sin(high),a[1]+x*Math.sin(high)+y*Math.cos(high)]}
+  }
+  clearLeg('pink','pinkKnee');clearLeg('orange','orangeHip');
+  const a=out.redShoulder,upper=distance(p.redShoulder,p.redElbow),fore=distance(p.redElbow,p.redWrist);
+  const v=[p.redWrist[0]-a[0],p.redWrist[1]-a[1]],reach=Math.max(.001,Math.hypot(...v)),d=Math.max(Math.abs(upper-fore)+.001,Math.min(reach,upper+fore-.001));
+  const ux=v[0]/reach,uy=v[1]/reach,along=(upper*upper-fore*fore+d*d)/(2*d),bend=Math.sqrt(Math.max(0,upper*upper-along*along));
+  const wrist=[a[0]+ux*d,a[1]+uy*d];
+  const e1=[a[0]+ux*along-uy*bend,a[1]+uy*along+ux*bend],e2=[a[0]+ux*along+uy*bend,a[1]+uy*along-ux*bend];
+  out.redElbow=distance(e1,out.redElbow)<=distance(e2,out.redElbow)?e1:e2;
+  out.redWrist=wrist;out.redHand=[wrist[0]+p.redHand[0]-p.redWrist[0],wrist[1]+p.redHand[1]-p.redWrist[1]];
+  return out;
+ }
+
+ // Foot-first recovery: carry the toe along a continuous swing arc, hold
+ // the landing in source coordinates, and delay the body rise until support.
+ function rise(frame){
+  const p=kneeRise(frame);
+  if(frame<=282||frame>=304)return p;
+  const out=Object.fromEntries(Object.entries(p).map(([k,v])=>[k,[...v]]));
+  const C=t=>Math.max(0,Math.min(1,t)),E=t=>ease(C(t));
+  const weight=E((frame-282)/5)*(1-E((frame-296)/8));
+  const distance=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
+  const base=kneeRise(282),land=kneeRise(292),u=C((frame-282)/8),release=E((frame-294)/10);
+  const target=[mix(mix(base.pinkToe[0],land.pinkToe[0],E(u)),p.pinkToe[0],release),
+    mix(mix(base.pinkToe[1],95,E(u))-4*Math.sin(Math.PI*u)**2,p.pinkToe[1],release)];
+  const hipDelay=E((frame-282)/4)*(1-E((frame-290)/8));
+  const dy=Math.max(0,base.pelvis[1]-p.pelvis[1])*hipDelay*.35;
+  for(const k of Object.keys(out))out[k][1]+=dy;
+  function solveLeg(prefix,toe,flatten){
+   const a=out[prefix+'Hip'],b=p[prefix+'Knee'],c=p[prefix+'Ankle'],t=p[prefix+'Toe'];
+   const L=distance(p[prefix+'Hip'],b),M=distance(b,c),F=distance(c,t);
+   const originalAngle=Math.atan2(t[1]-c[1],t[0]-c[0]),angle=turn(originalAngle,0,weight*E(u)*flatten);
+   const offset=[F*Math.cos(angle),F*Math.sin(angle)],g=[toe[0]-offset[0],toe[1]-offset[1]];
+   const vx=g[0]-a[0],vy=g[1]-a[1],reach=Math.max(.001,Math.hypot(vx,vy)),d=Math.max(Math.abs(L-M)+.001,Math.min(reach,L+M-.001)),ux=vx/reach,uy=vy/reach,along=(L*L-M*M+d*d)/(2*d),bend=Math.sqrt(Math.max(0,L*L-along*along));
+   const k1=[a[0]+ux*along-uy*bend,a[1]+uy*along+ux*bend],k2=[a[0]+ux*along+uy*bend,a[1]+uy*along-ux*bend];
+   const ankle=[a[0]+ux*d,a[1]+uy*d];
+   out[prefix+'Knee']=distance(k1,out[prefix+'Knee'])<distance(k2,out[prefix+'Knee'])?k1:k2;
+   out[prefix+'Ankle']=ankle;out[prefix+'Toe']=[ankle[0]+offset[0],ankle[1]+offset[1]];
+  }
+  solveLeg('pink',target,1);solveLeg('orange',p.orangeToe,0);
+  const arm=['blueShoulder','blueElbow','blueWrist','blueHand'];
+  for(let i=1;i<arm.length;i++){
+   const a=arm[i-1],b=arm[i],angle=Math.atan2(p[b][1]-p[a][1],p[b][0]-p[a][0]),L=distance(p[a],p[b]);
+   let sx=0,sy=0;for(let j=-4;j<=4;j++){const q=kneeRise(Math.max(282,Math.min(303.999,frame+j))),v=Math.atan2(q[b][1]-q[a][1],q[b][0]-q[a][0]),w=5-Math.abs(j);sx+=Math.cos(v)*w;sy+=Math.sin(v)*w}
+   const theta=turn(angle,Math.atan2(sy,sx),weight);
+   out[b]=[out[a][0]+L*Math.cos(theta),out[a][1]+L*Math.sin(theta)];
+  }
+  return out;
+ }
+ // Timeline in 24 fps frames. Crawl uses the original 38-frame renderer twice.
+ function baselineAt(f){
+  if(f<60)return ['Walk',pose(sample(walk,f/30%1,true))];
+  if(f<72)return ['Settle into stance',pose(between(walk[0],stand[0],ease((f-60)/12)))];
+  if(f<108)return ['Stand → crouch',pose(sample(stand,(f-72)/36))];
+  if(f<120)return ['Crouch',pose(between(stand.at(-1),prone[0],ease((f-108)/12)))];
+  if(f<156)return ['Crouch → prone',lower((f-120)/36)];
+  if(f<174)return ['Settle into crawl',join((f-156)/18)];
+  if(f<250)return ['Crawl',null,(f-174)%38/38];
+  if(f<304)return ['Prone → crouch',rise(f)];
+  if(f<316)return ['Crouch',pose(between(prone[0],stand.at(-1),ease((f-304)/12)))];
+  if(f<352)return ['Crouch → stand',pose(sample(stand,1-(f-316)/36))];
+  if(f<366)return ['Stand',pose(stand[0])];
+  return ['Return to walk',pose(between(stand[0],walk[0],ease((f-366)/12)))];
+ }
+
+ // Both feet support the recovered crouch, then remain in place through standing.
+ function at(f){
+  const result=baselineAt(f),p=result[1];
+  if(!p||f<=294||f>=378)return result;
+  const C=t=>Math.max(0,Math.min(1,t)),E=t=>ease(C(t));
+  const w=E((f-294)/10)*(1-E((f-366)/12));
+  if(w<=0)return result;
+  const distance=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
+  const out=Object.fromEntries(Object.entries(p).map(([k,v])=>[k,[...v]]));
+  const targets=[];
+  for(const [prefix,tx] of [['pink',170],['orange',158]]){
+   const a=p[prefix+'Hip'],b=p[prefix+'Knee'],c=p[prefix+'Ankle'],t=p[prefix+'Toe'];
+   const L=distance(a,b),M=distance(b,c),F=distance(c,t);
+   const angle=turn(Math.atan2(t[1]-c[1],t[0]-c[0]),mix(.12,.45,E((f-330)/22)),w);
+   const toe=[mix(t[0],tx,w),mix(t[1],95,w)],off=[F*Math.cos(angle),F*Math.sin(angle)];
+   const ankle=[toe[0]-off[0],toe[1]-off[1]];
+   targets.push({prefix,L,M,ankle,toe});
+  }
+  const hipX=p.pelvis[0],hipY=p.pelvis[1];
+  let minY=-Infinity;
+  for(const t of targets){
+   const dx=t.ankle[0]-hipX,reach=t.L+t.M-.05;
+   minY=Math.max(minY,t.ankle[1]-Math.sqrt(Math.max(0,reach*reach-dx*dx)));
+  }
+  const dy=Math.max(0,minY-hipY);
+  for(const k of Object.keys(out))out[k][1]+=dy;
+  for(const t of targets){
+   const a=out[t.prefix+'Hip'],vx=t.ankle[0]-a[0],vy=t.ankle[1]-a[1],d=Math.hypot(vx,vy),ux=vx/d,uy=vy/d;
+   const along=(t.L*t.L-t.M*t.M+d*d)/(2*d),h=Math.sqrt(Math.max(0,t.L*t.L-along*along));
+   const k1=[a[0]+ux*along+uy*h,a[1]+uy*along-ux*h],k2=[a[0]+ux*along-uy*h,a[1]+uy*along+ux*h];
+   out[t.prefix+'Knee']=distance(k1,p[t.prefix+'Knee'])<=distance(k2,p[t.prefix+'Knee'])?k1:k2;
+   out[t.prefix+'Ankle']=t.ankle;out[t.prefix+'Toe']=t.toe;
+  }
+  return [result[0],out,result[2]];
+ }
+
+function tracked(ctx,phase,angle,scale,cx,cy,pose=null,toolGrip=null){
+ const position=(phase%1)*sourceFrames.length, index=Math.floor(position), blend=position-index;
+ const current=sourceFrames[index].joints,next=sourceFrames[(index+1)%sourceFrames.length].joints;
+ function joint(name){if(pose)return pose[name];return current[name].map((n,i)=>n+(next[name][i]-n)*blend)}
+ function point(name,z=0,height=0){
+  const [x,y]=joint(name);
+  return [(x-165)*.34,(y-98)*.34*Math.cos(angle)+z*Math.sin(angle)-height*Math.cos(angle)];
+ }
+ function stroke(a,b,width,color){ctx.beginPath();ctx.moveTo(...a);ctx.lineTo(...b);ctx.strokeStyle=color;ctx.lineWidth=width;ctx.lineCap='round';ctx.stroke()}
+ function ellipse(p,x,y,color){ctx.beginPath();ctx.ellipse(...p,x,y,0,0,2*Math.PI);ctx.fillStyle=color;ctx.fill()}
+ const chestLift=settings.chest-16;
+ const rotation=Math.atan2(joint('blueShoulder')[1]-joint('redShoulder')[1],36)*settings.roll/16;
+ function side(s){
+  const arm=s===1?'red':'blue',leg=s===1?'pink':'orange';
+  const advance=(joint(leg+'Knee')[0]-joint(leg+'Hip')[0]+65)/95;
+  const spread=settings.sweep*Math.min(1,Math.max(0,advance));
+  const hip=point(leg+'Hip',s*4),knee=point(leg+'Knee',s*(5+spread)),boot=point(leg+'Ankle',s*(4+spread*.25));
+  const col=s===1?'#5e7170':'#445454';
+  stroke(hip,knee,3.6,col);stroke(knee,boot,2.5,col);
+  stroke(boot,point(leg+'Toe',s*5),2.8,s===1?'#55504a':'#404d4e');
+  const shoulder=point(arm+'Shoulder',s*settings.build*Math.cos(rotation),chestLift);
+  const elbow=point(arm+'Elbow',s*8),wrist=point(arm+'Wrist',s*7);
+  stroke(shoulder,elbow,3.8,s===1?el('shirt').value:'#425453');stroke(elbow,wrist,2.6,s===1?'#ac876a':'#796d60');const hand=point(arm+'Hand',s*7);
+  if(toolGrip&&toolGrip.arms.includes(arm)){
+   // Short wrist cuff meets a closed fist; do not render a long floppy mitten.
+   const joint=[wrist[0]+(hand[0]-wrist[0])*.62,wrist[1]+(hand[1]-wrist[1])*.62];
+   stroke(wrist,joint,2.7,s===1?'#ac876a':'#796d60');
+   stroke(joint,hand,3.1,'#625849');
+   ctx.save();ctx.translate(hand[0],hand[1]);ctx.rotate(toolGrip.angle);
+   ctx.fillStyle=s===1?'#88745b':'#665744';
+   ctx.beginPath();ctx.ellipse(0,0,3.5,2.65,0,0,Math.PI*2);ctx.fill();
+   ctx.strokeStyle='#bda484';ctx.lineWidth=.55;ctx.beginPath();ctx.moveTo(-1.2,-1.6);ctx.lineTo(-1.2,1.3);ctx.moveTo(.6,-1.8);ctx.lineTo(.6,1.2);ctx.stroke();
+   ctx.restore();
+  }else stroke(wrist,hand,2.3,'#625849');
+ }
+ ctx.save();ctx.translate(cx,cy);ctx.scale(scale,scale);side(-1);
+ const chest=point('chest',0,chestLift),head=point('head',0,chestLift);
+ const near=point('redShoulder',settings.build*.6,chestLift);
+ const far=point('blueShoulder',-settings.build*.6,chestLift);
+ const top=near[1]<far[1]?near:far, bottom=top===near?far:near;
+ const waist=point('pelvis'), radius=settings.build*.24;
+ stroke(waist,chest,radius*1.8,el('shirt').value);
+ ctx.beginPath();ctx.moveTo(waist[0],waist[1]-radius*.5);
+ ctx.quadraticCurveTo(chest[0]-2,chest[1]-radius,top[0],top[1]-radius);
+ ctx.quadraticCurveTo(top[0]+radius*1.6,top[1],bottom[0]+radius,bottom[1]);
+ ctx.quadraticCurveTo(chest[0]+1,chest[1]+radius*2,waist[0],waist[1]+radius*.6);
+ ctx.closePath();ctx.fillStyle=el('shirt').value;ctx.fill();
+ stroke(chest,near,1.25,'#82918a');
+ stroke(point('neck',0,chestLift),head,2.7,'#9e8066');
+ ellipse(head,3.6,4.5,'#af8e70');
+ const crown=[head[0],head[1]-1.5*Math.cos(angle)],helmet=settings.helmet*.54;
+ ellipse(crown,helmet,helmet*.65,'#b88744');
+ ellipse([crown[0]+helmet*.8,crown[1]-.7],1.1,1.1,'#ffe2a3');side(1);ctx.restore()
+}
+
+
+
+function skinMiner(g,scale,cx,floor,p,toolGrip=null){
+ const pt=k=>[(p[k][0]-165)*.34,(p[k][1]-98)*.34],add=(a,b)=>[a[0]+b[0],a[1]+b[1]],sub=(a,b)=>[a[0]-b[0],a[1]-b[1]],mul=(a,k)=>a.map(v=>v*k),unit=a=>mul(a,1/Math.max(.001,Math.hypot(...a)));
+ const poly=(points,col,edge)=>{g.beginPath();points.forEach((a,i)=>i?g.lineTo(...a):g.moveTo(...a));g.closePath();g.fillStyle=col;g.fill();if(edge){g.strokeStyle=edge;g.lineWidth=.32;g.stroke()}};
+ const line=(a,b,w,col)=>{g.beginPath();g.moveTo(...a);g.lineTo(...b);g.lineWidth=w;g.lineCap='round';g.strokeStyle=col;g.stroke()};
+ const oval=(a,rx,ry,col,rot=0)=>{g.beginPath();g.ellipse(...a,rx,ry,rot,0,Math.PI*2);g.fillStyle=col;g.fill()};
+ const segment=(a,b,w1,w2,col,edge)=>{const u=unit(sub(b,a)),n=[-u[1],u[0]];poly([add(a,mul(n,w1)),add(b,mul(n,w2)),add(b,mul(n,-w2)),add(a,mul(n,-w1))],col,edge);oval(a,w1,w1,col);oval(b,w2,w2,col)};
+ const low=mode==='prone'&&el('activity').value==='mining'||Math.abs(p.head[1]-p.pelvis[1])<55;
+ const silhouette=(el('appearance').value==='silhouette'||el('appearance').value==='previous'),pal=silhouette?{near:'#111110',far:'#0e0e0d',armor:'#151513',edge:'#1c1c19',gear:'#10100f',boot:'#0d0d0c',glove:'#0d0d0c',helmet:'#111110'}:{near:'#343630',far:'#242720',armor:'#414239',edge:'#57574b',gear:'#292d29',boot:'#1b201e',glove:'#242824',helmet:'#30332f'};
+ const head=pt('head'),neck=pt('neck'),hip=pt('pelvis'),chest=pt('chest'),sh=mul(add(pt('redShoulder'),pt('blueShoulder')),.5),up=unit(sub(sh,hip)),forward=[-up[1],up[0]];
+ const local=(a,x,y)=>add(a,add(mul(forward,x),mul(up,y)));
+ function leg(pre,near){const a=pt(pre+'Hip'),b=pt(pre+'Knee'),c=pt(pre+'Ankle'),d=pt(pre+'Toe'),col=near?pal.near:pal.far;
+ segment(a,b,7.4,5.2,col,pal.edge);segment(b,c,4.8,3.8,col,pal.edge);
+ const thigh=unit(sub(b,a)),tn=[-thigh[1],thigh[0]];
+ poly([add(a,mul(tn,6.2)),add(add(a,mul(thigh,10)),mul(tn,6.8)),add(add(a,mul(thigh,15)),mul(tn,4.8)),add(add(a,mul(thigh,13)),mul(tn,-1.2)),add(a,mul(tn,-1.2))],pal.armor,pal.edge);
+ const u=unit(sub(c,b)),n=[-u[1],u[0]];
+ poly([add(b,mul(n,-4.7)),add(add(b,mul(u,4.1)),mul(n,-4.6)),add(add(b,mul(u,5)),mul(n,3.5)),add(b,mul(n,4.3))],pal.armor);
+ // Boot stays attached to the ankle/toe bone, sole follows its orientation.
+ const f=unit(sub(d,c)),nn=[-f[1],f[0]],heel=add(c,mul(f,-4.7)),toe=add(d,mul(f,3.6));
+ poly([add(heel,mul(nn,-6.2)),add(c,mul(nn,-8.5)),add(add(c,mul(f,4)),mul(nn,-6.4)),add(add(toe,mul(f,-1.2)),mul(nn,-4.8)),add(toe,mul(nn,-3.3)),add(toe,mul(nn,.65)),add(heel,mul(nn,.65))],pal.boot,pal.edge);
+ line(add(heel,mul(nn,.5)),add(toe,mul(nn,.5)),1.2,pal.edge);
+ }
+ function arm(pre,near){const a=pt(pre+'Shoulder'),b=pt(pre+'Elbow'),c=pt(pre+'Wrist'),d=pt(pre+'Hand'),col=near?pal.near:pal.far;
+ segment(a,b,5.7,3.9,col,pal.edge);segment(b,c,4.35,3.3,col,pal.edge);
+ oval(a,6,5,pal.armor);line(c,d,5.8,pal.glove);
+ const ang=toolGrip&&toolGrip.arms.includes(pre)?toolGrip.angle:Math.atan2(d[1]-c[1],d[0]-c[0]);
+ oval(d,4.15,3.4,pal.glove,ang);if(!silhouette)oval(d,2.2,.65,pal.edge,ang);
+ }
+ g.save();g.translate(cx,floor);g.scale(scale,scale);
+ leg('orange',false);arm('blue',false);
+ // Modular backpack is anchored to torso, not world axes. Compact in prone.
+ const pack=local(chest,low?-6.1:-10.8,-4.0),px=low?.68:1;
+ const pp=(x,y)=>local(pack,x*px,y);
+ // One dominant continuous pack mass, with a top housing and a low pouch.
+ poly([pp(-9.5,9),pp(-7.2,11.4),pp(4.9,11.4),pp(6,8),pp(6,-11),pp(3,-14),pp(-10.3,-13),pp(-11.8,-10),pp(-11.8,5)],pal.gear,pal.edge);
+ poly([pp(-10.5,7.8),pp(-9.1,10.4),pp(3.6,10.4),pp(4.6,8.7),pp(4.6,3.5),pp(-10.5,3.5)],pal.armor,pal.edge);
+ poly([pp(-12,-7),pp(-10.2,-5.4),pp(2.5,-5.4),pp(4,-7),pp(4,-13.5),pp(-12,-13.5)],pal.gear,pal.edge);
+ if(!silhouette){line(pp(-9,7.6),pp(3,7.6),.65,pal.edge);line(pp(-8,2),pp(-8,-5),1.1,pal.edge);line(pp(1,2),pp(1,-5),1.1,pal.edge);line(pp(-10.4,-8),pp(2.6,-8),.7,pal.edge)}
+ line(pp(-7.8,10.4),pp(-7.8,low?11.5:20),1.0,pal.gear);
+ line(pp(-9.8,-11),pp(-10.2,-15),1.3,pal.gear);line(pp(-10.2,-15),pp(-8.8,-16.5),1.2,pal.gear);
+ // Broad work jacket with a continuous silhouette, rather than round tubes.
+ poly([local(sh,-7.3,3.1),local(sh,4.8,3.0),local(chest,9.1,1),local(hip,7.3,1.5),local(hip,5,-4.5),local(hip,-7.8,-4.5),local(chest,-9.4,0)],pal.near,pal.edge);
+ segment(hip,chest,8.4,8.8,pal.near);segment(chest,sh,8.8,7.5,pal.near);
+ 
+ line(local(chest,-4,4),local(hip,-3,3),1.55,pal.armor);
+ line(local(hip,-5,1),local(hip,5,1),2.1,pal.gear);oval(hip,1.6,1,pal.edge);
+ leg('pink',true);
+ // Head stays aligned to neck; helmet and lamp are modular attachments.
+ const hdir=unit(sub(head,neck)),hf=[-hdir[1],hdir[0]];
+ const tilt=low?.1:.15,hu=[hdir[0]*Math.cos(tilt)+hf[0]*Math.sin(tilt),hdir[1]*Math.cos(tilt)+hf[1]*Math.sin(tilt)],front=[-hu[1],hu[0]];
+ const hp=(x,y)=>add(head,add(mul(front,x),mul(hu,y)));
+ segment(neck,head,2.5,3.2,pal.near);oval(hp(.5,-.3),5.7,5.5,pal.gear);poly([hp(1,-.8),hp(6.5,-1.0),hp(5.9,-4.8),hp(2,-6)],pal.gear);
+ oval(hp(-.8,2.0),7.7,6.0,pal.helmet,Math.atan2(front[1],front[0]));line(hp(-8.3,.05),hp(6.6,.05),1.7,pal.helmet);
+ poly([hp(3.7,4.4),hp(6,5.0),hp(9.4,4.1),hp(11,2.3),hp(10.8,-2.5),hp(6.5,-3.7),hp(4,-2.7)],pal.gear,pal.edge);line(hp(6,-2.8),hp(6,-6.1),.9,pal.gear);
+ const lamp=hp(10.5,.7);oval(lamp,2.05,3.15,'#fff0d0',Math.atan2(front[1],front[0]));
+ arm('red',true);
+ if(el('appearance').value==='overlay'){
+ for(const pre of ['red','blue','pink','orange']){const ks=(pre==='red'||pre==='blue'?['Shoulder','Elbow','Wrist','Hand']:['Hip','Knee','Ankle','Toe']).map(k=>pre+k);for(let i=1;i<ks.length;i++)line(pt(ks[i-1]),pt(ks[i]),.55,pre==='red'||pre==='pink'?'#ef9c65':'#70cbbd');for(const k of ks)oval(pt(k),.8,.8,'#e9cf94')}
+ line(hip,sh,.65,'#e9cf94');line(sh,head,.65,'#e9cf94');
+ }
+ g.restore();
+ return {lamp:[cx+lamp[0]*scale,floor+lamp[1]*scale],direction:front};
+}
+function skinMiner003(g,scale,cx,floor,p,toolGrip=null){
+ const pt=k=>[(p[k][0]-165)*.34,(p[k][1]-98)*.34],add=(a,b)=>[a[0]+b[0],a[1]+b[1]],sub=(a,b)=>[a[0]-b[0],a[1]-b[1]],mul=(a,k)=>a.map(v=>v*k),unit=a=>mul(a,1/Math.max(.001,Math.hypot(...a)));
+ const poly=(points,col,edge)=>{g.beginPath();points.forEach((a,i)=>i?g.lineTo(...a):g.moveTo(...a));g.closePath();g.fillStyle=col;g.fill();if(edge){g.strokeStyle=edge;g.lineWidth=.32;g.stroke()}};
+ const line=(a,b,w,col)=>{g.beginPath();g.moveTo(...a);g.lineTo(...b);g.lineWidth=w;g.lineCap='round';g.strokeStyle=col;g.stroke()};
+ const oval=(a,rx,ry,col,rot=0)=>{g.beginPath();g.ellipse(...a,rx,ry,rot,0,Math.PI*2);g.fillStyle=col;g.fill()};
+ const segment=(a,b,w1,w2,col,edge)=>{const u=unit(sub(b,a)),n=[-u[1],u[0]];poly([add(a,mul(n,w1)),add(b,mul(n,w2)),add(b,mul(n,-w2)),add(a,mul(n,-w1))],col,edge);oval(a,w1,w1,col);oval(b,w2,w2,col)};
+ const low=mode==='prone'&&el('activity').value==='mining'||Math.abs(p.head[1]-p.pelvis[1])<55;
+ const silhouette=(el('appearance').value==='silhouette'||el('appearance').value==='previous'),pal=silhouette?{near:'#101110',far:'#0b0c0b',armor:'#141513',edge:'#22221e',gear:'#0d0e0d',boot:'#0b0c0c',glove:'#0b0c0c',helmet:'#101110'}:{near:'#343630',far:'#242720',armor:'#414239',edge:'#57574b',gear:'#292d29',boot:'#1b201e',glove:'#242824',helmet:'#30332f'};
+ const head=pt('head'),neck=pt('neck'),hip=pt('pelvis'),chest=pt('chest'),sh=mul(add(pt('redShoulder'),pt('blueShoulder')),.5),up=unit(sub(sh,hip)),forward=[-up[1],up[0]];
+ const local=(a,x,y)=>add(a,add(mul(forward,x),mul(up,y)));
+ function leg(pre,near){const a=pt(pre+'Hip'),b=pt(pre+'Knee'),c=pt(pre+'Ankle'),d=pt(pre+'Toe'),col=near?pal.near:pal.far;
+ segment(a,b,6.0,4.5,col,pal.edge);segment(b,c,4.2,3.15,col,pal.edge);
+ const u=unit(sub(c,b)),n=[-u[1],u[0]];
+ poly([add(b,mul(n,-4.7)),add(add(b,mul(u,4.1)),mul(n,-4.6)),add(add(b,mul(u,5)),mul(n,3.5)),add(b,mul(n,4.3))],pal.armor);
+ // Boot stays attached to the ankle/toe bone, sole follows its orientation.
+ const f=unit(sub(d,c)),nn=[-f[1],f[0]],heel=add(c,mul(f,-4.0)),toe=add(d,mul(f,2.4));
+ poly([add(heel,mul(nn,-5.3)),add(c,mul(nn,-7.0)),add(toe,mul(nn,-4.4)),add(toe,mul(nn,.65)),add(heel,mul(nn,.65))],pal.boot,pal.edge);
+ line(add(heel,mul(nn,.5)),add(toe,mul(nn,.5)),.65,pal.edge);
+ }
+ function arm(pre,near){const a=pt(pre+'Shoulder'),b=pt(pre+'Elbow'),c=pt(pre+'Wrist'),d=pt(pre+'Hand'),col=near?pal.near:pal.far;
+ segment(a,b,4.8,3.5,col,pal.edge);segment(b,c,3.45,2.7,col,pal.edge);
+ oval(a,5.2,4.5,pal.armor);line(c,d,5.1,pal.glove);
+ const ang=toolGrip&&toolGrip.arms.includes(pre)?toolGrip.angle:Math.atan2(d[1]-c[1],d[0]-c[0]);
+ oval(d,3.7,3.1,pal.glove,ang);if(!silhouette)oval(d,2.2,.65,pal.edge,ang);
+ }
+ g.save();g.translate(cx,floor);g.scale(scale,scale);
+ leg('orange',false);arm('blue',false);
+ // Modular backpack is anchored to torso, not world axes. Compact in prone.
+ const pack=local(chest,low?-6.2:-10.0,-3),px=low?.72:1;
+ const pp=(x,y)=>local(pack,x*px,y);
+ poly([pp(-7,10),pp(4.8,11),pp(6,-10),pp(1,-13),pp(-8,-12),pp(-9,-7)],pal.gear,pal.edge);
+ for(const [y,w,h] of [[6,8.4,3.6],[-1,8.7,3],[-8,9,3.7]]){
+ poly([pp(-w,y+h-1),pp(-w+1,y+h),pp(3.4,y+h),pp(4.4,y+h-1),pp(4.4,y-h),pp(-w,y-h)],pal.armor,pal.edge);
+ line(pp(-w+1,y+h-1.2),pp(3,y+h-1.2),.65,pal.edge);
+ line(pp(-w+2,y+h-1),pp(-w+2,y-h+1),1,pal.gear);
+ line(pp(.8,y+h-1),pp(.8,y-h+1),1,pal.gear);
+ }
+ line(pp(-7.2,10),pp(-7.2,low?12:20),1.2,pal.gear);oval(pp(-7.2,low?12:20),.8,.8,pal.edge);
+ line(pp(-8,-6),pp(-9,-11),1.1,pal.gear);line(pp(-9,-11),pp(-7,-14),1.1,pal.gear);
+ segment(hip,chest,7.1,7.4,pal.near,pal.edge);segment(chest,sh,7.4,6.4,pal.near,pal.edge);
+ line(local(chest,-4,4),local(hip,-3,3),1.55,pal.armor);
+ line(local(hip,-5,1),local(hip,5,1),2.1,pal.gear);oval(hip,1.6,1,pal.edge);
+ leg('pink',true);
+ // Head stays aligned to neck; helmet and lamp are modular attachments.
+ const hdir=unit(sub(head,neck)),hf=[-hdir[1],hdir[0]];
+ const hp=(x,y)=>add(head,add(mul(hf,x),mul(hdir,y)));
+ segment(neck,head,2.5,3.2,pal.near);oval(hp(.3,-.2),5.0,5.3,pal.gear);poly([hp(2,-1),hp(5.2,-1.4),hp(4.5,-4.5),hp(1,-5.2)],pal.gear);
+ oval(hp(-.5,1.4),6.7,4.9,pal.helmet,Math.atan2(hf[1],hf[0]));line(hp(-7.1,.05),hp(6.1,.05),1.6,pal.helmet);
+ poly([hp(3.4,4.1),hp(8.1,3.8),hp(9.0,1.8),hp(8.7,-2.1),hp(4,-2.6)],pal.gear,pal.edge);line(hp(5,-2),hp(5,-5.7),.75,pal.gear);
+ const lamp=hp(8.7,.8);oval(lamp,1.8,2.7,'#fff0cb',Math.atan2(hf[1],hf[0]));
+ arm('red',true);
+ if(el('appearance').value==='overlay'){
+ for(const pre of ['red','blue','pink','orange']){const ks=(pre==='red'||pre==='blue'?['Shoulder','Elbow','Wrist','Hand']:['Hip','Knee','Ankle','Toe']).map(k=>pre+k);for(let i=1;i<ks.length;i++)line(pt(ks[i-1]),pt(ks[i]),.55,pre==='red'||pre==='pink'?'#ef9c65':'#70cbbd');for(const k of ks)oval(pt(k),.8,.8,'#e9cf94')}
+ line(hip,sh,.65,'#e9cf94');line(sh,head,.65,'#e9cf94');
+ }
+ g.restore();
+ return {lamp:[cx+lamp[0]*scale,floor+lamp[1]*scale],direction:hf};
+}
+function drawMiner(g,scale,cx,floor,p,grip){if(el('appearance').value==='illustrated'&&atlasReady)return illustratedMiner(g,scale,cx,floor,p,grip);if(el('appearance').value==='previous')return skinMiner003(g,scale,cx,floor,p,grip);if(el('appearance').value==='rig')return tracked(g,0,0,scale,cx,floor,p,grip);return skinMiner(g,scale,cx,floor,p,grip)}
+const bases={standing:at(352)[1],crouched:at(316)[1],prone:sourceFrames[22].joints};
+const cfg={
+ standing:{tiles:3,wall:275,impact:-80,angles:[-1.65,-2.55,-.60,-.35,-1.65],hands:[[205,-105],[195,-163],[0,0],[220,-72],[205,-105]],pitch:[0,-.055,.075,.05,0],period:1.35},
+ crouched:{tiles:2,wall:290,impact:7,angles:[-1.45,-2.25,-.70,-.4,-1.45],hands:[[225,-12],[213,-62],[0,0],[229,2],[225,-12]],pitch:[0,-.04,.045,.03,0],period:1.7},
+ prone:{tiles:1,wall:310,impact:51,angles:[-.65,-1.0,-.35,-.15,-.65],hands:[[248,48],[245,44],[0,0],[253,51],[248,48]],pitch:[0,0,0,0,0],period:2.1}};
+
+const variants={
+ standing:[
+ {name:'Overhead',...cfg.standing},
+ {name:'Body-led cross-body',...cfg.standing,impact:-90,angles:[-1.65,-2.6,-.60,-.35,-1.65],hands:[[205,-105],[155,-55],[0,0],[220,-72],[205,-105]],pitch:[0,0,0,0,0],period:1.8},
+ {name:'Diagonal upward',...cfg.standing,impact:-114,angles:[-1.65,2.75,-.85,-.65,-1.65],hands:[[205,-105],[190,-54],[0,0],[220,-92],[205,-105]],pitch:[0,-.035,.065,.03,0],period:1.5}],
+ crouched:[
+ {name:'Compact overhead',...cfg.crouched},
+ {name:'Compact cross-body',...cfg.crouched,angles:[-1.45,-2.95,-.70,-.4,-1.45],hands:[[225,-12],[156,-13],[0,0],[229,2],[225,-12]],pitch:[0,-.10,.07,.03,0],period:1.8},
+ {name:'Compact rising strike',...cfg.crouched,impact:-24,angles:[-1.45,-.15,-.85,-.65,-1.45],hands:[[225,-12],[200,18],[0,0],[229,-4],[225,-12]],pitch:[0,-.04,.04,.03,0],period:1.85}],
+ prone:[
+ {name:'Shoulder chip',...cfg.prone,angles:[-.65,-.42,-.35,-.15,-.65],hands:[[248,48],[246,53],[0,0],[253,51],[248,48]],period:2.1},
+ {name:'Wide shoulder sweep',...cfg.prone,angles:[-.65,-.85,-.15,-.1,-.65],hands:[[248,48],[244,62],[0,0],[253,51],[248,48]],impact:60,period:2.25},
+ {name:'Forward shoulder chip',...cfg.prone,angles:[-.65,-.25,-.10,-.1,-.65],hands:[[248,48],[245,59],[0,0],[253,51],[248,48]],impact:66,period:1.95}]
+};
+const dist=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]),plus=(a,b)=>[a[0]+b[0],a[1]+b[1]],minus=(a,b)=>[a[0]-b[0],a[1]-b[1]],scale2=(a,k)=>[a[0]*k,a[1]*k];
+
+const referenceTrace=[
+ {time:2.20,shoulder:[69,55],hip:[72,104],feet:[[47,164],[113,164]]},
+ {time:2.35,shoulder:[70,58],hip:[68,100],feet:[[45,169],[110,169]]},
+ {time:2.50,shoulder:[79,57],hip:[75,97],feet:[[46,169],[111,168]]},
+ {time:2.65,shoulder:[91,57],hip:[75,98],feet:[[45,169],[111,168]]},
+ {time:2.80,shoulder:[92,57],hip:[77,99],feet:[[45,169],[111,168]]},
+ {time:3.10,shoulder:[86,60],hip:[75,100],feet:[[45,169],[111,168]]},
+ {time:3.25,shoulder:[57,59],hip:[56,101],feet:[[45,169],[111,168]]},
+ {time:3.40,shoulder:[45,58],hip:[56,104],feet:[[45,169],[111,168]]}
+];
+// Reference observation: retreat/rotation, followed by rapid forward shoulder
+// drive and staggered support. Low backswing is the requested creative adaptation.
+// These are retargeting control values, not exact motion capture.
+function refMotion(t){
+ const keys=[0,.20,.40,.53,.62,.72,.86,1];
+ const vals=[[0,0,0,0],[-4,2,-.10,-.25],[-7,4,-.16,-.50],[1,3,.04,.1],[7,4,.13,.45],[5,5,.09,.30],[-2,2,-.03,-.12],[0,0,0,0]];
+ let i=0;while(i<keys.length-2&&t>keys[i+1])i++;const u=ease((t-keys[i])/(keys[i+1]-keys[i]));return vals[i].map((v,j)=>mix(v,vals[i+1][j],u));
+}
+const marks=[0,.40,.62,.72,1],shaft=48,headWidth=13,handleBack=26,gripSpacing=19;
+function legacyMining(mode,t,variant=0){
+ const c=variants[mode][variant],base=bases[mode],p=Object.fromEntries(Object.entries(base).map(([k,v])=>[k,[...v]]));
+ t=Math.max(0,Math.min(1,t));let i=0;while(i<3&&t>marks[i+1])i++;
+ const u=ease((t-marks[i])/(marks[i+1]-marks[i])),angle=mode==='standing'&&variant===1&&i===1?mix(c.angles[i],c.angles[i+1],u):turn(c.angles[i],c.angles[i+1],u),pitch=mix(c.pitch[i],c.pitch[i+1],u)*1.35-(mode==='prone'?0:0.035)*Math.sin(Math.PI*Math.max(0,Math.min(1,(t-.62)/.10)))**2;
+ const axis=[Math.cos(angle),Math.sin(angle)],normal=[-axis[1],axis[0]],tipOffset=plus(scale2(axis,shaft),scale2(normal,headWidth));
+ for(const k of Object.keys(p)){if(!/^(pink|orange|pelvis)/.test(k)){const v=minus(p[k],p.pelvis);p[k]=plus(p.pelvis,[v[0]*Math.cos(pitch)-v[1]*Math.sin(pitch),v[0]*Math.sin(pitch)+v[1]*Math.cos(pitch)])}}
+ if(mode==='standing'&&variant===1){
+ const [dx,dy,lean,twist]=refMotion(t),oldHip=[...p.pelvis],newHip=[oldHip[0]+dx*0.75,oldHip[1]+dy*0.75];
+ for(const k of Object.keys(p))if(!/^(pink|orange)/.test(k)){
+ const v=minus(base[k],oldHip);p[k]=plus(newHip,[v[0]*Math.cos(lean)-v[1]*Math.sin(lean),v[0]*Math.sin(lean)+v[1]*Math.cos(lean)]);
+ }
+ for(const prefix of ['pink','orange']){
+ const a=newHip,b=base[prefix+'Knee'],c=base[prefix+'Ankle'],L=dist(base[prefix+'Hip'],b),M=dist(b,c),v=minus(c,a),d=Math.hypot(...v),uv=scale2(v,1/d),al=(L*L-M*M+d*d)/(2*d),be=Math.sqrt(Math.max(0,L*L-al*al));
+ p[prefix+'Hip']=[...a];p[prefix+'Knee']=plus(a,plus(scale2(uv,al),scale2([uv[1],-uv[0]],be)));
+ }
+ p.redShoulder[0]+=twist*8;p.blueShoulder[0]-=twist*8;
+ }
+ const ia=c.angles[2],impactGrip=minus([c.wall,c.impact],plus(scale2([Math.cos(ia),Math.sin(ia)],shaft),scale2([-Math.sin(ia),Math.cos(ia)],headWidth)));
+ const hands=c.hands.map((v,j)=>j===2?impactGrip:v);
+ let goal=hands[i].map((v,j)=>mix(v,hands[i+1][j],u));
+ goal[0]=Math.min(goal[0],c.wall-tipOffset[0]);
+ const active=mode==='prone'?'blue':'red';
+ const gripStats={};
+ function arm(prefix,target){
+  const a=p[prefix+'Shoulder'],b=base[prefix+'Elbow'],w=base[prefix+'Wrist'],h=base[prefix+'Hand'];
+  const L=dist(base[prefix+'Shoulder'],b),M=dist(b,w),F=dist(w,h);
+  const dir=minus(target,a),d0=Math.hypot(...dir),v=scale2(dir,1/Math.max(.001,d0)),sign=mode==='prone'?-1:1;
+  const D=Math.max(Math.abs(L-M-F)+.001,Math.min(L+M+F-.001,d0));
+  const al=(L*L-(M+F)*(M+F)+D*D)/(2*D),be=Math.sqrt(Math.max(0,L*L-al*al));
+  const straightElbow=plus(a,plus(scale2(v,al),scale2([-v[1],v[0]],sign*be)));
+  const straightAngle=Math.atan2(target[1]-straightElbow[1],target[0]-straightElbow[0]);
+  // Continuous attraction toward a shaft-normal grip, allowing either palm
+  // side without a 180-degree wrist flip. Closed fist artwork follows shaft.
+  const delta=angle+Math.PI/2-straightAngle;
+  const handAngle=straightAngle+.30*Math.sin(2*delta);
+  const hv=[Math.cos(handAngle),Math.sin(handAngle)];
+  let wr=minus(target,scale2(hv,F)),dv=minus(wr,a),d=Math.hypot(...dv);
+  if(d>L+M-.001||d<Math.abs(L-M)+.001){
+   wr=minus(target,scale2([Math.cos(straightAngle),Math.sin(straightAngle)],F));dv=minus(wr,a);d=Math.hypot(...dv);
+  }
+  const uv=scale2(dv,1/d),along=(L*L-M*M+d*d)/(2*d),bend=Math.sqrt(Math.max(0,L*L-along*along));
+  const elbow=plus(a,plus(scale2(uv,along),scale2([-uv[1],uv[0]],sign*bend)));
+  p[prefix+'Elbow']=elbow;p[prefix+'Wrist']=wr;p[prefix+'Hand']=target;
+  const fa=minus(wr,elbow),ha=minus(target,wr);
+  gripStats[prefix]={flex:Math.acos(Math.max(-1,Math.min(1,(fa[0]*ha[0]+fa[1]*ha[1])/(M*F))))};
+  return target;
+ }
+ const grip=arm(active,goal),otherTarget=minus(grip,scale2(axis,gripSpacing));
+ if(mode!=='prone')arm('blue',otherTarget);
+ const head=plus(grip,scale2(axis,shaft)),tip=plus(head,scale2(normal,headWidth)),back=minus(head,scale2(normal,headWidth)),butt=minus(grip,scale2(axis,handleBack));
+ return {p,grip,head,tip,back,butt,active,c,t,angle,goal,otherTarget,gripStats};
+}
+function auditMining(mode,variant=0){if(mode==='standing')return auditBrace(variant);if(mode==='prone'||(mode==='crouched'&&variant!==0))return auditLow(mode,variant);if(mode==='standing'&&variant===1)return auditDepth();let length=0,grip=0,roof=0,wall=0,floor=0,step=0,impact=0,otherGrip=0,bodyRoof=0,bodyFloor=0,bodyWall=0,activeTarget=0,loop=0,clearance=Infinity,legDrift=0;let prev=null;const base=bases[mode],top=98-(cfg[mode].tiles*72)/(.34*1.88);
+ for(let n=0;n<=400;n++){const t=n/400,q=mining(mode,t,variant);for(const prefix of ['red','blue']){const ks=['Shoulder','Elbow','Wrist','Hand'].map(k=>prefix+k);for(let i=1;i<ks.length;i++)length=Math.max(length,Math.abs(dist(q.p[ks[i]],q.p[ks[i-1]])-dist(base[ks[i]],base[ks[i-1]])));}
+ grip=Math.max(grip,dist(q.grip,q.p[q.active+'Hand']));activeTarget=Math.max(activeTarget,dist(q.goal,q.grip));if(mode!=='prone')otherGrip=Math.max(otherGrip,dist(q.otherTarget,q.p.blueHand));
+ for(const a of [q.tip,q.back,q.butt,q.head]){roof=Math.max(roof,top-a[1]);floor=Math.max(floor,a[1]-98);wall=Math.max(wall,a[0]-q.c.wall);clearance=Math.min(clearance,a[1]-top)}
+ for(const [k,a] of Object.entries(q.p)){const r=k==='head'?15:k.endsWith('Hand')?3:0;bodyRoof=Math.max(bodyRoof,top-(a[1]-r));bodyFloor=Math.max(bodyFloor,a[1]-98);bodyWall=Math.max(bodyWall,a[0]+r-q.c.wall);if(/^(pink|orange)/.test(k))legDrift=Math.max(legDrift,dist(a,base[k]));}
+ if(n===248)impact=dist(q.tip,[q.c.wall,q.c.impact]);if(prev)step=Math.max(step,dist(q.tip,prev.tip));prev=q;}
+ loop=dist(mining(mode,0,variant).tip,mining(mode,1,variant).tip);
+ return {length,grip,roof,wall,floor,step,impact,otherGrip,bodyRoof,bodyFloor,bodyWall,activeTarget,loop,clearance,legDrift}}
+
+
+const V={add:(a,b)=>a.map((x,i)=>x+b[i]),sub:(a,b)=>a.map((x,i)=>x-b[i]),mul:(a,s)=>a.map(x=>x*s),dot:(a,b)=>a.reduce((s,x,i)=>s+x*b[i],0),len:a=>Math.hypot(...a)};
+const N=a=>V.mul(a,1/Math.max(1e-9,V.len(a))),lift=a=>[a[0],a[1],0],C=(x,a,b)=>Math.max(a,Math.min(b,x)),rad=d=>d*Math.PI/180;
+function yaw3(a,y){return [a[0]*Math.cos(y)-a[2]*Math.sin(y),a[1],a[0]*Math.sin(y)+a[2]*Math.cos(y)]}
+function sl(a,b,t){a=N(a);b=N(b);let d=C(V.dot(a,b),-1,1),w=Math.acos(d);return w<1e-6?a:V.add(V.mul(a,Math.sin((1-t)*w)/Math.sin(w)),V.mul(b,Math.sin(t*w)/Math.sin(w)))}
+function side3(t){
+ const c={...variants.standing[1],name:'Body-led cross-body',period:1.8,impact:-93.7300243100376},rest=legacyMining('standing',0,0),base=bases.standing,p=Object.fromEntries(Object.entries(rest.p).map(([k,v])=>[k,lift(v)]));
+ const times=[0,.4,.62,.72,1];let i=0;while(i<3&&t>times[i+1])i++;
+ const u=ease(C((t-times[i])/(times[i+1]-times[i]),0,1)),get=arr=>mix(arr[i],arr[i+1],u);
+ const yaw=rad(get([0,-32,18,12,0])),lean=get([0,-.12,.12,.07,0]),dx=get([0,-4,5,1,0]),dy=get([0,4,3,5,0]);
+ const hp=V.add(lift(base.pelvis),[dx,dy,0]);
+ for(const k of ['pelvis','shoulder','chest','neck','head']){const v=V.sub(lift(base[k]),lift(base.pelvis));p[k]=V.add(hp,yaw3([v[0]*Math.cos(lean)-v[1]*Math.sin(lean),v[0]*Math.sin(lean)+v[1]*Math.cos(lean),0],yaw))}
+ const spread=14*Math.sin(Math.PI*t)**2;
+ p.redShoulder=V.add(p.shoulder,yaw3([0,0,spread],yaw));p.blueShoulder=V.add(p.shoulder,yaw3([0,0,-spread],yaw));
+ const UR=N(V.sub(lift(rest.p.redElbow),lift(rest.p.redShoulder))),FR=N(V.sub(lift(rest.p.redWrist),lift(rest.p.redElbow))),HR=N(V.sub(lift(rest.p.redHand),lift(rest.p.redWrist)));
+ const U=[UR,N([-.48,.85,-.20]),N([-.25,.96,-.09]),N([-.30,.95,-.07]),UR];
+ const F=[FR,N([-.20,.65,-.74]),N([.95,-.10,-.29]),N([.92,-.04,-.38]),FR];
+ const H=[HR,F[1],F[2],F[3],HR];
+ const upper=yaw3(sl(U[i],U[i+1],u),yaw),fore=yaw3(sl(F[i],F[i+1],u),yaw),hand=yaw3(sl(H[i],H[i+1],u),yaw);
+ p.redElbow=V.add(p.redShoulder,V.mul(upper,lengths[4]));p.redWrist=V.add(p.redElbow,V.mul(fore,lengths[5]));p.redHand=V.add(p.redWrist,V.mul(hand,lengths[6]));
+ // Chest-space grip orientation accompanies the articulated arm.
+ const A=[N(V.sub(lift(rest.head),lift(rest.grip))),N([-.64,-.12,-.76]),N([.84,-.53,-.12]),N([.88,-.39,-.15]),N(V.sub(lift(rest.head),lift(rest.grip)))];
+ const axis=yaw3(sl(A[i],A[i+1],u),yaw);
+ const ref=yaw3([1,0,0],yaw),normal=N(V.sub(ref,V.mul(axis,V.dot(ref,axis))));
+ const tool=(g)=>{const head=V.add(g,V.mul(axis,shaft));return {head,tip:V.add(head,V.mul(normal,headWidth)),back:V.sub(head,V.mul(normal,headWidth)),butt:V.sub(g,V.mul(axis,handleBack))}};
+ const raw=tool(p.redHand);
+ // Small continuous translation of the entire upper body at the wall.
+ // Re-solve both knees with ankles fixed, preserving the original lengths.
+ const correction=Math.max(0,Math.max(raw.tip[0],raw.back[0],raw.head[0],raw.butt[0])-c.wall);
+ for(const k of Object.keys(p))if(!/^(pink|orange)/.test(k))p[k][0]-=correction;
+ const root=p.pelvis;
+ for(const pre of ['pink','orange']){
+ const a=root,b=lift(base[pre+'Ankle']),L=dist(base[pre+'Hip'],base[pre+'Knee']),M=dist(base[pre+'Knee'],base[pre+'Ankle']),v=V.sub(b,a),d=V.len(v),n=N(v),al=(L*L-M*M+d*d)/(2*d),be=Math.sqrt(Math.max(0,L*L-al*al));
+ p[pre+'Hip']=[...root];p[pre+'Knee']=V.add(a,V.add(V.mul(n,al),V.mul([n[1],-n[0],0],be)));
+ }
+ const grip=p.redHand,{head,tip,back,butt}=tool(grip);
+ const otherTarget=V.sub(grip,V.mul(axis,gripSpacing)),a=p.blueShoulder,L=lengths[7],M=lengths[8],Fh=lengths[9],delta=V.sub(otherTarget,a),d=V.len(delta),n=N(delta);
+ const restHand=N(V.sub(lift(rest.p.blueHand),lift(rest.p.blueWrist)));
+ const rdir=N(V.sub(lift(rest.p.blueHand),lift(rest.p.blueShoulder))),rel=V.sub(lift(rest.p.blueElbow),lift(rest.p.blueShoulder)),restPole=N(V.sub(rel,V.mul(rdir,V.dot(rel,rdir))));
+ const pole0=V.add(V.mul(restPole,1-spread/28),[0,0,-spread/28]),pole=N(V.sub(pole0,V.mul(n,V.dot(pole0,n))));
+ const D=C(d,Math.abs(L-M-Fh)+.001,L+M+Fh-.001),al=(L*L-(M+Fh)**2+D*D)/(2*D),be=Math.sqrt(Math.max(0,L*L-al*al)),initialElbow=V.add(a,V.add(V.mul(n,al),V.mul(pole,be)));
+ const f=N(V.sub(otherTarget,initialElbow)),blend=1-C(Math.min(t,1-t)/.13,0,1),ha=sl(f,restHand,ease(blend));
+ const wr=V.sub(otherTarget,V.mul(ha,Fh)),dv=V.sub(wr,a),dd=V.len(dv),nn=N(dv),aa=(L*L-M*M+dd*dd)/(2*dd),bb=Math.sqrt(Math.max(0,L*L-aa*aa)),po=N(V.sub(pole0,V.mul(nn,V.dot(pole0,nn))));
+ p.blueElbow=V.add(a,V.add(V.mul(nn,aa),V.mul(po,bb)));p.blueWrist=wr;p.blueHand=otherTarget;
+ return {p,grip,head,tip,back,butt,active:'red',c,t,angle:Math.atan2(axis[1],axis[0]),axis,otherTarget,goal:grip,gripStats:{red:{flex:Math.acos(C(V.dot(fore,hand),-1,1))},blue:{flex:Math.acos(C(V.dot(N(V.sub(wr,p.blueElbow)),ha),-1,1))}},depth:true,correction};
+}
+function mining(mode,t,variant=0){return mode==='standing'?brace(variant===1?side3(t):legacyMining(mode,t,variant),t):mode==='prone'||(mode==='crouched'&&variant!==0)?lowSwing(mode,t,variant):legacyMining(mode,t,variant)}
+function auditDepth(){
+ let length=0,grip=0,roof=0,wall=0,floor=0,step=0,impact=0,otherGrip=0,bodyRoof=0,bodyFloor=0,bodyWall=0,loop=0,clearance=Infinity,footDrift=0,flex=0,reset=0,correction=0,prev=null,bodyStep=0;
+ const base=bases.standing,rest=legacyMining('standing',0,0),top=98-3*72/(.34*1.88);
+ for(let n=0;n<=400;n++){const q=side3(n/400),p=q.p;
+ for(const [pre,ls] of [['red',lengths.slice(4,7)],['blue',lengths.slice(7,10)],['pink',lengths.slice(10,13)],['orange',lengths.slice(13,16)]]){
+ const ks=(pre==='red'||pre==='blue'?['Shoulder','Elbow','Wrist','Hand']:['Hip','Knee','Ankle','Toe']).map(k=>pre+k);
+ for(let j=0;j<3;j++)length=Math.max(length,Math.abs(V.len(V.sub(p[ks[j]],p[ks[j+1]]))-ls[j]));
+ }
+ grip=Math.max(grip,V.len(V.sub(q.grip,p.redHand)));otherGrip=Math.max(otherGrip,V.len(V.sub(q.otherTarget,p.blueHand)));
+ for(const a of [q.tip,q.back,q.butt,q.head]){roof=Math.max(roof,top-a[1]);floor=Math.max(floor,a[1]-98);wall=Math.max(wall,a[0]-q.c.wall);clearance=Math.min(clearance,a[1]-top)}
+ for(const [k,a] of Object.entries(p)){const r=k==='head'?15:k.endsWith('Hand')?3:0;bodyRoof=Math.max(bodyRoof,top-a[1]+r);bodyFloor=Math.max(bodyFloor,a[1]-98);bodyWall=Math.max(bodyWall,a[0]+r-q.c.wall);if(/^(pink|orange)(Ankle|Toe)$/.test(k))footDrift=Math.max(footDrift,V.len(V.sub(a,lift(base[k]))));if(n===0||n===400)reset=Math.max(reset,V.len(V.sub(a,lift(rest.p[k]))));if(prev)bodyStep=Math.max(bodyStep,V.len(V.sub(a,prev.p[k])));}
+ if(n===248)impact=Math.hypot(q.tip[0]-q.c.wall,q.tip[1]-q.c.impact);
+ if(prev)step=Math.max(step,V.len(V.sub(q.tip,prev.tip)));prev=q;
+ flex=Math.max(flex,...Object.values(q.gripStats).map(v=>v.flex));correction=Math.max(correction,q.correction);
+ }
+ loop=V.len(V.sub(side3(0).tip,side3(1).tip));
+ return {length,grip,roof,wall,floor,step,impact,otherGrip,bodyRoof,bodyFloor,bodyWall,loop,clearance,footDrift,flex:flex*180/Math.PI,reset,correction,bodyStep};
+}
+
+const lowKeys=[0,.40,.62,.72,1];
+function lowSwing(mode,t,variant){
+ const displayT=t;
+ if(mode==='crouched'&&variant===1){
+  // load until 48%, drive through 14%, hold contact through 66%.
+  t=t<=.48?t*.4/.48:t<=.62?.4+(t-.48)*.22/.14:t<=.66?.62:.62+(t-.66)*.38/.34;
+ }
+ const c0=variants[mode][variant],rest=legacyMining(mode,0,variant),hit=legacyMining(mode,.62,variant),base=bases[mode],pr=mode==='prone',active=pr?'blue':'red';
+ const c={...c0,name:pr?['Shoulder chip','Wide shoulder sweep','Forward shoulder chip'][variant]:['Compact overhead','Compact cross-body','Compact rising strike'][variant]};
+ const p=Object.fromEntries(Object.entries(rest.p).map(([k,v])=>[k,lift(v)]));
+ let i=0;while(i<3&&t>lowKeys[i+1])i++;const u=ease(C((t-lowKeys[i])/(lowKeys[i+1]-lowKeys[i]),0,1)),get=a=>mix(a[i],a[i+1],u);
+ const wide=pr?[.38,.72,.52][variant]:variant===1?.82:.58;
+ const Y=rad((pr?8:14)*wide),yaw=rad(get([0,-(pr?16:variant===1?58:34)*wide,(pr?8:14)*wide,(pr?5:8)*wide,0]));
+ const dx=get([0,-(pr?0:4)*wide,0,-1*wide,0]),dy=get([0,(pr?0:2),0,1,0]),root=V.add(lift(base.pelvis),[dx,dy,0]),lean=get([0,-(pr?0:.07)*wide,0,.015*wide,0]);
+ const contact=ease(C((t-.40)/.22,0,1))*(1-ease(C((t-.62)/.38,0,1)));
+ if(!pr){
+ for(const k of ['pelvis','shoulder','chest','neck','head']){const v=V.sub(lift(base[k]),lift(base.pelvis));p[k]=V.add(root,yaw3([v[0]*Math.cos(lean)-v[1]*Math.sin(lean),v[0]*Math.sin(lean)+v[1]*Math.cos(lean),0],yaw))}
+ const spread=10*Math.sin(Math.PI*t)**2*(1-contact**3);
+ p.redShoulder=V.add(p.shoulder,yaw3([0,0,spread],yaw));p.blueShoulder=V.add(p.shoulder,yaw3([0,0,-spread],yaw));
+ // At contact blend to the original calibrated torso, preserving the reset.
+ for(const k of ['shoulder','chest','neck','head','redShoulder','blueShoulder'])p[k]=V.add(V.mul(p[k],1-contact**3),V.mul(lift(hit.p[k]),contact**3));
+ }else{
+ const z=get([0,-10*wide,0,-3*wide,0]);p.blueShoulder=V.add(lift(base.blueShoulder),[get([0,-3*wide,0,-1,0]),0,z]);
+ }
+ const dir=(q,a,b)=>N(V.sub(lift(q.p[active+b]),lift(q.p[active+a])));
+ const UR=dir(rest,'Shoulder','Elbow'),FR=dir(rest,'Elbow','Wrist'),HR=dir(rest,'Wrist','Hand');
+ const UI=dir(hit,'Shoulder','Elbow'),FI=dir(hit,'Elbow','Wrist'),HI=dir(hit,'Wrist','Hand');
+ const cross=!pr&&variant===1;
+ const Uback=pr?N([-.70,.15,-.68*wide]):cross?N([-0.95,0.35,-0.35]):N([-.72,.56,-.50*wide]),Fback=pr?N([-.06,.12,-1]):cross?N([0.45,.22,0.25]):N([-.12,.56,-.80]);
+ const Fwind=N(V.add(V.mul(FR,1-wide),V.mul(Fback,wide)));
+ const U=[UR,N(V.add(V.mul(UR,1-wide),V.mul(Uback,wide))),yaw3(UI,-Y),yaw3(UI,-Y*.6),UR];
+ const F=[FR,Fwind,yaw3(FI,-Y),yaw3(FI,-Y*.6),FR],H=[HR,Fwind,yaw3(HI,-Y),yaw3(HI,-Y*.6),HR];
+ const upper=yaw3(sl(U[i],U[i+1],u),yaw),fore=yaw3(sl(F[i],F[i+1],u),yaw),hand=yaw3(sl(H[i],H[i+1],u),yaw);
+ const L=dist(base[active+'Shoulder'],base[active+'Elbow']),M=dist(base[active+'Elbow'],base[active+'Wrist']),Fh=dist(base[active+'Wrist'],base[active+'Hand']);
+ p[active+'Elbow']=V.add(p[active+'Shoulder'],V.mul(upper,L));p[active+'Wrist']=V.add(p[active+'Elbow'],V.mul(fore,M));p[active+'Hand']=V.add(p[active+'Wrist'],V.mul(hand,Fh));
+ const AR=N(V.sub(lift(rest.head),lift(rest.grip))),AI=N(V.sub(lift(hit.head),lift(hit.grip))),AB=pr?N([.12,-.16,-1]):cross?N([-0.4,-.10,-1]):N([-.70,-.10,-.70]);
+ const A=[AR,N(V.add(V.mul(AR,1-wide),V.mul(AB,wide))),yaw3(AI,-Y),yaw3(AI,-Y*.6),AR],axis=yaw3(sl(A[i],A[i+1],u),yaw);
+ // Up/down shaft-normal in world coordinates. Reproduces exact legacy
+ // head orientation at reset and impact, without an independent tip path.
+ const ref=pr?[0,1,0]:[1,0,0],normal=N(V.sub(ref,V.mul(axis,V.dot(ref,axis))));
+ const tool=g=>{const head=V.add(g,V.mul(axis,shaft));return {head,tip:V.add(head,V.mul(normal,headWidth)),back:V.sub(head,V.mul(normal,headWidth)),butt:V.sub(g,V.mul(axis,handleBack))}};
+ const raw=tool(p[active+'Hand']),top=98-c.tiles*72/(.34*1.88),pts=[raw.tip,raw.back,raw.head,raw.butt];
+ const corr=[-Math.max(0,...pts.map(a=>a[0]-c.wall)),Math.max(0,...pts.map(a=>top+2-a[1]))-Math.max(0,...pts.map(a=>a[1]-96)),0];
+ for(const k of [active+'Shoulder',active+'Elbow',active+'Wrist',active+'Hand'])p[k]=V.add(p[k],corr);
+ const grip=p[active+'Hand'],{head,tip,back,butt}=tool(grip),otherTarget=V.sub(grip,V.mul(axis,gripSpacing)),gripStats={[active]:{flex:Math.acos(C(V.dot(fore,hand),-1,1))}};
+ if(!pr){
+ const a=p.blueShoulder,L=dist(base.blueShoulder,base.blueElbow),M=dist(base.blueElbow,base.blueWrist),Fh=dist(base.blueWrist,base.blueHand),delta=V.sub(otherTarget,a),d=V.len(delta),n=N(delta);
+ const restHand=N(V.sub(lift(rest.p.blueHand),lift(rest.p.blueWrist))),rdir=N(V.sub(lift(rest.p.blueHand),lift(rest.p.blueShoulder))),rel=V.sub(lift(rest.p.blueElbow),lift(rest.p.blueShoulder)),restPole=N(V.sub(rel,V.mul(rdir,V.dot(rel,rdir))));
+ const z=Math.sin(Math.PI*t)**2*.35,wind=cross?Math.sin(Math.PI*C(t/.62,0,1))**2:0,pole0=V.add(V.add(V.mul(restPole,1-z),[0,0,-z]),[1.4*wind,0,1.5*wind]),pole=N(V.sub(pole0,V.mul(n,V.dot(pole0,n))));
+ const D=C(d,Math.abs(L-M-Fh)+.001,L+M+Fh-.001),al=(L*L-(M+Fh)**2+D*D)/(2*D),be=Math.sqrt(Math.max(0,L*L-al*al)),initialElbow=V.add(a,V.add(V.mul(n,al),V.mul(pole,be)));
+ const f=N(V.sub(otherTarget,initialElbow)),blend=1-C(Math.min(t,1-t)/.13,0,1),ha=sl(f,restHand,ease(blend));
+ const wr=V.sub(otherTarget,V.mul(ha,Fh)),dv=V.sub(wr,a),dd=V.len(dv),nn=N(dv),aa=(L*L-M*M+dd*dd)/(2*dd),bb=Math.sqrt(Math.max(0,L*L-aa*aa)),po=N(V.sub(pole0,V.mul(nn,V.dot(pole0,nn))));
+ p.blueElbow=V.add(a,V.add(V.mul(nn,aa),V.mul(po,bb)));p.blueWrist=wr;p.blueHand=otherTarget;gripStats.blue={flex:Math.acos(C(V.dot(N(V.sub(wr,p.blueElbow)),ha),-1,1))};
+ for(const pre of ['pink','orange']){
+ const a=root,b=lift(base[pre+'Ankle']),L=dist(base[pre+'Hip'],base[pre+'Knee']),M=dist(base[pre+'Knee'],base[pre+'Ankle']),v=V.sub(b,a),d=V.len(v),n=N(v),al=(L*L-M*M+d*d)/(2*d),be=Math.sqrt(Math.max(0,L*L-al*al));
+ p[pre+'Hip']=root;p[pre+'Knee']=V.add(a,V.add(V.mul(n,al),V.mul([n[1],-n[0],0],be)));
+ }
+ }
+ return {p,grip,head,tip,back,butt,active,c,t:displayT,angle:Math.atan2(axis[1],axis[0]),axis,otherTarget,goal:grip,gripStats,depth:true,correction:V.len(corr)};
+}
+function auditLow(mode,variant){
+ const base=bases[mode],pr=mode==='prone',rest=legacyMining(mode,0,variant),top=98-cfg[mode].tiles*72/(.34*1.88);
+ let length=0,wall=0,roof=0,floor=0,clearance=Infinity,bodyRoof=0,bodyFloor=0,bodyWall=0,step=0,bodyStep=0,flex=0,footDrift=0,supportDrift=0,correction=0,impact=0,prev=null,reset=0,grip=0,otherGrip=0,loop=0,maxDepth=0;
+ for(let n=0;n<=400;n++){const q=lowSwing(mode,n/400,variant),p=q.p;
+ for(const pre of ['red','blue','pink','orange']){const ks=(pre==='red'||pre==='blue'?['Shoulder','Elbow','Wrist','Hand']:['Hip','Knee','Ankle','Toe']).map(k=>pre+k);for(let j=0;j<3;j++)length=Math.max(length,Math.abs(V.len(V.sub(p[ks[j]],p[ks[j+1]]))-dist(base[ks[j]],base[ks[j+1]])));}
+ for(const a of [q.tip,q.back,q.butt,q.head]){roof=Math.max(roof,top-a[1]);floor=Math.max(floor,a[1]-98);wall=Math.max(wall,a[0]-q.c.wall);clearance=Math.min(clearance,a[1]-top);maxDepth=Math.max(maxDepth,Math.abs(a[2]))}
+ for(const [k,a] of Object.entries(p)){const r=k==='head'?15:k.endsWith('Hand')?3:0;bodyRoof=Math.max(bodyRoof,top-a[1]+r);bodyFloor=Math.max(bodyFloor,a[1]-98);bodyWall=Math.max(bodyWall,a[0]+r-q.c.wall);if(/^(pink|orange)(Ankle|Toe)$/.test(k))footDrift=Math.max(footDrift,V.len(V.sub(a,lift(base[k]))));if(pr&&k==='redHand')supportDrift=Math.max(supportDrift,V.len(V.sub(a,lift(base[k]))));if(n===0||n===400)reset=Math.max(reset,V.len(V.sub(a,lift(rest.p[k]))));if(prev)bodyStep=Math.max(bodyStep,V.len(V.sub(a,prev.p[k])));}
+ if(n===248)impact=Math.hypot(q.tip[0]-q.c.wall,q.tip[1]-q.c.impact);
+ if(prev)step=Math.max(step,V.len(V.sub(q.tip,prev.tip)));prev=q;flex=Math.max(flex,...Object.values(q.gripStats).map(v=>v.flex));correction=Math.max(correction,q.correction);
+ grip=Math.max(grip,V.len(V.sub(q.grip,p[q.active+'Hand'])));if(!pr)otherGrip=Math.max(otherGrip,V.len(V.sub(q.otherTarget,p.blueHand)));
+ }
+ loop=V.len(V.sub(lowSwing(mode,0,variant).tip,lowSwing(mode,1,variant).tip));
+ return {length,wall,roof,floor,clearance,bodyRoof,bodyFloor,bodyWall,step,bodyStep,flex:flex*180/Math.PI,footDrift,supportDrift,correction,impact,reset,grip,otherGrip,loop,maxDepth};
+}
+
+function brace(q,t){
+ const p=q.p,base=bases.standing,dim=p.pelvis.length;
+ // Lower the entire upper body by a small amount for a stable stance.
+ // Maintain the validated tool impact height by using a correspondingly
+ // lower target on the same vertical wall; preserve every arm/tool vector.
+ const drop=13;
+ for(const k in p)if(!/^(pink|orange)/.test(k))p[k]=p[k].map((v,i)=>v+(i===1?drop:0));
+ for(const k of ['grip','head','tip','back','butt','otherTarget','goal'])if(q[k])q[k]=q[k].map((v,i)=>v+(i===1?drop:0));
+ q.c={...q.c,impact:q.c.impact+drop};
+ const root=p.pelvis;
+ for(const [pre,tx] of [['pink',191],['orange',113]]){
+ const hip=[...root],L=dist(base[pre+'Hip'],base[pre+'Knee']),M=dist(base[pre+'Knee'],base[pre+'Ankle']),F=dist(base[pre+'Ankle'],base[pre+'Toe']);
+ const toe=[tx,95],ankle=[tx-F*Math.cos(.45),95-F*Math.sin(.45)];
+ if(dim===3){toe.push(0);ankle.push(0)}
+ const delta=ankle.map((v,i)=>v-hip[i]),d=Math.hypot(...delta),n=delta.map(v=>v/d),al=(L*L-M*M+d*d)/(2*d),h=Math.sqrt(Math.max(0,L*L-al*al));
+ const knee=hip.map((v,i)=>v+n[i]*al+(i===0?n[1]*h:i===1?-n[0]*h:0));
+ p[pre+'Hip']=hip;p[pre+'Knee']=knee;p[pre+'Ankle']=ankle;p[pre+'Toe']=toe;
+ }
+ return q;
+}
+function auditBrace(variant){
+ const base=bases.standing,rest=mining('standing',0,variant),top=98-3*72/(.34*1.88),D=(a,b)=>Math.hypot(...a.map((x,i)=>x-b[i]));
+ let length=0,grip=0,otherGrip=0,wall=0,roof=0,floor=0,clearance=Infinity,footDrift=0,impact=0,loop=0,step=0,flex=0,prev=null;
+ for(let n=0;n<=400;n++){const q=mining('standing',n/400,variant),p=q.p;
+ for(const pre of ['red','blue','pink','orange']){const ks=(pre==='red'||pre==='blue'?['Shoulder','Elbow','Wrist','Hand']:['Hip','Knee','Ankle','Toe']).map(k=>pre+k);for(let j=0;j<3;j++)length=Math.max(length,Math.abs(D(p[ks[j]],p[ks[j+1]])-dist(base[ks[j]],base[ks[j+1]])));}
+ for(const k of ['grip','tip','head','back','butt']){const a=q[k];roof=Math.max(roof,top-a[1]);floor=Math.max(floor,a[1]-98);wall=Math.max(wall,a[0]-q.c.wall);clearance=Math.min(clearance,a[1]-top)}
+ for(const k of ['pink','orange'])for(const z of ['Ankle','Toe'])footDrift=Math.max(footDrift,D(p[k+z],rest.p[k+z]));
+ grip=Math.max(grip,D(q.grip,p.redHand));otherGrip=Math.max(otherGrip,D(q.otherTarget,p.blueHand));
+ if(n===248)impact=Math.hypot(q.tip[0]-q.c.wall,q.tip[1]-q.c.impact);
+ if(prev)step=Math.max(step,D(q.tip,prev.tip));prev=q;flex=Math.max(flex,...Object.values(q.gripStats).map(v=>v.flex));
+ if(n===400)for(const k in p)loop=Math.max(loop,D(p[k],rest.p[k]));
+ }
+ return {length,grip,otherGrip,wall,roof,floor,clearance,footDrift,impact,loop,step,flex:flex*180/Math.PI};
+}
+
+const atlasParts={
+ helmet:{box:[35,12,157,124],poly:[[36,80],[42,68],[50,47],[65,34],[91,30],[108,33],[108,14],[113,14],[113,34],[130,34],[145,43],[154,55],[154,70],[143,77],[142,88],[131,91],[121,120],[99,117],[78,108],[53,105],[51,88]],a:[88,111],b:[91,53]},
+ torso:{box:[199,16,330,132],poly:[[204,111],[207,72],[220,40],[235,29],[249,18],[277,17],[295,29],[310,47],[320,78],[328,115],[314,119],[309,130],[218,129],[219,119]],a:[267,119],b:[267,39]},
+ pack:{box:[378,0,494,133],poly:[[380,121],[382,82],[384,54],[396,45],[396,12],[401,12],[401,43],[419,34],[419,0],[424,0],[424,30],[446,29],[464,34],[475,47],[477,66],[485,73],[490,117],[482,130],[388,131]],a:[478,110],b:[478,43]},
+ upper:{box:[27,161,119,257],poly:[[29,246],[39,222],[48,197],[67,175],[83,163],[102,164],[116,175],[115,193],[102,209],[90,219],[70,254],[52,254]],a:[91,184],b:[52,239]},
+ fore:{box:[183,173,245,254],poly:[[184,241],[190,218],[203,195],[216,174],[232,179],[244,189],[235,211],[220,241],[211,252],[198,249]],a:[225,188],b:[199,239]},
+ glove:{box:[368,174,422,253],poly:[[382,182],[396,176],[411,181],[420,193],[415,218],[410,237],[402,250],[386,250],[372,234],[369,217]],a:[396,185],b:[392,232]},
+ belt:{box:[539,174,663,255],poly:[[549,181],[573,176],[626,176],[651,183],[660,220],[655,243],[639,246],[630,236],[616,252],[605,248],[596,234],[576,246],[541,240],[541,218]],a:[600,224],b:[600,185]},
+ thigh:{box:[37,288,118,426],poly:[[43,318],[48,301],[65,291],[87,292],[113,304],[116,315],[100,354],[87,383],[75,415],[63,424],[39,419],[42,400],[51,377],[45,362],[38,349]],a:[88,310],b:[55,405]},
+ shin:{box:[189,292,250,425],poly:[[195,304],[212,293],[236,297],[248,312],[243,341],[240,363],[244,384],[239,401],[239,422],[201,422],[200,402],[193,383],[198,365],[193,345],[190,323]],a:[219,321],b:[219,406]},
+ boot:{box:[312,302,420,423],poly:[[326,309],[345,303],[370,305],[380,312],[375,351],[384,370],[398,382],[411,388],[418,404],[415,418],[315,419],[313,404],[318,374],[325,344]],a:[343,387],b:[402,404]},
+ pick:{box:[553,25,665,131],poly:[[559,34],[574,29],[600,26],[621,31],[639,46],[654,66],[663,85],[650,70],[635,57],[620,48],[609,66],[565,130],[554,125],[601,48],[590,39],[573,35]],a:[561,125],b:[615,40]}
+};
+let atlasSprites=null,atlasReady=false;
+function extractAtlas(img){
+ const result={};
+ for(const [name,d] of Object.entries(atlasParts)){
+ const [x,y,x2,y2]=d.box,w=x2-x,h=y2-y,cv=document.createElement('canvas');cv.width=w*2;cv.height=h*2;
+ const c=cv.getContext('2d');c.scale(2,2);c.beginPath();d.poly.forEach((p,i)=>i?c.lineTo(p[0]-x,p[1]-y):c.moveTo(p[0]-x,p[1]-y));c.closePath();c.clip();
+ c.drawImage(img,(430+x)*img.width/1408,(290+y)*img.height/1056,w*img.width/1408,h*img.height/1056,0,0,w,h);
+ result[name]={cv,a:d.a.map((v,i)=>v-d.box[i]),b:d.b.map((v,i)=>v-d.box[i]),w,h};
+ }
+ atlasSprites=result;atlasReady=true;el('atlasStatus').textContent='Illustrated atlas loaded · 11 isolated parts';el('appearance').value='illustrated';
+}
+el('atlasFile').onchange=()=>{const f=el('atlasFile').files[0];if(!f)return;const reader=new FileReader();reader.onload=()=>{const img=new Image();img.onload=()=>{if(Math.abs(img.width/img.height-4/3)>.05){el('atlasStatus').textContent='Choose the approved 4:3 concept sheet.';return}extractAtlas(img);try{localStorage.setItem('depthsAtlas005',reader.result)}catch(e){}};img.onerror=()=>el('atlasStatus').textContent='Unable to open image';img.src=reader.result};reader.readAsDataURL(f)};
+try{const saved=localStorage.getItem('depthsAtlas005');if(saved){const img=new Image();img.onload=()=>extractAtlas(img);img.src=saved}}catch(e){}
+function illustratedMiner(g,scale,cx,floor,p,grip){
+ const pt=k=>[(p[k][0]-165)*.34,(p[k][1]-98)*.34],sub=(a,b)=>[a[0]-b[0],a[1]-b[1]],add=(a,b)=>[a[0]+b[0],a[1]+b[1]],mul=(a,v)=>a.map(x=>x*v),unit=a=>mul(a,1/Math.max(.001,Math.hypot(...a)));
+ const hip=pt('pelvis'),sh=mul(add(pt('redShoulder'),pt('blueShoulder')),.5),up=unit(sub(sh,hip)),front=[-up[1],up[0]];
+ function draw(name,a,b,far=false,thick=1){const d=atlasSprites[name],src=sub(d.b,d.a),dest=sub(b,a),len=Math.hypot(...dest),sl=Math.hypot(...src);if(len<.03)return;g.save();g.translate(...a);g.rotate(Math.atan2(dest[1],dest[0]));g.scale(len/sl,Math.max(.045,len/sl)*thick);g.rotate(-Math.atan2(src[1],src[0]));g.translate(-d.a[0],-d.a[1]);if(far)g.filter='brightness(0.65)';g.drawImage(d.cv,0,0,d.w,d.h);g.restore()}
+ function arm(pre,far){const a=pt(pre+'Shoulder'),b=pt(pre+'Elbow'),c=pt(pre+'Wrist'),d=pt(pre+'Hand');draw('upper',a,b,far,.92);draw('fore',b,c,far,.9);draw('glove',c,d,far,1.05)}
+ function leg(pre,far){const a=pt(pre+'Hip'),b=pt(pre+'Knee'),c=pt(pre+'Ankle'),d=pt(pre+'Toe');draw('thigh',a,b,far,.9);draw('shin',b,c,far,.93);draw('boot',c,d,far,1.03)}
+ g.save();g.translate(cx,floor);g.scale(scale,scale);
+ leg('orange',true);arm('blue',true);
+ const low=Math.abs(p.head[1]-p.pelvis[1])<55,back=mul(front,low?-5:-6.5);
+ draw('pack',add(hip,back),add(add(hip,back),mul(sub(sh,hip),.89)),false,low?.72:.92);
+ draw('torso',hip,sh,false,.85);
+ draw('belt',add(hip,mul(up,-1.5)),add(hip,mul(up,6)),false,.85);
+ leg('pink',false);
+ const head=pt('head'),neck=pt('neck'),hu=unit(sub(head,neck));
+ draw('helmet',add(head,mul(hu,-4)),add(head,mul(hu,6.5)),false,.92);
+ arm('red',false);g.restore();
+}
+let mode='standing',variant=0,phase=0,playing=true,last=null;el('strike').value='0';
+const stats=Object.fromEntries(Object.keys(cfg).map(k=>[k,variants[k].map((_,i)=>auditMining(k,i))]));
+function syncChoices(){const sel=el('strike');sel.options[1].text=variants[mode][0].name;sel.options[2].text=variants[mode][1].name;sel.options[3].text=variants[mode][2].name;}
+syncChoices();
+el('strike').onchange=()=>{variant=el('strike').value==='auto'?0:Number(el('strike').value);phase=0;last=null;};
+el('skip').onclick=()=>{variant=(variant+1)%3;if(el('strike').value!=='auto')el('strike').value=String(variant);phase=0;last=null;};
+function toggle(on){playing=on;el('play').textContent=on?'Pause':'Play';last=null}
+for(const k of Object.keys(cfg))el(k).onclick=()=>{mode=k;variant=0;phase=0;last=null;el('strike').value='auto';syncChoices();for(const n of Object.keys(cfg))el(n).className=n===k?'active':'';};
+el('play').onclick=()=>toggle(!playing);el('prev').onclick=()=>{toggle(false);phase=Math.max(0,phase-1/48)};el('next').onclick=()=>{toggle(false);phase=Math.min(1,phase+1/48)};el('impact').onclick=()=>{toggle(false);phase=.62};el('scrub').oninput=()=>{toggle(false);phase=Number(el('scrub').value)/1000};
+function paintLegacy(id,q,scale,floor){
+ const cv=el(id),g=cv.getContext('2d'),factor=.34*scale,cx=350,point=([x,y])=>[cx+(x-165)*factor,floor+(y-98)*factor],wall=point([q.c.wall,98])[0],roof=floor-q.c.tiles*72*scale/1.88,impact=point([q.c.wall,q.c.impact]);
+ g.fillStyle=el('appearance').value==='rig'?'#20292b':'#77736a';g.fillRect(0,0,cv.width,cv.height);
+ g.fillStyle='#42403a';g.fillRect(0,0,cv.width,roof);g.fillRect(0,floor,cv.width,cv.height-floor);g.fillRect(wall,roof,cv.width-wall,floor-roof);
+ g.strokeStyle='#6a665b';g.lineWidth=1;g.beginPath();g.moveTo(0,roof);g.lineTo(wall,roof);g.lineTo(wall,floor);g.lineTo(0,floor);g.stroke();
+ for(let i=1;i<q.c.tiles;i++){const y=floor-i*72*scale/1.88;g.strokeStyle='#57564c';g.beginPath();g.moveTo(wall,y);g.lineTo(cv.width,y);g.stroke()}
+ if(el('trail').checked){g.beginPath();for(let i=0;i<=80;i++){const xy=point(mining(mode,i/80,variant).tip);i?g.lineTo(...xy):g.moveTo(...xy)}g.strokeStyle='#b28b52';g.lineWidth=1.5;g.stroke()}
+ function line(a,b,color,width){g.beginPath();g.moveTo(...point(a));g.lineTo(...point(b));g.strokeStyle=color;g.lineWidth=width;g.lineCap='round';g.stroke()}
+ // Tool is drawn before the hands so their artwork occludes the shaft at the grips.
+ line(q.butt,q.head,(el('appearance').value==='silhouette'||el('appearance').value==='previous')?'#111211':'#47362a',6.5*factor);line(q.butt,q.head,(el('appearance').value==='silhouette'||el('appearance').value==='previous')?'#171815':'#b78e5f',4*factor);
+ const axis=[Math.cos(q.angle),Math.sin(q.angle)],h=q.head;
+ g.fillStyle=(el('appearance').value==='silhouette'||el('appearance').value==='previous')?'#101110':'#969c96';g.beginPath();g.moveTo(...point(q.tip));g.quadraticCurveTo(...point(plus(h,scale2(axis,12))),...point(q.back));g.quadraticCurveTo(...point(plus(h,scale2(axis,3))),...point(q.tip));g.fill();
+ drawMiner(g,scale,cx,floor,q.p,{angle:q.angle,arms:mode==='prone'?['blue']:['blue','red']});
+ if(el('markers').checked){const pts=[[q.grip,'#7dd5ad'],[q.tip,'#e5ad61']];if(mode!=='prone')pts.push([q.p.blueHand,'#7dd5ad']);else pts.push([q.p.redHand,'#7dd5ad']);for(const [p,c] of pts){g.beginPath();g.arc(...point(p),4,0,Math.PI*2);g.strokeStyle=c;g.lineWidth=1.5;g.stroke()}g.beginPath();g.moveTo(impact[0]-7,impact[1]);g.lineTo(impact[0]+7,impact[1]);g.moveTo(impact[0],impact[1]-7);g.lineTo(impact[0],impact[1]+7);g.strokeStyle='#e5ad61';g.stroke()}
+ if(Math.abs(phase-.62)<.025){g.beginPath();g.arc(...impact,6+15*Math.abs(phase-.62)/.025,0,Math.PI*2);g.strokeStyle='#ebc986';g.lineWidth=1.5;g.stroke()}
+}
+
+function paint(id,q,scale,floor){
+ if(!q.depth){paintLegacy(id,q,scale,floor);return}
+ const cv=el(id),g=cv.getContext('2d'),f=.34*scale,cx=350,angle=id==='zoom'?rad(Number(el('camera').value)):0;
+ const point=a=>{const x=a[0]-165,z=a[2]||0;return [cx+f*(x*Math.cos(angle)-z*Math.sin(angle)),floor+f*(a[1]-98)]};
+ const wall=point([q.c.wall,98,0])[0],roof=floor-q.c.tiles*72*scale/1.88;
+ g.fillStyle=el('appearance').value==='rig'?'#20292b':'#77736a';g.fillRect(0,0,cv.width,cv.height);g.fillStyle='#42403a';g.fillRect(0,0,cv.width,roof);g.fillRect(0,floor,cv.width,cv.height-floor);
+ if(Math.abs(angle)<.01)g.fillRect(wall,roof,cv.width-wall,floor-roof);
+ else{g.strokeStyle='#777c6c';g.setLineDash([5,6]);g.beginPath();g.moveTo(...point([q.c.wall,98,-140]));g.lineTo(...point([q.c.wall,98,140]));g.stroke();g.setLineDash([])}
+ if(el('trail').checked){g.beginPath();for(let i=0;i<=100;i++){const pt=point(mining(mode,i/100,variant).tip);i?g.lineTo(...pt):g.moveTo(...pt)}g.strokeStyle='#ae8750';g.lineWidth=1.5;g.stroke()}
+ const p=q.p,screen=Object.fromEntries(Object.entries(p).map(([k,v])=>{const a=point(v);return [k,[(a[0]-cx)/f+165,v[1]]]}));
+ const line=(a,b,color,w)=>{g.beginPath();g.moveTo(...point(a));g.lineTo(...point(b));g.strokeStyle=color;g.lineWidth=w*f;g.lineCap='round';g.stroke()};
+ line(q.butt,q.head,(el('appearance').value==='silhouette'||el('appearance').value==='previous')?'#111211':'#47362a',6.5);line(q.butt,q.head,(el('appearance').value==='silhouette'||el('appearance').value==='previous')?'#171815':'#b78e5f',4);
+ g.fillStyle=(el('appearance').value==='silhouette'||el('appearance').value==='previous')?'#101110':'#969c96';g.beginPath();g.moveTo(...point(q.tip));g.quadraticCurveTo(...point(V.add(q.head,V.mul(q.axis,12))),...point(q.back));g.quadraticCurveTo(...point(V.add(q.head,V.mul(q.axis,3))),...point(q.tip));g.fill();
+ const axisAngle=Math.atan2(point(q.head)[1]-point(q.grip)[1],point(q.head)[0]-point(q.grip)[0]);
+ drawMiner(g,scale,cx,floor,screen,{angle:axisAngle,arms:mode==='prone'?['blue']:['red','blue']});
+ if(el('markers').checked){for(const [a,c] of [[q.grip,'#7dd5ad'],[mode==='prone'?q.p.redHand:q.otherTarget,'#7dd5ad'],[q.tip,'#e5ad61']]){g.beginPath();g.arc(...point(a),4,0,Math.PI*2);g.strokeStyle=c;g.lineWidth=1.5;g.stroke()}}
+ if(Math.abs(q.t-.62)<.025){g.beginPath();g.arc(...point(q.tip),7,0,2*Math.PI);g.strokeStyle='#ebc986';g.stroke()}
+}
+el('sideView').onclick=()=>{el('camera').value=0};el('quarterView').onclick=()=>{el('camera').value=45};el('frontView').onclick=()=>{el('camera').value=85};
+
+function paintLocomotion(id,scale,floor,frame){
+ const cv=el(id),g=cv.getContext('2d'),r=at(frame),p=r[1];
+ g.fillStyle='#77736a';g.fillRect(0,0,cv.width,cv.height);g.fillStyle='#262824';g.fillRect(0,floor,cv.width,cv.height-floor);
+ if(p)drawMiner(g,scale,350,floor,p,null);return r[0];
+}
+el('activity').onchange=()=>{phase=0;last=null};
+function tick(now){if(el('activity').value!=='mining'){
+ if(playing&&last!==null)phase=(phase+Math.min(100,now-last)/1000*Number(el('speed').value)/15.75)%1;last=now;
+ const f=el('activity').value==='idle'?352:phase*377,label=paintLocomotion('game',1.88,270,f);paintLocomotion('zoom',3.4,450,f);
+ el('status').textContent=label+' · '+Math.round(f)+' / 377 frames';el('scrub').value=Math.round(phase*1000);el('metrics').textContent='Locomotion baseline · skin only';el('cameraLabel').textContent='Side view · locomotion';requestAnimationFrame(tick);return;
+ }if(playing&&last!==null){phase+=Math.min(100,now-last)/1000*Number(el('speed').value)/variants[mode][variant].period;if(phase>=1){const carry=(phase-1)*variants[mode][variant].period;if(el('strike').value==='auto')variant=(variant+1)%3;phase=carry/variants[mode][variant].period;}}last=now;const q=mining(mode,phase,variant);el('cameraLabel').textContent=q.depth?'Depth inspection · '+el('camera').value+'°':'Camera applies to depth-aware strikes';paint('game',q,1.88,270);paint('zoom',q,3.4,450);el('scrub').value=Math.round(phase*1000);const stage=phase<.4?'Windup':phase<.61?'Strike':phase<.64?'Impact':phase<.72?'Recoil':'Recovery';el('status').textContent=q.c.name+' · '+stage+' · '+Math.round(phase*100)+'% · '+q.c.period.toFixed(2)+' s per strike';const a=stats[mode][variant];el('metrics').textContent='Numerical checks: impact error '+a.impact.toFixed(3)+' · grip error '+Math.max(a.grip,a.otherGrip).toFixed(3)+' · limb length error '+a.length.toFixed(3)+' · minimum tool roof clearance '+(a.clearance*.34*1.88).toFixed(1)+' game px · wrist bend '+Math.round(Math.max(...Object.values(q.gripStats).map(v=>v.flex))*180/Math.PI)+'°';requestAnimationFrame(tick)}
+requestAnimationFrame(tick);
+</script></body></html>
