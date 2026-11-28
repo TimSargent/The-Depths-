@@ -1,0 +1,370 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>The Depths · Mining Workshop 003</title><style>
+*{box-sizing:border-box}body{margin:0;background:#101719;color:#e3e7df;font:15px system-ui,sans-serif}main{max-width:960px;margin:auto;padding:12px}h1{font:normal 28px Georgia,serif;margin:5px 0}small{color:#a8c4b5}section{background:#1a2425;border:1px solid #34443f;border-radius:8px;padding:12px;margin-top:12px}canvas{display:block;width:100%;height:auto;background:#202a2b;border-radius:5px}button,select{font:inherit;background:#32403f;color:#e3e7df;border:1px solid #53635d;border-radius:5px;padding:9px 12px;min-height:42px}button.active{background:#e5ad61;color:#211d16;border-color:#e5ad61}.row{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:9px 0}input[type=range]{width:100%;accent-color:#e5ad61}h2{font-size:15px;margin:5px 0 9px}p{color:#b8c6be;margin:8px 0;line-height:1.4}output{font:12px monospace;color:#c3d8c9}a{color:#e5ad61}</style></head><body><main><h1>Mining Workshop 003</h1><small>The Depths · Animation Baseline V1.0 · Firm grip · torso-driven strikes</small><section><div class="row"><button id="standing" class="active">Standing · 3 tiles</button><button id="crouched">Crouched · 2 tiles</button><button id="prone">Prone · 1 tile</button></div><div class="row"><label for="strike">Strike pattern</label><select id="strike"><option value="auto">Alternate all three</option><option value="0">Overhead</option><option value="1">Side swing</option><option value="2">Diagonal upward</option></select><button id="skip">Next strike</button></div><h2>Game-scale preview</h2><canvas id="game" width="720" height="300"></canvas><div class="row"><button id="play">Pause</button><button id="prev">− Frame</button><button id="next">+ Frame</button><button id="impact">Inspect impact</button><select id="speed" aria-label="Playback speed"><option value="1">Normal</option><option value=".5">Half speed</option><option value=".25">Quarter speed</option></select></div><label>Strike phase <input id="scrub" type="range" min="0" max="1000" value="0"></label><div class="row"><label><input id="markers" type="checkbox" checked> Contact markers</label><label><input id="trail" type="checkbox"> Pick tip path</label></div><output id="status"></output></section><section><h2>Synchronized close-up</h2><canvas id="zoom" width="720" height="500"></canvas><p id="metrics"></p><small>Same character artwork and source-projected limb lengths. Closed fists rotate with the handle. Wrist alignment is solved per frame, and torso windup and impact recoil are strengthened. Three shared-reset strike variants per posture. Side swings are authored in the side-view plane, not true depth-axis rotations. Prone has no overhead option. No damage, collision physics or final impact effects are implemented.</small></section><input id="shirt" type="hidden" value="#617a73"><p><a href="rig-workshop-review-004.html?test=size">Return to locomotion baseline</a></p></main><script src="assets/prone-motion-017.js"></script><script>
+'use strict';const el=id=>document.getElementById(id),settings={chest:16,roll:16,sweep:16,build:10,helmet:9},sourceFrames=window.DepthsProneMotion017.frames;
+ const parents=[-1, 0, 1, 2, 1, 4, 5, 1, 7, 8, 0, 10, 11, 0, 13, 14],lengths=[0, 75.77, 14.892, 10.023, 44.212, 41.306, 16.519, 44.212, 41.302, 16.52, 69.99, 65.395, 22.643, 70.744, 65.397, 22.645];
+ const walk=[[-1.53445,-0.98279,-1.2925,2.11949,1.84832,1.84812,1.0221,0.28084,0.28076,1.12685,1.38521,0.13141,1.63194,2.08733,0.6991],[-1.53445,-0.98279,-1.2925,2.09938,1.80684,1.80709,1.04235,0.29112,0.29118,1.14694,1.43543,0.24284,1.61252,2.10809,0.7596],[-1.53445,-0.98279,-1.2925,2.05478,1.72391,1.7243,1.08681,0.34785,0.3477,1.17964,1.52731,0.34098,1.52665,2.17743,0.68723],[-1.53445,-0.98279,-1.2925,2.01013,1.64203,1.64169,1.13146,0.41227,0.412,1.2146,1.61439,0.34098,1.44543,2.24177,0.56566],[-1.53445,-0.98279,-1.2925,1.98988,1.60497,1.60496,1.15186,0.443,0.44315,1.23556,1.65733,0.34098,1.418,2.26967,0.51424],[-1.53445,-0.98279,-1.2925,1.93751,1.5161,1.51618,1.20423,0.5381,0.53806,1.28095,1.67371,0.34098,1.36181,2.27826,0.46324],[-1.53445,-0.98279,-1.2925,1.82143,1.32396,1.3242,1.32001,0.74792,0.74796,1.37357,1.69385,0.34098,1.22535,2.28423,0.38429],[-1.53445,-0.98279,-1.2925,1.70472,1.13831,1.13827,1.43687,0.95987,0.96014,1.47284,1.70043,0.34098,1.09236,2.27258,0.34127],[-1.53445,-0.98279,-1.2925,1.65127,1.06457,1.06447,1.49033,1.06457,1.06447,1.52361,1.69586,0.34098,1.03292,2.26175,0.34098],[-1.53445,-0.98279,-1.2925,1.5976,0.99278,0.99285,1.54399,1.16726,1.167,1.57177,1.68939,0.34098,1.01633,2.19253,0.34098],[-1.53445,-0.98279,-1.2925,1.47867,0.81698,0.81694,1.66276,1.36945,1.36948,1.67944,1.67065,0.34098,0.99409,2.03346,0.34098],[-1.53445,-0.98279,-1.2925,1.35872,0.63873,0.639,1.78303,1.56513,1.56496,1.72428,1.71543,0.34098,0.99592,1.85809,0.34098],[-1.53445,-0.98279,-1.2925,1.30376,0.5574,0.5575,1.83799,1.65272,1.65255,1.73996,1.73113,0.35781,1.00773,1.76142,0.34098],[-1.53445,-0.98279,-1.2925,1.28217,0.51972,0.51977,1.85942,1.6842,1.6844,1.75413,1.74555,0.45916,1.01891,1.7068,0.29137],[-1.53445,-0.98279,-1.2925,1.23487,0.43315,0.43328,1.90672,1.75315,1.75307,1.78477,1.7977,0.55596,1.05442,1.59585,0.21939],[-1.53445,-0.98279,-1.2925,1.1874,0.33899,0.33888,1.95435,1.82107,1.82093,1.73197,1.94086,0.59466,1.11916,1.45369,0.17784],[-1.53445,-0.98279,-1.2925,1.16568,0.28084,0.28076,1.97591,1.84836,1.84812,1.66325,2.04843,0.6991,1.10668,1.41747,0.13141],[-1.53445,-0.98279,-1.2925,1.18718,0.29112,0.29118,1.95426,1.807,1.80668,1.57546,2.1021,0.7596,1.10342,1.44456,0.24284],[-1.53445,-0.98279,-1.2925,1.23487,0.34785,0.3477,1.90672,1.72391,1.72389,1.45141,2.16782,0.68723,1.11388,1.51435,0.34098],[-1.53445,-0.98279,-1.2925,1.28217,0.41227,0.41239,1.85942,1.64202,1.6421,1.34398,2.21339,0.56566,1.1286,1.58122,0.34098],[-1.53445,-0.98279,-1.2925,1.3036,0.44307,0.44315,1.83783,1.60497,1.60496,1.29024,2.22887,0.51424,1.13195,1.60649,0.34098],[-1.53445,-0.98279,-1.2925,1.35856,0.5381,0.53806,1.78287,1.51627,1.5162,1.21979,2.2143,0.46324,1.16256,1.60902,0.34098],[-1.53445,-0.98279,-1.2925,1.47884,0.74779,0.74768,1.66292,1.32396,1.3237,1.08839,2.17235,0.38429,1.24387,1.61976,0.34098],[-1.53445,-0.98279,-1.2925,1.59761,0.95987,0.96014,1.54399,1.13831,1.13789,0.96584,2.1164,0.34127,1.33604,1.62103,0.34098],[-1.53445,-0.98279,-1.2925,1.65127,1.06457,1.06447,1.49033,1.06457,1.06447,0.9125,2.08677,0.34098,1.38462,1.6146,0.34098],[-1.53445,-0.98279,-1.2925,1.7047,1.16726,1.167,1.43689,0.99287,0.99285,0.91502,2.00996,0.34098,1.43484,1.61049,0.34098],[-1.53445,-0.98279,-1.2925,1.82159,1.36945,1.3694,1.32016,0.81687,0.81692,0.94022,1.83393,0.34098,1.54915,1.59834,0.34098],[-1.53445,-0.98279,-1.2925,1.93736,1.56513,1.56496,1.20409,0.63883,0.63875,1.00203,1.63758,0.34098,1.60434,1.65346,0.34098],[-1.53445,-0.98279,-1.2925,1.98974,1.65272,1.65297,1.15171,0.55749,0.55714,1.04929,1.541,0.34098,1.63399,1.6829,0.35781],[-1.53445,-0.98279,-1.2925,2.0102,1.6842,1.6844,1.1314,0.51981,0.51956,1.07402,1.51013,0.29137,1.66492,1.71398,0.45916],[-1.53445,-0.98279,-1.2925,2.05485,1.75312,1.75307,1.08674,0.43323,0.43346,1.1429,1.40797,0.21939,1.71616,1.78398,0.55596],[-1.53445,-0.98279,-1.2925,2.09924,1.82107,1.82093,1.04222,0.33899,0.33902,1.2607,1.25316,0.17784,1.68309,1.94993,0.59466]],stand=[[-1.25188,-0.93325,-1.29779,1.74921,1.50934,1.50934,1.84259,1.54004,1.54004,1.44382,1.62955,0.4757,1.59253,1.58284,0.81103],[-0.82679,-0.39234,-1.21609,1.92224,1.60064,1.60064,2.00742,1.63043,1.63043,1.26599,1.55917,0.44237,1.37578,1.51708,0.54679],[-0.68856,-0.20902,-1.10715,1.84095,1.1539,1.1539,1.9245,1.17804,1.17804,0.7854,1.92434,0.46365,0.92955,1.73389,0.7854],[-0.72594,-0.14708,-1.19553,1.72821,0.86568,0.86568,1.81951,0.89089,0.89089,0.29925,2.0844,0.51239,0.69288,1.88843,0.56673],[-0.83678,-0.36398,-1.2315,1.52321,0.27179,0.27179,1.61838,0.28054,0.28054,0.05819,1.73595,0.36173,0.35745,2.40958,0.48089],[-0.92898,-0.44237,-1.19553,1.29447,0.0,0.0,1.37915,0.0,0.0,-0.04946,1.81848,0.2606,0.41491,2.64687,0.75315],[-0.98742,-0.65285,-1.2397,1.13744,-0.55329,-0.55329,1.21366,-0.56673,-0.56673,-0.11273,1.85075,0.41549,0.45384,2.67795,0.62549],[-0.97075,-0.81569,-1.22203,1.02293,-0.55712,-0.55712,1.10039,-0.57219,-0.57219,-0.11379,1.82406,0.32175,0.45384,2.70358,0.7299]],prone=[[-0.99946,-0.88507,-1.13417,0.98279,-0.52183,-0.52183,2.67795,0.28512,0.28512,-0.18432,2.08994,1.02514,0.5016,2.78596,1.4289],[-0.98279,-0.98279,-1.13095,1.10715,0.06115,0.06115,1.5708,0.26625,0.26625,-0.14444,2.04649,1.03709,0.62025,2.95765,1.63736],[-0.64036,-0.83798,-0.82242,1.5708,-0.02325,-0.02325,1.5708,1.25718,1.25718,0.33929,2.27636,1.32582,0.96163,-3.0739,1.52084],[-0.51729,-0.55165,-0.86217,1.73217,1.48014,1.48014,0.54042,0.79511,0.79511,0.7314,2.5128,2.99715,1.31643,-3.01724,1.5708],[-0.40291,-0.49394,-0.70863,1.90474,1.39094,1.39094,1.17436,0.83798,0.83798,1.3734,-2.92678,1.66575,1.43699,-2.94838,1.89255],[-0.24157,-0.06657,-0.74195,1.50114,0.84415,0.84415,2.60987,1.01011,1.01011,1.46406,-2.88427,1.5708,1.81133,-2.83759,2.27942],[-0.11711,0.1419,-0.7854,1.84571,0.44684,0.44684,1.64958,0.59476,0.59476,2.12364,-3.02448,2.26553,2.00966,-3.01327,2.17634],[0.0,-0.29146,-0.91972,1.92643,0.04835,0.04835,1.86734,0.01724,0.01724,2.76109,-3.09907,2.63449,2.70497,-3.09995,2.75327]];
+ const keys=['pelvis','shoulder','neck','head','redElbow','redWrist','redHand','blueElbow','blueWrist','blueHand','pinkKnee','pinkAnkle','pinkToe','orangeKnee','orangeAnkle','orangeToe'];
+ const mix=(a,b,t)=>a+(b-a)*t;
+ const turn=(a,b,t)=>a+Math.atan2(Math.sin(b-a),Math.cos(b-a))*t;
+ const ease=t=>t*t*(3-2*t);
+ function between(a,b,t){return a.map((v,i)=>turn(v,b[i],t))}
+ function sample(frames,t,loop=false){
+  const f=t*(loop?frames.length:frames.length-1),i=Math.floor(f);
+  return between(frames[i%frames.length],frames[(i+1)%frames.length],f-i)
+ }
+ function pose(angles){
+  const joints=[[0,0]];
+  angles.forEach((a,k)=>{const i=k+1,p=joints[parents[i]];joints.push([p[0]+lengths[i]*Math.cos(a),p[1]+lengths[i]*Math.sin(a)])});
+  const bottom=Math.max(...[5,6,8,9,11,12,14,15].map(i=>joints[i][1]));
+  const out=Object.fromEntries(keys.map((k,i)=>[k,[joints[i][0]+151,joints[i][1]+95-bottom]]));
+  for(const k of ['pinkHip','orangeHip'])out[k]=out.pelvis;
+  out.redShoulder=out.blueShoulder=out.shoulder;
+  out.chest=out.pelvis.map((v,i)=>mix(v,out.shoulder[i],.78));
+  return out
+ }
+ const first=sourceFrames[0].joints;
+ // The source crawl already includes side-view foreshortening. Introduce
+ // that projection as the knee turns outward during the descent.
+ function lower(u){
+  const angles=sample(prone,u),out=pose(angles);
+  const weight=ease(Math.max(0,(u-.22)/.78));
+  if(!weight)return out;
+  const sourcePoint=k=>k==='shoulder'?
+   first.redShoulder.map((v,i)=>(v+first.blueShoulder[i])*.5):first[k];
+  const projected={pelvis:[...out.pelvis]};
+  for(let i=1;i<keys.length;i++){
+   const key=keys[i],parent=keys[parents[i]],a=sourcePoint(parent),b=sourcePoint(key);
+   const targetLength=Math.hypot(b[0]-a[0],b[1]-a[1]);
+   const length=mix(lengths[i],targetLength,weight),angle=angles[i-1];
+   projected[key]=[projected[parent][0]+length*Math.cos(angle),projected[parent][1]+length*Math.sin(angle)];
+  }
+  const contacts=['redHand','blueHand','pinkToe','orangeToe','pinkAnkle','orangeAnkle','redWrist','blueWrist'];
+  const dy=95-Math.max(...contacts.map(k=>projected[k][1]));
+  for(const key of keys){out[key]=[projected[key][0],projected[key][1]+dy]}
+  out.pinkHip=out.orangeHip=out.pelvis;out.redShoulder=out.blueShoulder=out.shoulder;
+  out.chest=out.pelvis.map((v,i)=>mix(v,out.shoulder[i],.78));
+  return out
+ }
+ function join(u){
+  const a=lower(1),out={};
+  for(const k of Object.keys(first))out[k]=a[k].map((v,i)=>mix(v,first[k][i],ease(u)));
+  return out
+ }
+ // Keep the near palm at the floor while the knee advances under the pelvis.
+ // All points are in the fixed side-view source coordinate system.
+ const pushPose=lower(1);
+ const palmAnchor=[pushPose.redWrist[0]+5,95];
+ function baselineRise(frame){
+  const p=frame<268?join(1-(frame-250)/18):lower(1-(frame-268)/36);
+  const weight=ease(Math.min(1,Math.max(0,(frame-256)/10)))*
+               (1-ease(Math.min(1,Math.max(0,(frame-278)/10))));
+  if(weight===0)return p;
+  const shoulder=p.redShoulder;
+  const handLength=lengths[6];
+  const wristGoal=[palmAnchor[0]-handLength,palmAnchor[1]-2];
+  const dx=mix(p.redWrist[0],wristGoal[0],weight)-shoulder[0];
+  const dy=mix(p.redWrist[1],wristGoal[1],weight)-shoulder[1];
+  const reach=Math.max(.001,Math.hypot(dx,dy));
+  const distance=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
+  const upper=mix(distance(shoulder,p.redElbow),lengths[4],weight);
+  const fore=mix(distance(p.redElbow,p.redWrist),lengths[5],weight);
+  const d=Math.max(Math.abs(upper-fore)+.001,Math.min(reach,upper+fore-.001));
+  const along=(upper*upper-fore*fore+d*d)/(2*d);
+  const bend=Math.sqrt(Math.max(0,upper*upper-along*along));
+  const ux=dx/reach,uy=dy/reach;
+  const wrist=[shoulder[0]+ux*d,shoulder[1]+uy*d];
+  const hand=p.redHand.map((v,i)=>wrist[i]+mix(v-p.redWrist[i],palmAnchor[i]-wristGoal[i],weight));
+  return {...p,redElbow:[shoulder[0]+ux*along-uy*bend,shoulder[1]+uy*along+ux*bend],redWrist:wrist,redHand:hand}
+ }
+
+ // Release the supporting palm only after the knee has advanced under the pelvis.
+ // During release, lift before retracting; solve the arm on the existing projected lengths.
+ function pushRise(frame){
+  const p=baselineRise(frame);
+  if(frame<=278||frame>=294)return p;
+  const u=(frame-278)/16,release=ease(u),lift=ease(Math.min(1,(frame-278)/7)),retract=ease(Math.max(0,(frame-282)/12));
+  const shoulder=p.redShoulder,dist=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
+  const upper=dist(shoulder,p.redElbow),fore=dist(p.redElbow,p.redWrist),hand=dist(p.redWrist,p.redHand);
+  const a0=Math.atan2(2,lengths[6]),a1=Math.atan2(p.redHand[1]-p.redWrist[1],p.redHand[0]-p.redWrist[0]);
+  const angle=turn(a0,a1,release),offset=[hand*Math.cos(angle),hand*Math.sin(angle)];
+  const hx=mix(palmAnchor[0],p.redHand[0],retract);
+  const hy=Math.min(p.redHand[1],palmAnchor[1]-24*lift*(1-release));
+  const goal=[hx-offset[0],hy-offset[1]],dx=goal[0]-shoulder[0],dy=goal[1]-shoulder[1],reach=Math.max(.001,Math.hypot(dx,dy));
+  const d=Math.max(Math.abs(upper-fore)+.001,Math.min(reach,upper+fore-.001)),ux=dx/reach,uy=dy/reach,along=(upper*upper-fore*fore+d*d)/(2*d),bend=Math.sqrt(Math.max(0,upper*upper-along*along));
+  const wrist=[shoulder[0]+ux*d,shoulder[1]+uy*d],elbow=[shoulder[0]+ux*along-uy*bend,shoulder[1]+uy*along+ux*bend];
+  return {...p,redElbow:elbow,redWrist:wrist,redHand:[wrist[0]+offset[0],wrist[1]+offset[1]]};
+ }
+
+ const kneeAnchor=[151,89];
+ function kneeRise(frame){
+  const p=pushRise(frame);
+  if(frame<=272||frame>=290)return p;
+  const w=ease(Math.min(1,(frame-272)/4))*(1-ease(Math.max(0,(frame-282)/8)));
+  const dx=(kneeAnchor[0]-p.pinkKnee[0])*w,dy=(kneeAnchor[1]-p.pinkKnee[1])*w;
+  const out=Object.fromEntries(Object.entries(p).map(([k,v])=>[k,[v[0]+dx,v[1]+dy]]));
+  const distance=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
+  function clearLeg(prefix,rootKey){
+   const a=out[rootKey],keys=rootKey.endsWith('Knee')?[prefix+'Ankle',prefix+'Toe']:[prefix+'Knee',prefix+'Ankle',prefix+'Toe'];
+   const v=keys.map(k=>[out[k][0]-a[0],out[k][1]-a[1]]);
+   const height=t=>Math.max(...v.map(([x,y])=>a[1]+x*Math.sin(t)+y*Math.cos(t)));
+   if(height(0)<=95)return;
+   let best=0;
+   for(let j=1;j<=180;j++){const t=j*Math.PI/360;for(const sign of [1,-1])if(height(t*sign)<=95){best=t*sign;break}if(best)break}
+   if(!best)return;
+   let low=0,high=best;for(let j=0;j<25;j++){const mid=(low+high)/2;if(height(mid)>95)low=mid;else high=mid}
+   for(let i=0;i<keys.length;i++){const [x,y]=v[i];out[keys[i]]=[a[0]+x*Math.cos(high)-y*Math.sin(high),a[1]+x*Math.sin(high)+y*Math.cos(high)]}
+  }
+  clearLeg('pink','pinkKnee');clearLeg('orange','orangeHip');
+  const a=out.redShoulder,upper=distance(p.redShoulder,p.redElbow),fore=distance(p.redElbow,p.redWrist);
+  const v=[p.redWrist[0]-a[0],p.redWrist[1]-a[1]],reach=Math.max(.001,Math.hypot(...v)),d=Math.max(Math.abs(upper-fore)+.001,Math.min(reach,upper+fore-.001));
+  const ux=v[0]/reach,uy=v[1]/reach,along=(upper*upper-fore*fore+d*d)/(2*d),bend=Math.sqrt(Math.max(0,upper*upper-along*along));
+  const wrist=[a[0]+ux*d,a[1]+uy*d];
+  const e1=[a[0]+ux*along-uy*bend,a[1]+uy*along+ux*bend],e2=[a[0]+ux*along+uy*bend,a[1]+uy*along-ux*bend];
+  out.redElbow=distance(e1,out.redElbow)<=distance(e2,out.redElbow)?e1:e2;
+  out.redWrist=wrist;out.redHand=[wrist[0]+p.redHand[0]-p.redWrist[0],wrist[1]+p.redHand[1]-p.redWrist[1]];
+  return out;
+ }
+
+ // Foot-first recovery: carry the toe along a continuous swing arc, hold
+ // the landing in source coordinates, and delay the body rise until support.
+ function rise(frame){
+  const p=kneeRise(frame);
+  if(frame<=282||frame>=304)return p;
+  const out=Object.fromEntries(Object.entries(p).map(([k,v])=>[k,[...v]]));
+  const C=t=>Math.max(0,Math.min(1,t)),E=t=>ease(C(t));
+  const weight=E((frame-282)/5)*(1-E((frame-296)/8));
+  const distance=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
+  const base=kneeRise(282),land=kneeRise(292),u=C((frame-282)/8),release=E((frame-294)/10);
+  const target=[mix(mix(base.pinkToe[0],land.pinkToe[0],E(u)),p.pinkToe[0],release),
+    mix(mix(base.pinkToe[1],95,E(u))-4*Math.sin(Math.PI*u)**2,p.pinkToe[1],release)];
+  const hipDelay=E((frame-282)/4)*(1-E((frame-290)/8));
+  const dy=Math.max(0,base.pelvis[1]-p.pelvis[1])*hipDelay*.35;
+  for(const k of Object.keys(out))out[k][1]+=dy;
+  function solveLeg(prefix,toe,flatten){
+   const a=out[prefix+'Hip'],b=p[prefix+'Knee'],c=p[prefix+'Ankle'],t=p[prefix+'Toe'];
+   const L=distance(p[prefix+'Hip'],b),M=distance(b,c),F=distance(c,t);
+   const originalAngle=Math.atan2(t[1]-c[1],t[0]-c[0]),angle=turn(originalAngle,0,weight*E(u)*flatten);
+   const offset=[F*Math.cos(angle),F*Math.sin(angle)],g=[toe[0]-offset[0],toe[1]-offset[1]];
+   const vx=g[0]-a[0],vy=g[1]-a[1],reach=Math.max(.001,Math.hypot(vx,vy)),d=Math.max(Math.abs(L-M)+.001,Math.min(reach,L+M-.001)),ux=vx/reach,uy=vy/reach,along=(L*L-M*M+d*d)/(2*d),bend=Math.sqrt(Math.max(0,L*L-along*along));
+   const k1=[a[0]+ux*along-uy*bend,a[1]+uy*along+ux*bend],k2=[a[0]+ux*along+uy*bend,a[1]+uy*along-ux*bend];
+   const ankle=[a[0]+ux*d,a[1]+uy*d];
+   out[prefix+'Knee']=distance(k1,out[prefix+'Knee'])<distance(k2,out[prefix+'Knee'])?k1:k2;
+   out[prefix+'Ankle']=ankle;out[prefix+'Toe']=[ankle[0]+offset[0],ankle[1]+offset[1]];
+  }
+  solveLeg('pink',target,1);solveLeg('orange',p.orangeToe,0);
+  const arm=['blueShoulder','blueElbow','blueWrist','blueHand'];
+  for(let i=1;i<arm.length;i++){
+   const a=arm[i-1],b=arm[i],angle=Math.atan2(p[b][1]-p[a][1],p[b][0]-p[a][0]),L=distance(p[a],p[b]);
+   let sx=0,sy=0;for(let j=-4;j<=4;j++){const q=kneeRise(Math.max(282,Math.min(303.999,frame+j))),v=Math.atan2(q[b][1]-q[a][1],q[b][0]-q[a][0]),w=5-Math.abs(j);sx+=Math.cos(v)*w;sy+=Math.sin(v)*w}
+   const theta=turn(angle,Math.atan2(sy,sx),weight);
+   out[b]=[out[a][0]+L*Math.cos(theta),out[a][1]+L*Math.sin(theta)];
+  }
+  return out;
+ }
+ // Timeline in 24 fps frames. Crawl uses the original 38-frame renderer twice.
+ function baselineAt(f){
+  if(f<60)return ['Walk',pose(sample(walk,f/30%1,true))];
+  if(f<72)return ['Settle into stance',pose(between(walk[0],stand[0],ease((f-60)/12)))];
+  if(f<108)return ['Stand → crouch',pose(sample(stand,(f-72)/36))];
+  if(f<120)return ['Crouch',pose(between(stand.at(-1),prone[0],ease((f-108)/12)))];
+  if(f<156)return ['Crouch → prone',lower((f-120)/36)];
+  if(f<174)return ['Settle into crawl',join((f-156)/18)];
+  if(f<250)return ['Crawl',null,(f-174)%38/38];
+  if(f<304)return ['Prone → crouch',rise(f)];
+  if(f<316)return ['Crouch',pose(between(prone[0],stand.at(-1),ease((f-304)/12)))];
+  if(f<352)return ['Crouch → stand',pose(sample(stand,1-(f-316)/36))];
+  if(f<366)return ['Stand',pose(stand[0])];
+  return ['Return to walk',pose(between(stand[0],walk[0],ease((f-366)/12)))];
+ }
+
+ // Both feet support the recovered crouch, then remain in place through standing.
+ function at(f){
+  const result=baselineAt(f),p=result[1];
+  if(!p||f<=294||f>=378)return result;
+  const C=t=>Math.max(0,Math.min(1,t)),E=t=>ease(C(t));
+  const w=E((f-294)/10)*(1-E((f-366)/12));
+  if(w<=0)return result;
+  const distance=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
+  const out=Object.fromEntries(Object.entries(p).map(([k,v])=>[k,[...v]]));
+  const targets=[];
+  for(const [prefix,tx] of [['pink',170],['orange',158]]){
+   const a=p[prefix+'Hip'],b=p[prefix+'Knee'],c=p[prefix+'Ankle'],t=p[prefix+'Toe'];
+   const L=distance(a,b),M=distance(b,c),F=distance(c,t);
+   const angle=turn(Math.atan2(t[1]-c[1],t[0]-c[0]),mix(.12,.45,E((f-330)/22)),w);
+   const toe=[mix(t[0],tx,w),mix(t[1],95,w)],off=[F*Math.cos(angle),F*Math.sin(angle)];
+   const ankle=[toe[0]-off[0],toe[1]-off[1]];
+   targets.push({prefix,L,M,ankle,toe});
+  }
+  const hipX=p.pelvis[0],hipY=p.pelvis[1];
+  let minY=-Infinity;
+  for(const t of targets){
+   const dx=t.ankle[0]-hipX,reach=t.L+t.M-.05;
+   minY=Math.max(minY,t.ankle[1]-Math.sqrt(Math.max(0,reach*reach-dx*dx)));
+  }
+  const dy=Math.max(0,minY-hipY);
+  for(const k of Object.keys(out))out[k][1]+=dy;
+  for(const t of targets){
+   const a=out[t.prefix+'Hip'],vx=t.ankle[0]-a[0],vy=t.ankle[1]-a[1],d=Math.hypot(vx,vy),ux=vx/d,uy=vy/d;
+   const along=(t.L*t.L-t.M*t.M+d*d)/(2*d),h=Math.sqrt(Math.max(0,t.L*t.L-along*along));
+   const k1=[a[0]+ux*along+uy*h,a[1]+uy*along-ux*h],k2=[a[0]+ux*along-uy*h,a[1]+uy*along+ux*h];
+   out[t.prefix+'Knee']=distance(k1,p[t.prefix+'Knee'])<=distance(k2,p[t.prefix+'Knee'])?k1:k2;
+   out[t.prefix+'Ankle']=t.ankle;out[t.prefix+'Toe']=t.toe;
+  }
+  return [result[0],out,result[2]];
+ }
+
+function tracked(ctx,phase,angle,scale,cx,cy,pose=null,toolGrip=null){
+ const position=(phase%1)*sourceFrames.length, index=Math.floor(position), blend=position-index;
+ const current=sourceFrames[index].joints,next=sourceFrames[(index+1)%sourceFrames.length].joints;
+ function joint(name){if(pose)return pose[name];return current[name].map((n,i)=>n+(next[name][i]-n)*blend)}
+ function point(name,z=0,height=0){
+  const [x,y]=joint(name);
+  return [(x-165)*.34,(y-98)*.34*Math.cos(angle)+z*Math.sin(angle)-height*Math.cos(angle)];
+ }
+ function stroke(a,b,width,color){ctx.beginPath();ctx.moveTo(...a);ctx.lineTo(...b);ctx.strokeStyle=color;ctx.lineWidth=width;ctx.lineCap='round';ctx.stroke()}
+ function ellipse(p,x,y,color){ctx.beginPath();ctx.ellipse(...p,x,y,0,0,2*Math.PI);ctx.fillStyle=color;ctx.fill()}
+ const chestLift=settings.chest-16;
+ const rotation=Math.atan2(joint('blueShoulder')[1]-joint('redShoulder')[1],36)*settings.roll/16;
+ function side(s){
+  const arm=s===1?'red':'blue',leg=s===1?'pink':'orange';
+  const advance=(joint(leg+'Knee')[0]-joint(leg+'Hip')[0]+65)/95;
+  const spread=settings.sweep*Math.min(1,Math.max(0,advance));
+  const hip=point(leg+'Hip',s*4),knee=point(leg+'Knee',s*(5+spread)),boot=point(leg+'Ankle',s*(4+spread*.25));
+  const col=s===1?'#5e7170':'#445454';
+  stroke(hip,knee,3.6,col);stroke(knee,boot,2.5,col);
+  stroke(boot,point(leg+'Toe',s*5),2.8,s===1?'#55504a':'#404d4e');
+  const shoulder=point(arm+'Shoulder',s*settings.build*Math.cos(rotation),chestLift);
+  const elbow=point(arm+'Elbow',s*8),wrist=point(arm+'Wrist',s*7);
+  stroke(shoulder,elbow,3.8,s===1?el('shirt').value:'#425453');stroke(elbow,wrist,2.6,s===1?'#ac876a':'#796d60');const hand=point(arm+'Hand',s*7);
+  if(toolGrip&&toolGrip.arms.includes(arm)){
+   // Short wrist cuff meets a closed fist; do not render a long floppy mitten.
+   const joint=[wrist[0]+(hand[0]-wrist[0])*.62,wrist[1]+(hand[1]-wrist[1])*.62];
+   stroke(wrist,joint,2.7,s===1?'#ac876a':'#796d60');
+   stroke(joint,hand,3.1,'#625849');
+   ctx.save();ctx.translate(hand[0],hand[1]);ctx.rotate(toolGrip.angle);
+   ctx.fillStyle=s===1?'#88745b':'#665744';
+   ctx.beginPath();ctx.ellipse(0,0,3.5,2.65,0,0,Math.PI*2);ctx.fill();
+   ctx.strokeStyle='#bda484';ctx.lineWidth=.55;ctx.beginPath();ctx.moveTo(-1.2,-1.6);ctx.lineTo(-1.2,1.3);ctx.moveTo(.6,-1.8);ctx.lineTo(.6,1.2);ctx.stroke();
+   ctx.restore();
+  }else stroke(wrist,hand,2.3,'#625849');
+ }
+ ctx.save();ctx.translate(cx,cy);ctx.scale(scale,scale);side(-1);
+ const chest=point('chest',0,chestLift),head=point('head',0,chestLift);
+ const near=point('redShoulder',settings.build*.6,chestLift);
+ const far=point('blueShoulder',-settings.build*.6,chestLift);
+ const top=near[1]<far[1]?near:far, bottom=top===near?far:near;
+ const waist=point('pelvis'), radius=settings.build*.24;
+ stroke(waist,chest,radius*1.8,el('shirt').value);
+ ctx.beginPath();ctx.moveTo(waist[0],waist[1]-radius*.5);
+ ctx.quadraticCurveTo(chest[0]-2,chest[1]-radius,top[0],top[1]-radius);
+ ctx.quadraticCurveTo(top[0]+radius*1.6,top[1],bottom[0]+radius,bottom[1]);
+ ctx.quadraticCurveTo(chest[0]+1,chest[1]+radius*2,waist[0],waist[1]+radius*.6);
+ ctx.closePath();ctx.fillStyle=el('shirt').value;ctx.fill();
+ stroke(chest,near,1.25,'#82918a');
+ stroke(point('neck',0,chestLift),head,2.7,'#9e8066');
+ ellipse(head,3.6,4.5,'#af8e70');
+ const crown=[head[0],head[1]-1.5*Math.cos(angle)],helmet=settings.helmet*.54;
+ ellipse(crown,helmet,helmet*.65,'#b88744');
+ ellipse([crown[0]+helmet*.8,crown[1]-.7],1.1,1.1,'#ffe2a3');side(1);ctx.restore()
+}
+
+
+const bases={standing:at(352)[1],crouched:at(316)[1],prone:sourceFrames[22].joints};
+const cfg={
+ standing:{tiles:3,wall:275,impact:-80,angles:[-1.65,-2.55,-.60,-.35,-1.65],hands:[[205,-105],[195,-163],[0,0],[220,-72],[205,-105]],pitch:[0,-.055,.075,.05,0],period:1.35},
+ crouched:{tiles:2,wall:290,impact:7,angles:[-1.45,-2.25,-.70,-.4,-1.45],hands:[[225,-12],[213,-62],[0,0],[229,2],[225,-12]],pitch:[0,-.04,.045,.03,0],period:1.7},
+ prone:{tiles:1,wall:310,impact:51,angles:[-.65,-1.0,-.35,-.15,-.65],hands:[[248,48],[245,44],[0,0],[253,51],[248,48]],pitch:[0,0,0,0,0],period:2.1}};
+
+const variants={
+ standing:[
+ {name:'Overhead',...cfg.standing},
+ {name:'Side swing',...cfg.standing,angles:[-1.65,-2.95,-.60,-.35,-1.65],hands:[[205,-105],[135,-100],[0,0],[220,-72],[205,-105]],pitch:[0,-.15,.105,.05,0],period:1.45},
+ {name:'Diagonal upward',...cfg.standing,impact:-114,angles:[-1.65,2.75,-.85,-.65,-1.65],hands:[[205,-105],[190,-54],[0,0],[220,-92],[205,-105]],pitch:[0,-.035,.065,.03,0],period:1.5}],
+ crouched:[
+ {name:'Compact overhead',...cfg.crouched},
+ {name:'Side swing',...cfg.crouched,angles:[-1.45,-2.95,-.70,-.4,-1.45],hands:[[225,-12],[156,-13],[0,0],[229,2],[225,-12]],pitch:[0,-.10,.07,.03,0],period:1.8},
+ {name:'Diagonal upward',...cfg.crouched,impact:-24,angles:[-1.45,-.15,-.85,-.65,-1.45],hands:[[225,-12],[200,18],[0,0],[229,-4],[225,-12]],pitch:[0,-.04,.04,.03,0],period:1.85}],
+ prone:[
+ {name:'Short side chip',...cfg.prone,angles:[-.65,-.42,-.35,-.15,-.65],hands:[[248,48],[246,53],[0,0],[253,51],[248,48]],period:2.1},
+ {name:'Wide side chip',...cfg.prone,angles:[-.65,-.85,-.15,-.1,-.65],hands:[[248,48],[244,62],[0,0],[253,51],[248,48]],impact:60,period:2.25},
+ {name:'Forward chip',...cfg.prone,angles:[-.65,-.25,-.10,-.1,-.65],hands:[[248,48],[245,59],[0,0],[253,51],[248,48]],impact:66,period:1.95}]
+};
+const dist=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]),plus=(a,b)=>[a[0]+b[0],a[1]+b[1]],minus=(a,b)=>[a[0]-b[0],a[1]-b[1]],scale2=(a,k)=>[a[0]*k,a[1]*k];
+const marks=[0,.40,.62,.72,1],shaft=48,headWidth=13,handleBack=26,gripSpacing=19;
+function mining(mode,t,variant=0){
+ const c=variants[mode][variant],base=bases[mode],p=Object.fromEntries(Object.entries(base).map(([k,v])=>[k,[...v]]));
+ t=Math.max(0,Math.min(1,t));let i=0;while(i<3&&t>marks[i+1])i++;
+ const u=ease((t-marks[i])/(marks[i+1]-marks[i])),angle=turn(c.angles[i],c.angles[i+1],u),pitch=mix(c.pitch[i],c.pitch[i+1],u)*1.35-(mode==='prone'?0:0.035)*Math.sin(Math.PI*Math.max(0,Math.min(1,(t-.62)/.10)))**2;
+ const axis=[Math.cos(angle),Math.sin(angle)],normal=[-axis[1],axis[0]],tipOffset=plus(scale2(axis,shaft),scale2(normal,headWidth));
+ for(const k of Object.keys(p)){if(!/^(pink|orange|pelvis)/.test(k)){const v=minus(p[k],p.pelvis);p[k]=plus(p.pelvis,[v[0]*Math.cos(pitch)-v[1]*Math.sin(pitch),v[0]*Math.sin(pitch)+v[1]*Math.cos(pitch)])}}
+ const ia=c.angles[2],impactGrip=minus([c.wall,c.impact],plus(scale2([Math.cos(ia),Math.sin(ia)],shaft),scale2([-Math.sin(ia),Math.cos(ia)],headWidth)));
+ const hands=c.hands.map((v,j)=>j===2?impactGrip:v);
+ let goal=hands[i].map((v,j)=>mix(v,hands[i+1][j],u));
+ goal[0]=Math.min(goal[0],c.wall-tipOffset[0]);
+ const active=mode==='prone'?'blue':'red';
+ const gripStats={};
+ function arm(prefix,target){
+  const a=p[prefix+'Shoulder'],b=base[prefix+'Elbow'],w=base[prefix+'Wrist'],h=base[prefix+'Hand'];
+  const L=dist(base[prefix+'Shoulder'],b),M=dist(b,w),F=dist(w,h);
+  const dir=minus(target,a),d0=Math.hypot(...dir),v=scale2(dir,1/Math.max(.001,d0)),sign=mode==='prone'?-1:1;
+  const D=Math.max(Math.abs(L-M-F)+.001,Math.min(L+M+F-.001,d0));
+  const al=(L*L-(M+F)*(M+F)+D*D)/(2*D),be=Math.sqrt(Math.max(0,L*L-al*al));
+  const straightElbow=plus(a,plus(scale2(v,al),scale2([-v[1],v[0]],sign*be)));
+  const straightAngle=Math.atan2(target[1]-straightElbow[1],target[0]-straightElbow[0]);
+  // Continuous attraction toward a shaft-normal grip, allowing either palm
+  // side without a 180-degree wrist flip. Closed fist artwork follows shaft.
+  const delta=angle+Math.PI/2-straightAngle;
+  const handAngle=straightAngle+.30*Math.sin(2*delta);
+  const hv=[Math.cos(handAngle),Math.sin(handAngle)];
+  let wr=minus(target,scale2(hv,F)),dv=minus(wr,a),d=Math.hypot(...dv);
+  if(d>L+M-.001||d<Math.abs(L-M)+.001){
+   wr=minus(target,scale2([Math.cos(straightAngle),Math.sin(straightAngle)],F));dv=minus(wr,a);d=Math.hypot(...dv);
+  }
+  const uv=scale2(dv,1/d),along=(L*L-M*M+d*d)/(2*d),bend=Math.sqrt(Math.max(0,L*L-along*along));
+  const elbow=plus(a,plus(scale2(uv,along),scale2([-uv[1],uv[0]],sign*bend)));
+  p[prefix+'Elbow']=elbow;p[prefix+'Wrist']=wr;p[prefix+'Hand']=target;
+  const fa=minus(wr,elbow),ha=minus(target,wr);
+  gripStats[prefix]={flex:Math.acos(Math.max(-1,Math.min(1,(fa[0]*ha[0]+fa[1]*ha[1])/(M*F))))};
+  return target;
+ }
+ const grip=arm(active,goal),otherTarget=minus(grip,scale2(axis,gripSpacing));
+ if(mode!=='prone')arm('blue',otherTarget);
+ const head=plus(grip,scale2(axis,shaft)),tip=plus(head,scale2(normal,headWidth)),back=minus(head,scale2(normal,headWidth)),butt=minus(grip,scale2(axis,handleBack));
+ return {p,grip,head,tip,back,butt,active,c,t,angle,goal,otherTarget,gripStats};
+}
+function auditMining(mode,variant=0){let length=0,grip=0,roof=0,wall=0,floor=0,step=0,impact=0,otherGrip=0,bodyRoof=0,bodyFloor=0,bodyWall=0,activeTarget=0,loop=0,clearance=Infinity,legDrift=0;let prev=null;const base=bases[mode],top=98-(cfg[mode].tiles*72)/(.34*1.88);
+ for(let n=0;n<=400;n++){const t=n/400,q=mining(mode,t,variant);for(const prefix of ['red','blue']){const ks=['Shoulder','Elbow','Wrist','Hand'].map(k=>prefix+k);for(let i=1;i<ks.length;i++)length=Math.max(length,Math.abs(dist(q.p[ks[i]],q.p[ks[i-1]])-dist(base[ks[i]],base[ks[i-1]])));}
+ grip=Math.max(grip,dist(q.grip,q.p[q.active+'Hand']));activeTarget=Math.max(activeTarget,dist(q.goal,q.grip));if(mode!=='prone')otherGrip=Math.max(otherGrip,dist(q.otherTarget,q.p.blueHand));
+ for(const a of [q.tip,q.back,q.butt,q.head]){roof=Math.max(roof,top-a[1]);floor=Math.max(floor,a[1]-98);wall=Math.max(wall,a[0]-q.c.wall);clearance=Math.min(clearance,a[1]-top)}
+ for(const [k,a] of Object.entries(q.p)){const r=k==='head'?15:k.endsWith('Hand')?3:0;bodyRoof=Math.max(bodyRoof,top-(a[1]-r));bodyFloor=Math.max(bodyFloor,a[1]-98);bodyWall=Math.max(bodyWall,a[0]+r-q.c.wall);if(/^(pink|orange)/.test(k))legDrift=Math.max(legDrift,dist(a,base[k]));}
+ if(n===248)impact=dist(q.tip,[q.c.wall,q.c.impact]);if(prev)step=Math.max(step,dist(q.tip,prev.tip));prev=q;}
+ loop=dist(mining(mode,0,variant).tip,mining(mode,1,variant).tip);
+ return {length,grip,roof,wall,floor,step,impact,otherGrip,bodyRoof,bodyFloor,bodyWall,activeTarget,loop,clearance,legDrift}}
+
+let mode='standing',variant=0,phase=0,playing=true,last=null;
+const stats=Object.fromEntries(Object.keys(cfg).map(k=>[k,variants[k].map((_,i)=>auditMining(k,i))]));
+function syncChoices(){const sel=el('strike');sel.options[1].text=variants[mode][0].name;sel.options[2].text=variants[mode][1].name;sel.options[3].text=variants[mode][2].name;}
+el('strike').onchange=()=>{variant=el('strike').value==='auto'?0:Number(el('strike').value);phase=0;last=null;};
+el('skip').onclick=()=>{variant=(variant+1)%3;if(el('strike').value!=='auto')el('strike').value=String(variant);phase=0;last=null;};
+function toggle(on){playing=on;el('play').textContent=on?'Pause':'Play';last=null}
+for(const k of Object.keys(cfg))el(k).onclick=()=>{mode=k;variant=0;phase=0;last=null;el('strike').value='auto';syncChoices();for(const n of Object.keys(cfg))el(n).className=n===k?'active':'';};
+el('play').onclick=()=>toggle(!playing);el('prev').onclick=()=>{toggle(false);phase=Math.max(0,phase-1/48)};el('next').onclick=()=>{toggle(false);phase=Math.min(1,phase+1/48)};el('impact').onclick=()=>{toggle(false);phase=.62};el('scrub').oninput=()=>{toggle(false);phase=Number(el('scrub').value)/1000};
+function paint(id,q,scale,floor){
+ const cv=el(id),g=cv.getContext('2d'),factor=.34*scale,cx=350,point=([x,y])=>[cx+(x-165)*factor,floor+(y-98)*factor],wall=point([q.c.wall,98])[0],roof=floor-q.c.tiles*72*scale/1.88,impact=point([q.c.wall,q.c.impact]);
+ g.fillStyle='#20292b';g.fillRect(0,0,cv.width,cv.height);
+ g.fillStyle='#42403a';g.fillRect(0,0,cv.width,roof);g.fillRect(0,floor,cv.width,cv.height-floor);g.fillRect(wall,roof,cv.width-wall,floor-roof);
+ g.strokeStyle='#6a665b';g.lineWidth=1;g.beginPath();g.moveTo(0,roof);g.lineTo(wall,roof);g.lineTo(wall,floor);g.lineTo(0,floor);g.stroke();
+ for(let i=1;i<q.c.tiles;i++){const y=floor-i*72*scale/1.88;g.strokeStyle='#57564c';g.beginPath();g.moveTo(wall,y);g.lineTo(cv.width,y);g.stroke()}
+ if(el('trail').checked){g.beginPath();for(let i=0;i<=80;i++){const xy=point(mining(mode,i/80,variant).tip);i?g.lineTo(...xy):g.moveTo(...xy)}g.strokeStyle='#b28b52';g.lineWidth=1.5;g.stroke()}
+ function line(a,b,color,width){g.beginPath();g.moveTo(...point(a));g.lineTo(...point(b));g.strokeStyle=color;g.lineWidth=width;g.lineCap='round';g.stroke()}
+ // Tool is drawn before the hands so their artwork occludes the shaft at the grips.
+ line(q.butt,q.head,'#47362a',5.2*factor);line(q.butt,q.head,'#b78e5f',3*factor);
+ const axis=[Math.cos(q.angle),Math.sin(q.angle)],h=q.head;
+ g.fillStyle='#acb9b8';g.beginPath();g.moveTo(...point(q.tip));g.quadraticCurveTo(...point(plus(h,scale2(axis,5))),...point(plus(q.back,scale2(axis,1.2))));g.lineTo(...point(q.back));g.quadraticCurveTo(...point(minus(h,scale2(axis,6))),...point(q.tip));g.fill();
+ tracked(g,0,0,scale,cx,floor,q.p,{angle:q.angle,arms:mode==='prone'?['blue']:['blue','red']});
+ if(el('markers').checked){const pts=[[q.grip,'#7dd5ad'],[q.tip,'#e5ad61']];if(mode!=='prone')pts.push([q.p.blueHand,'#7dd5ad']);else pts.push([q.p.redHand,'#7dd5ad']);for(const [p,c] of pts){g.beginPath();g.arc(...point(p),4,0,Math.PI*2);g.strokeStyle=c;g.lineWidth=1.5;g.stroke()}g.beginPath();g.moveTo(impact[0]-7,impact[1]);g.lineTo(impact[0]+7,impact[1]);g.moveTo(impact[0],impact[1]-7);g.lineTo(impact[0],impact[1]+7);g.strokeStyle='#e5ad61';g.stroke()}
+ if(Math.abs(phase-.62)<.025){g.beginPath();g.arc(...impact,6+15*Math.abs(phase-.62)/.025,0,Math.PI*2);g.strokeStyle='#ebc986';g.lineWidth=1.5;g.stroke()}
+}
+function tick(now){if(playing&&last!==null){phase+=Math.min(100,now-last)/1000*Number(el('speed').value)/variants[mode][variant].period;if(phase>=1){const carry=(phase-1)*variants[mode][variant].period;if(el('strike').value==='auto')variant=(variant+1)%3;phase=carry/variants[mode][variant].period;}}last=now;const q=mining(mode,phase,variant);paint('game',q,1.88,270);paint('zoom',q,3.4,450);el('scrub').value=Math.round(phase*1000);const stage=phase<.4?'Windup':phase<.61?'Strike':phase<.64?'Impact':phase<.72?'Recoil':'Recovery';el('status').textContent=q.c.name+' · '+stage+' · '+Math.round(phase*100)+'% · '+q.c.period.toFixed(2)+' s per strike';const a=stats[mode][variant];el('metrics').textContent='Numerical checks: impact error '+a.impact.toFixed(3)+' · grip error '+Math.max(a.grip,a.otherGrip).toFixed(3)+' · projected arm length error '+a.length.toFixed(3)+' · minimum tool roof clearance '+(a.clearance*.34*1.88).toFixed(1)+' game px · wrist bend '+Math.round(Math.max(...Object.values(q.gripStats).map(v=>v.flex))*180/Math.PI)+'°';requestAnimationFrame(tick)}
+requestAnimationFrame(tick);
+</script></body></html>
